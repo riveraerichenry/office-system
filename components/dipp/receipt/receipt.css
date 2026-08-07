@@ -1,0 +1,144 @@
+@page {
+    size: letter;
+    margin: 0;
+}
+
+:root {
+
+    /* Print Calibration */
+
+    --offset-x: 0in;
+
+    --offset-y: 1.5in;
+
+}
+
+html,
+body {
+
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0;
+    padding: 0;
+
+    background: white;
+
+    font-family: "Times New Roman", serif;
+
+}
+
+.print-page {
+
+    position: relative;
+
+    width: 8.5in;
+    height: 11in;
+
+    background: white;
+
+    overflow: hidden;
+
+    transform: translate(
+        var(--offset-x),
+        var(--offset-y)
+    );
+
+}
+
+/* ---------- Typography ---------- */
+
+.small {
+
+    font-size: 10px;
+
+}
+
+.normal {
+
+    font-size: 12px;
+
+}
+
+.large {
+
+    font-size: 15px;
+
+}
+
+.bold {
+
+    font-weight: bold;
+
+}
+
+/* ---------- Header ---------- */
+
+.receipt-header {
+
+    position: absolute;
+
+    left: 0;
+    top: 0;
+
+    width: 100%;
+
+}
+
+/* ---------- Items ---------- */
+
+.receipt-items {
+
+    position: absolute;
+
+    left: 0;
+
+    width: 100%;
+
+}
+
+/* ---------- Footer ---------- */
+
+.receipt-footer {
+
+    position: absolute;
+
+    left: 0;
+
+    width: 100%;
+
+}
+
+/* ---------- Utility ---------- */
+
+.row {
+
+    display: flex;
+
+    align-items: center;
+
+}
+
+.space-between {
+
+    justify-content: space-between;
+
+}
+
+.center {
+
+    text-align: center;
+
+}
+
+.right {
+
+    text-align: right;
+
+}
+
+.uppercase {
+
+    text-transform: uppercase;
+
+}
