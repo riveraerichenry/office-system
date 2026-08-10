@@ -9,30 +9,48 @@ jobs:
   deploy:
     runs-on: self-hosted
 
-    defaults:
-      run:
-        shell: cmd
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Server
+      - name: Pull Latest Code
+        shell: powershell
         run: |
-          robocopy "%GITHUB_WORKSPACE%" "C:\Deployment\office-system" /MIR /XD .git .github node_modules .next
-          if %ERRORLEVEL% LSS 8 exit /b 0
-          exit /b %ERRORLEVEL%
+          cd C:\Deployment\office-system
+          git fetch origin
+          git reset --hard origin/main
+
+      - name: Restore Production Environment
+        shell: powershell
+        run: |
+          Copy-Item `
+            "C:\Deployment\config\office-system.env.local" `
+            "C:\Deployment\office-system\.env.local" `
+            -Force
+
+      - name: Verify Production Environment
+        shell: powershell
+        run: |
+          if (-not (Test-Path "C:\Deployment\office-system\.env.local")) {
+            Write-Error "Production .env.local was not restored."
+            exit 1
+          }
+
+          Write-Host "Production .env.local restored successfully."
 
       - name: Install Dependencies
+        shell: powershell
         run: |
-          cd /d C:\Deployment\office-system
-          call npm install
+          cd C:\Deployment\office-system
+          npm install
 
       - name: Build Application
+        shell: powershell
         run: |
-          cd /d C:\Deployment\office-system
-          call npm run build
+          cd C:\Deployment\office-system
+          npm run build
 
       - name: Restart PM2
+        shell: powershell
         run: |
-          call pm2 restart office-system
+          pm2 restart office-system --update-env
