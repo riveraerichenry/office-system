@@ -138,6 +138,10 @@ export async function POST(req: Request) {
       modules = moduleResult.rows;
     }
 
+    // ---------------------------------------------
+    // Login Debug
+    // ---------------------------------------------
+
     console.log("========== LOGIN ==========");
     console.log("USER:", user.username);
     console.log("ROLES:", user.roles);
@@ -158,14 +162,14 @@ export async function POST(req: Request) {
     // ---------------------------------------------
 
     const token = createToken({
-  id: user.id,
-  username: user.username,
-  full_name: user.full_name,
-  roles: user.roles,
-});
-
+      id: user.id,
+      username: user.username,
+      full_name: user.full_name,
+      roles: user.roles,
+    });
 
     console.log("JWT LENGTH:", token.length);
+
     // ---------------------------------------------
     // Response
     // ---------------------------------------------
@@ -186,19 +190,27 @@ export async function POST(req: Request) {
       },
     });
 
+    // ---------------------------------------------
+    // Authentication Cookie
+    //
+    // Current server uses HTTP:
+    // http://192.168.88.9:3002
+    //
+    // Therefore secure must be false.
+    // Change to true when HTTPS is configured.
+    // ---------------------------------------------
+
     response.cookies.set("token", token, {
       httpOnly: true,
-      secure:
-        process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24,
     });
 
     return response;
-
   } catch (err) {
-    console.error(err);
+    console.error("LOGIN ERROR:", err);
 
     return NextResponse.json(
       {
