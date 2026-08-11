@@ -12,6 +12,7 @@ import FiscalYearSummary from "@/components/dipp/FiscalYearSummary";
 import DailyCollections from "@/components/dipp/DailyCollection";
 import DIPPSystemOptions from "@/components/dipp/DIPPSystemOptions";
 import AF58ReceiptModal from "@/components/dipp/a58/AF58ReceiptModal";
+import AF54ReceiptModal from "@/components/dipp/af54/AF54ReceiptModal";
 
 import OfficialReceiptDetailsModal
     from "@/components/dipp/OfficialReceiptModal";
@@ -96,6 +97,21 @@ export default function DIPPPage() {
         setOpenAF58Modal,
     ] = useState(false);
 
+
+
+
+
+
+  /*
+    |--------------------------------------------------------------------------
+    | AF54
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openAF54Modal,
+        setOpenAF54Modal,
+    ] = useState(false);
         /*
     |--------------------------------------------------------------------------
     | General / AF56
@@ -764,6 +780,19 @@ export default function DIPPPage() {
             return;
         }
 
+        if (
+                formCode === "AF54"
+            ) {
+
+                setOpenAF54Modal(
+                    true
+                );
+
+                return;
+            }
+
+
+
         /*
         |--------------------------------------------------------------------------
         | General Receipt
@@ -1158,6 +1187,47 @@ export default function DIPPPage() {
                     async () => {
 
                         setOpenAF58Modal(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
+
+            />
+
+
+            <AF54ReceiptModal
+
+                open={
+                    openAF54Modal
+                }
+
+                booklet={
+                    selectedBooklet
+                }
+
+                onClose={() => {
+
+                    setOpenAF54Modal(
+                        false
+                    );
+
+                    setSelectedBooklet(
+                        null
+                    );
+
+                }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenAF54Modal(
                             false
                         );
 
