@@ -11,6 +11,7 @@ import ActiveBookletTable from "@/components/dipp/ActiveBookletTable";
 import FiscalYearSummary from "@/components/dipp/FiscalYearSummary";
 import DailyCollections from "@/components/dipp/DailyCollection";
 import DIPPSystemOptions from "@/components/dipp/DIPPSystemOptions";
+import AF58ReceiptModal from "@/components/dipp/a58/AF58ReceiptModal";
 
 import OfficialReceiptDetailsModal
     from "@/components/dipp/OfficialReceiptModal";
@@ -80,7 +81,22 @@ export default function DIPPPage() {
         setSelectedBooklet,
     ] = useState<any>(null);
 
+
+
+
+
     /*
+    |--------------------------------------------------------------------------
+    | AF58
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openAF58Modal,
+        setOpenAF58Modal,
+    ] = useState(false);
+
+        /*
     |--------------------------------------------------------------------------
     | General / AF56
     |--------------------------------------------------------------------------
@@ -646,6 +662,7 @@ export default function DIPPPage() {
         setOpenCTCC(
             false
         );
+        setOpenAF58Modal(false);
 
         /*
         |--------------------------------------------------------------------------
@@ -727,6 +744,22 @@ export default function DIPPPage() {
             setOpenCTCC(
                 true
             );
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AF58
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formCode === "AF58"
+        ) {
+
+            setOpenAF58Modal(true);
 
             return;
         }
@@ -1081,6 +1114,50 @@ export default function DIPPPage() {
                     async () => {
 
                         setOpenCTCC(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
+
+            />
+
+            {/* ==============================================================
+                AF58
+            ================================================================ */}
+
+            <AF58ReceiptModal
+
+                open={
+                    openAF58Modal
+                }
+
+                booklet={
+                    selectedBooklet
+                }
+
+                onClose={() => {
+
+                    setOpenAF58Modal(
+                        false
+                    );
+
+                    setSelectedBooklet(
+                        null
+                    );
+
+                }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenAF58Modal(
                             false
                         );
 
