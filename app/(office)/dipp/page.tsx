@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
+
 import axios from "axios";
 
 import ActiveBookletTable from "@/components/dipp/ActiveBookletTable";
@@ -9,17 +13,21 @@ import DailyCollections from "@/components/dipp/DailyCollection";
 import DIPPSystemOptions from "@/components/dipp/DIPPSystemOptions";
 import OfficialReceiptDetailsModal from "@/components/dipp/OfficialReceiptModal";
 import AF56ReceiptModal from "@/components/dipp/AF56ReceiptModal";
-import GenerateRCDModal from "@/components/dipp/systemoptionmodal/GenerateRCDModal";
-
-import CTCReceiptModal from "@/components/dipp/ctc/CTCReceiptModal";
-
-
-
 import GeneralReceiptModal from "@/components/dipp/GeneralReceiptModal";
 import MonthlyTransactionsModal from "@/components/dipp/MonthlyTransactionModal";
-// import AF56ReceiptModal from "@/components/dipp/AF56ReceiptModal";
 
 export default function DIPPPage() {
+
+    /*
+    |--------------------------------------------------------------------------
+    | System Options
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        systemOpen,
+        setSystemOpen,
+    ] = useState(false);
 
     /*
     |--------------------------------------------------------------------------
@@ -27,22 +35,25 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
-    const [systemOpen, setSystemOpen] = useState(false);
+    const [
+        booklets,
+        setBooklets,
+    ] = useState<any[]>([]);
 
-    const [booklets, setBooklets] =
-        useState<any[]>([]);
+    const [
+        selected,
+        setSelected,
+    ] = useState<any>(null);
 
-    const [selected, setSelected] =
-        useState<any>(null);
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
 
-    const [loading, setLoading] =
-        useState(false);
-
-    const [search, setSearch] =
-        useState("");
-
-    const [openGenerateRCDModal, setOpenGenerateRCDModal] =
-        useState(false);
+    const [
+        search,
+        setSearch,
+    ] = useState("");
 
     /*
     |--------------------------------------------------------------------------
@@ -50,14 +61,20 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
-    const [selectedBooklet, setSelectedBooklet] =
-        useState<any>(null);
+    const [
+        selectedBooklet,
+        setSelectedBooklet,
+    ] = useState<any>(null);
 
-    const [openGeneralModal, setOpenGeneralModal] =
-        useState(false);
+    const [
+        openGeneralModal,
+        setOpenGeneralModal,
+    ] = useState(false);
 
-    const [openAF56Modal, setOpenAF56Modal] =
-        useState(false);
+    const [
+        openAF56Modal,
+        setOpenAF56Modal,
+    ] = useState(false);
 
     /*
     |--------------------------------------------------------------------------
@@ -65,11 +82,15 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
-    const [selectedMonth, setSelectedMonth] =
-        useState(1);
+    const [
+        selectedMonth,
+        setSelectedMonth,
+    ] = useState(1);
 
-    const [openMonthlyModal, setOpenMonthlyModal] =
-        useState(false);
+    const [
+        openMonthlyModal,
+        setOpenMonthlyModal,
+    ] = useState(false);
 
     /*
     |--------------------------------------------------------------------------
@@ -77,155 +98,201 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
-    const [summaryRows, setSummaryRows] =
-        useState<any[]>([]);
+    const [
+        summaryRows,
+        setSummaryRows,
+    ] = useState<any[]>([]);
 
-    const [summaryForms, setSummaryForms] =
-        useState<string[]>([]);
+    const [
+        summaryForms,
+        setSummaryForms,
+    ] = useState<string[]>([]);
 
-    const [summaryYears, setSummaryYears] =
-        useState<number[]>([]);
+    const [
+        summaryYears,
+        setSummaryYears,
+    ] = useState<number[]>([]);
 
-    const [summaryLoading, setSummaryLoading] =
-        useState(false);
+    const [
+        summaryLoading,
+        setSummaryLoading,
+    ] = useState(false);
 
-    const [fiscalYear, setFiscalYear] =
-        useState(new Date().getFullYear());
+    const [
+        fiscalYear,
+        setFiscalYear,
+    ] = useState(
+        new Date().getFullYear()
+    );
 
     /*
     |--------------------------------------------------------------------------
-    | Daily Collections
+    | Daily / Monthly Collections
     |--------------------------------------------------------------------------
     */
 
-    const [dailyCollections, setDailyCollections] =
-        useState<any[]>([]);
+    const [
+        dailyCollections,
+        setDailyCollections,
+    ] = useState<any[]>([]);
 
-    const [dailyLoading, setDailyLoading] =
-        useState(false);
+    const [
+        dailyLoading,
+        setDailyLoading,
+    ] = useState(false);
 
-    const [dailyPage, setDailyPage] =
-        useState(1);
+    const [
+        dailyPage,
+        setDailyPage,
+    ] = useState(1);
 
-    const [dailyTotalPages, setDailyTotalPages] =
-        useState(1);
+    const [
+        dailyTotalPages,
+        setDailyTotalPages,
+    ] = useState(1);
 
-    const [dailyTotalRecords, setDailyTotalRecords] =
-        useState(0);
+    const [
+        dailyTotalRecords,
+        setDailyTotalRecords,
+    ] = useState(0);
 
-    const [dailyMonth, setDailyMonth] =
-        useState(new Date().getMonth() + 1);
+    const [
+        dailySearch,
+        setDailySearch,
+    ] = useState("");
 
-    const [dailyYear, setDailyYear] =
-        useState(new Date().getFullYear());
-
-    const [dailySearch, setDailySearch] =
-        useState("");
-
-
-
-
-
-    const [openCTCModal, setOpenCTCModal] =
-        useState(false);
-
-
-
-
-    const [receiptDetailsOpen, setReceiptDetailsOpen] =
-        useState(false);
-
-    const [receiptLoading, setReceiptLoading] =
-        useState(false);
-
-    const [receiptHeader, setReceiptHeader] =
-        useState<any>(null);
-
-    const [receiptItems, setReceiptItems] =
-        useState<any[]>([]);
     /*
     |--------------------------------------------------------------------------
-    | Initial Load
+    | Daily / Monthly View
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        viewMode,
+        setViewMode,
+    ] = useState<
+        "daily" | "monthly"
+    >("daily");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Details
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        receiptDetailsOpen,
+        setReceiptDetailsOpen,
+    ] = useState(false);
+
+    const [
+        receiptLoading,
+        setReceiptLoading,
+    ] = useState(false);
+
+    const [
+        receiptHeader,
+        setReceiptHeader,
+    ] = useState<any>(null);
+
+    const [
+        receiptItems,
+        setReceiptItems,
+    ] = useState<any[]>([]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initial Load - Active Booklets
     |--------------------------------------------------------------------------
     */
 
     useEffect(() => {
-
         loadBooklets();
-
     }, [search]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fiscal Year Summary
+    |--------------------------------------------------------------------------
+    */
+
     useEffect(() => {
-
         loadSummary();
-
     }, [fiscalYear]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Daily / Monthly Collections
+    |--------------------------------------------------------------------------
+    |
+    | Reload whenever:
+    |
+    | - view changes
+    | - search changes
+    | - page changes
+    |
+    */
+
     useEffect(() => {
-
         loadDailyCollections();
-
     }, [
-
-        dailyMonth,
-
-        dailyYear,
-
+        viewMode,
         dailySearch,
-
         dailyPage,
-
     ]);
 
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Details
+    |--------------------------------------------------------------------------
+    */
 
     async function loadTransactionDetails(
+        id: string
+    ) {
+        try {
 
-    id:string
-
-){
-
-    try{
-
-        setReceiptLoading(true);
-
-        const res =
-            await axios.get(
-
-                `/api/dipp/transactions/${id}`
-
+            setReceiptLoading(
+                true
             );
 
-        setReceiptHeader(
+            const res =
+                await axios.get(
+                    "/api/dipp/transaction-details",
+                    {
+                        params: {
+                            id,
+                        },
+                    }
+                );
 
-            res.data.header
+            setReceiptHeader(
+                res.data.header
+            );
 
-        );
+            setReceiptItems(
+                res.data.items
+            );
 
-        setReceiptItems(
+            setReceiptDetailsOpen(
+                true
+            );
 
-            res.data.items
+        } catch (err) {
 
-        );
+            console.error(
+                "Failed to load transaction details:",
+                err
+            );
 
-        setReceiptDetailsOpen(true);
+        } finally {
 
+            setReceiptLoading(
+                false
+            );
+
+        }
     }
-
-    catch(err){
-
-        console.error(err);
-
-    }
-
-    finally{
-
-        setReceiptLoading(false);
-
-    }
-
-}
 
     /*
     |--------------------------------------------------------------------------
@@ -233,86 +300,104 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
-
     async function loadBooklets() {
 
         try {
 
-            setLoading(true);
+            setLoading(
+                true
+            );
 
             const res =
                 await axios.get(
-
                     "/api/dipp/active-booklets",
-
                     {
-
                         params: {
-
                             search,
-
                         },
-
                     }
-
                 );
 
             const rows =
                 res.data.data ?? [];
 
-            setBooklets(rows);
+            setBooklets(
+                rows
+            );
 
-            if (rows.length === 0) {
+            /*
+            |--------------------------------------------------------------------------
+            | No Booklets
+            |--------------------------------------------------------------------------
+            */
 
-                setSelected(null);
+            if (
+                rows.length === 0
+            ) {
+
+                setSelected(
+                    null
+                );
 
                 return;
-
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Preserve Current Selection
+            |--------------------------------------------------------------------------
+            */
 
             if (selected) {
 
                 const updated =
                     rows.find(
-
-                        (x: any) =>
-
+                        (
+                            x: any
+                        ) =>
                             x.booklet_registration_id ===
                             selected.booklet_registration_id
-
                     );
 
                 if (updated) {
 
-                    setSelected(updated);
+                    setSelected(
+                        updated
+                    );
 
                     return;
-
                 }
-
             }
 
-            setSelected(rows[0]);
+            /*
+            |--------------------------------------------------------------------------
+            | Default Selection
+            |--------------------------------------------------------------------------
+            */
+
+            setSelected(
+                rows[0]
+            );
+
+        } catch (err) {
+
+            console.error(
+                "Failed to load active booklets:",
+                err
+            );
+
+        } finally {
+
+            setLoading(
+                false
+            );
 
         }
-
-        catch (err) {
-
-            console.error(err);
-
-        }
-
-        finally {
-
-            setLoading(false);
-
-        }
-
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Load Fiscal Summary
+    | Load Fiscal Year Summary
     |--------------------------------------------------------------------------
     */
 
@@ -320,24 +405,19 @@ export default function DIPPPage() {
 
         try {
 
-            setSummaryLoading(true);
+            setSummaryLoading(
+                true
+            );
 
             const res =
                 await axios.get(
-
                     "/api/dipp/dashboard/summary",
-
                     {
-
                         params: {
-
                             fiscal_year:
                                 fiscalYear,
-
                         },
-
                     }
-
                 );
 
             setSummaryRows(
@@ -352,195 +432,368 @@ export default function DIPPPage() {
                 res.data.years ?? []
             );
 
+        } catch (err) {
+
+            console.error(
+                "Failed to load fiscal summary:",
+                err
+            );
+
+        } finally {
+
+            setSummaryLoading(
+                false
+            );
+
         }
-
-        catch (err) {
-
-            console.error(err);
-
-        }
-
-        finally {
-
-            setSummaryLoading(false);
-
-        }
-
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Load Daily Collections
+    | Load Daily / Monthly Collections
     |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | Daily:
+    |     view=daily
+    |
+    | Monthly:
+    |     view=monthly
+    |
+    | The API handles receipt_date filtering.
+    |
     */
 
     async function loadDailyCollections() {
 
         try {
 
-            setDailyLoading(true);
+            setDailyLoading(
+                true
+            );
 
             const res =
                 await axios.get(
-
                     "/api/dipp/daily-collections",
-
                     {
-
                         params: {
 
-                            month: dailyMonth,
+                            /*
+                            |--------------------------------------------------------------------------
+                            | This is the important parameter.
+                            |--------------------------------------------------------------------------
+                            */
 
-                            year: dailyYear,
+                            view:
+                                viewMode,
 
-                            search: dailySearch,
+                            search:
+                                dailySearch,
 
-                            page: dailyPage,
+                            page:
+                                dailyPage,
 
-                            pageSize: 5,
-
+                            pageSize:
+                                5,
                         },
-
                     }
-
                 );
 
-            setDailyCollections(
-                res.data.rows ?? []
+            console.log(
+                "DIPP COLLECTION VIEW:",
+                viewMode
             );
 
+            console.log(
+                "DIPP COLLECTION RESPONSE:",
+                res.data
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rows
+            |--------------------------------------------------------------------------
+            */
+
+            setDailyCollections(
+                Array.isArray(
+                    res.data.rows
+                )
+                    ? res.data.rows
+                    : []
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pagination
+            |--------------------------------------------------------------------------
+            */
+
             setDailyTotalPages(
-                res.data.totalPages ?? 1
+                Number(
+                    res.data.totalPages ??
+                    1
+                )
             );
 
             setDailyTotalRecords(
-                res.data.totalRecords ?? 0
+                Number(
+                    res.data.totalRecords ??
+                    0
+                )
+            );
+
+        } catch (err) {
+
+            console.error(
+                "Failed to load DIPP collections:",
+                err
+            );
+
+            setDailyCollections(
+                []
+            );
+
+            setDailyTotalPages(
+                1
+            );
+
+            setDailyTotalRecords(
+                0
+            );
+
+        } finally {
+
+            setDailyLoading(
+                false
             );
 
         }
-
-        catch (err) {
-
-            console.error(err);
-
-        }
-
-        finally {
-
-            setDailyLoading(false);
-
-        }
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Change Daily / Monthly
+    |--------------------------------------------------------------------------
+    */
+
+    function handleViewModeChange(
+        mode:
+            | "daily"
+            | "monthly"
+    ) {
+
         /*
+        |--------------------------------------------------------------------------
+        | Already Selected
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            mode ===
+            viewMode
+        ) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Clear Old Rows
+        |--------------------------------------------------------------------------
+        |
+        | Prevents the Daily records from remaining visible
+        | while Monthly is loading.
+        |
+        */
+
+        setDailyCollections(
+            []
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reset Pagination
+        |--------------------------------------------------------------------------
+        */
+
+        setDailyPage(
+            1
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Change View
+        |--------------------------------------------------------------------------
+        */
+
+        setViewMode(
+            mode
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Select Booklet
+    |--------------------------------------------------------------------------
+    */
+
+    function handleSelectBooklet(
+        row: any
+    ) {
+
+        setSelected(
+            row
+        );
+
+        setSelectedBooklet(
+            row
+        );
+
+        const formCode =
+            row.form_code
+                ?.trim()
+                .toUpperCase();
+
+        switch (
+            formCode
+        ) {
+
+            case "AF56":
+
+                setOpenAF56Modal(
+                    true
+                );
+
+                break;
+
+            default:
+
+                setOpenGeneralModal(
+                    true
+                );
+
+                break;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Refresh After Receipt
+    |--------------------------------------------------------------------------
+    */
+
+    async function refreshDashboard() {
+
+        await Promise.all([
+            loadBooklets(),
+            loadSummary(),
+            loadDailyCollections(),
+        ]);
+    }
+
+    /*
     |--------------------------------------------------------------------------
     | Render
     |--------------------------------------------------------------------------
     */
 
     return (
-
         <>
+
+            {/* ==============================================================
+                MAIN DASHBOARD
+            ============================================================== */}
 
             <div className="grid grid-cols-12 gap-6">
 
                 {/* ==========================================================
-                    Active Booklets
+                    ACTIVE BOOKLETS
                 ========================================================== */}
 
                 <div className="col-span-2">
 
                     <ActiveBookletTable
-                        data={booklets}
-                        loading={loading}
-                        selected={selected}
-                        search={search}
-                        onSearch={setSearch}
-                        onRefresh={loadBooklets}
-                        onSelect={(row) => {
 
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Select Booklet
-                            |--------------------------------------------------------------------------
-                            */
+                        data={
+                            booklets
+                        }
 
-                            setSelected(row);
-                            setSelectedBooklet(row);
+                        loading={
+                            loading
+                        }
 
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Open Appropriate Issuance Modal
-                            |--------------------------------------------------------------------------
-                            */
+                        selected={
+                            selected
+                        }
 
-                            const formCode =
-                                    row.form_code
-                                        ?.trim()
-                                        .toUpperCase();
+                        search={
+                            search
+                        }
 
-                                switch (formCode) {
-
-                                    case "AF56":
-
-                                        setOpenAF56Modal(true);
-                                        break;
-
-                                    case "CTC-I":
-
-                                    case "CTC-C":
-
-                                        setOpenCTCModal(true);
-                                        break;
-
-                                    default:
-
-                                        setOpenGeneralModal(true);
-                                        break;
-
-                                }
-
-                        }}
-                    />
-
-                </div>
-
-                {/* ==========================================================
-                    Fiscal Year Summary
-                ========================================================== */}
-
-                <div className="col-span-6">
-
-                    <FiscalYearSummary
-
-                        forms={summaryForms}
-
-                        rows={summaryRows}
-
-                        years={summaryYears}
-
-                        loading={summaryLoading}
-
-                        fiscalYear={fiscalYear}
-
-                        onFiscalYearChange={
-
-                            setFiscalYear
-
+                        onSearch={
+                            setSearch
                         }
 
                         onRefresh={
-
-                            loadSummary
-
+                            loadBooklets
                         }
 
-                        onMonthClick={(month) => {
+                        onSelect={
+                            handleSelectBooklet
+                        }
 
-                            setSelectedMonth(month);
+                    />
 
-                            setOpenMonthlyModal(true);
+                </div>
+
+                {/* ==========================================================
+                    FISCAL YEAR SUMMARY
+                ========================================================== */}
+
+                <div className="col-span-7">
+
+                    <FiscalYearSummary
+
+                        forms={
+                            summaryForms
+                        }
+
+                        rows={
+                            summaryRows
+                        }
+
+                        years={
+                            summaryYears
+                        }
+
+                        loading={
+                            summaryLoading
+                        }
+
+                        fiscalYear={
+                            fiscalYear
+                        }
+
+                        onFiscalYearChange={
+                            setFiscalYear
+                        }
+
+                        onRefresh={
+                            loadSummary
+                        }
+
+                        onMonthClick={(
+                            month
+                        ) => {
+
+                            setSelectedMonth(
+                                month
+                            );
+
+                            setOpenMonthlyModal(
+                                true
+                            );
 
                         }}
 
@@ -549,29 +802,53 @@ export default function DIPPPage() {
                 </div>
 
                 {/* ==========================================================
-                    Daily Collections
+                    DAILY / MONTHLY COLLECTIONS
                 ========================================================== */}
 
-                <div className="col-span-4">
+                <div className="col-span-3">
 
                     <DailyCollections
 
-                        rows={dailyCollections}
+                        rows={
+                            dailyCollections
+                        }
 
-                        loading={dailyLoading}
+                        loading={
+                            dailyLoading
+                        }
 
-                        page={dailyPage}
+                        page={
+                            dailyPage
+                        }
 
-                        totalPages={dailyTotalPages}
+                        totalPages={
+                            dailyTotalPages
+                        }
 
-                        totalRecords={dailyTotalRecords}
+                        totalRecords={
+                            dailyTotalRecords
+                        }
 
-                        onPageChange={setDailyPage}
+                        viewMode={
+                            viewMode
+                        }
+
+                        onViewModeChange={
+                            handleViewModeChange
+                        }
+
+                        onPageChange={(
+                            page
+                        ) => {
+
+                            setDailyPage(
+                                page
+                            );
+
+                        }}
 
                         onSelectTransaction={
-
                             loadTransactionDetails
-
                         }
 
                     />
@@ -579,263 +856,237 @@ export default function DIPPPage() {
                 </div>
 
             </div>
-                        {/* ==========================================================
-                General Collection Receipt
-            ========================================================== */}
+
+            {/* ==============================================================
+                GENERAL RECEIPT MODAL
+            ============================================================== */}
 
             <GeneralReceiptModal
 
-                open={openGeneralModal}
+                open={
+                    openGeneralModal
+                }
 
-                booklet={selectedBooklet}
+                booklet={
+                    selectedBooklet
+                }
 
                 onClose={() => {
 
-                    setOpenGeneralModal(false);
+                    setOpenGeneralModal(
+                        false
+                    );
 
-                    setSelectedBooklet(null);
-
-                }}
-
-                onSuccess={async () => {
-
-                    setOpenGeneralModal(false);
-
-                    setSelectedBooklet(null);
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Refresh Dashboard
-                    |--------------------------------------------------------------------------
-                    */
-
-                    await Promise.all([
-
-                        loadBooklets(),
-
-                        loadSummary(),
-
-                        loadDailyCollections(),
-
-                    ]);
+                    setSelectedBooklet(
+                        null
+                    );
 
                 }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenGeneralModal(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
 
             />
+
+            {/* ==============================================================
+                AF56 RECEIPT MODAL
+            ============================================================== */}
 
             <AF56ReceiptModal
 
-                open={openAF56Modal}
+                open={
+                    openAF56Modal
+                }
 
-                booklet={selectedBooklet}
+                booklet={
+                    selectedBooklet
+                }
 
                 onClose={() => {
 
-                    setOpenAF56Modal(false);
+                    setOpenAF56Modal(
+                        false
+                    );
 
-                    setSelectedBooklet(null);
-
-                }}
-
-                onSuccess={async () => {
-
-                    setOpenAF56Modal(false);
-
-                    setSelectedBooklet(null);
-
-                    await Promise.all([
-
-                        loadBooklets(),
-
-                        loadSummary(),
-
-                        loadDailyCollections(),
-
-                    ]);
+                    setSelectedBooklet(
+                        null
+                    );
 
                 }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenAF56Modal(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
 
             />
 
-            
-
-
-
-            {/* ==========================================================
-                Monthly Transactions
-            ========================================================== */}
+            {/* ==============================================================
+                MONTHLY TRANSACTIONS MODAL
+            ============================================================== */}
 
             <MonthlyTransactionsModal
 
-                open={openMonthlyModal}
+                open={
+                    openMonthlyModal
+                }
 
-                month={selectedMonth}
+                month={
+                    selectedMonth
+                }
 
-                year={fiscalYear}
+                year={
+                    fiscalYear
+                }
 
                 onClose={() =>
-
-                    setOpenMonthlyModal(false)
-
+                    setOpenMonthlyModal(
+                        false
+                    )
                 }
 
                 onSelectTransaction={
-
                     loadTransactionDetails
-
                 }
 
             />
+
+            {/* ==============================================================
+                OFFICIAL RECEIPT DETAILS
+            ============================================================== */}
 
             <OfficialReceiptDetailsModal
 
-                open={receiptDetailsOpen}
+                open={
+                    receiptDetailsOpen
+                }
 
-                loading={receiptLoading}
+                loading={
+                    receiptLoading
+                }
 
-                header={receiptHeader}
+                header={
+                    receiptHeader
+                }
 
-                items={receiptItems}
+                items={
+                    receiptItems
+                }
 
                 onClose={() => {
 
-                    setReceiptDetailsOpen(false);
+                    setReceiptDetailsOpen(
+                        false
+                    );
 
-                    setReceiptHeader(null);
+                    setReceiptHeader(
+                        null
+                    );
 
-                    setReceiptItems([]);
+                    setReceiptItems(
+                        []
+                    );
 
                 }}
 
             />
 
-            <CTCReceiptModal
-
-                open={openCTCModal}
-
-                booklet={selectedBooklet}
-
-                onClose={() => {
-
-                    setOpenCTCModal(false);
-
-                    setSelectedBooklet(null);
-
-                }}
-
-                onSuccess={async () => {
-
-                    setOpenCTCModal(false);
-
-                    setSelectedBooklet(null);
-
-                    await Promise.all([
-
-                        loadBooklets(),
-
-                        loadSummary(),
-
-                        loadDailyCollections(),
-
-                    ]);
-
-                }}
-
-            />
-
-
-
-       
+            {/* ==============================================================
+                SYSTEM OPTIONS
+            ============================================================== */}
 
             <DIPPSystemOptions
-                open={systemOpen}
-                setOpen={setSystemOpen}
+
+                open={
+                    systemOpen
+                }
+
+                setOpen={
+                    setSystemOpen
+                }
 
                 onSetupBooklet={() => {
-                    console.log("Setup Booklet");
+
+                    console.log(
+                        "Setup Booklet"
+                    );
+
                 }}
 
                 onGenerateRCD={() => {
-                    setOpenGenerateRCDModal(true);
+
+                    console.log(
+                        "Generate RCD"
+                    );
+
                 }}
 
                 onMyReports={() => {
-                    console.log("Reports");
+
+                    console.log(
+                        "Reports"
+                    );
+
                 }}
 
                 onDeposits={() => {
-                    console.log("Deposits");
+
+                    console.log(
+                        "Deposits"
+                    );
+
                 }}
 
                 onSkip={() => {
-                    console.log("Skip");
+
+                    console.log(
+                        "Skip"
+                    );
+
                 }}
 
                 onExcl={() => {
-                    console.log("EXCL");
+
+                    console.log(
+                        "EXCL"
+                    );
+
                 }}
 
                 onRAAF={() => {
-                    console.log("RAAF");
-                }}
-            />
 
-
-            <GenerateRCDModal
-
-                open={openGenerateRCDModal}
-
-                onClose={() =>
-                    setOpenGenerateRCDModal(false)
-                }
-
-            />
-
-
-
-
-            {/* ==========================================================
-                AF56 Receipt
-            ========================================================== */}
-
-            {/*
-            <AF56ReceiptModal
-
-                open={openAF56Modal}
-
-                booklet={selectedBooklet}
-
-                onClose={() => {
-
-                    setOpenAF56Modal(false);
-
-                    setSelectedBooklet(null);
-
-                }}
-
-                onSuccess={async () => {
-
-                    setOpenAF56Modal(false);
-
-                    setSelectedBooklet(null);
-
-                    await Promise.all([
-
-                        loadBooklets(),
-
-                        loadSummary(),
-
-                        loadDailyCollections(),
-
-                    ]);
+                    console.log(
+                        "RAAF"
+                    );
 
                 }}
 
             />
-            */}
 
         </>
-
     );
-
 }

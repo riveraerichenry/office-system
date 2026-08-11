@@ -181,11 +181,11 @@ export default function BookletHeader({
 
                     <div className="rounded-2xl bg-gradient-to-b from-blue-600 to-blue-700 px-7 py-4 text-center text-white shadow-lg">
 
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-100">
+                        {/* <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-100">
 
                             Next OR
 
-                        </p>
+                        </p> */}
 
                         <p className="leading-none text-5xl font-black">
 

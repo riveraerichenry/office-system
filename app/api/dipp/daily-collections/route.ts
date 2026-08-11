@@ -3,67 +3,31 @@ import { authorize } from "@/lib/authorize";
 import { pool } from "@/lib/db";
 import { MODULE_PATHS } from "@/lib/module-paths";
 
-export async function GET(
-    req: NextRequest
-) {
-
+export async function GET(req: NextRequest) {
     try {
-
         const user = await authorize(
             req,
             MODULE_PATHS.DIPP,
             "view"
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Filters
-        |--------------------------------------------------------------------------
-        */
+        const view =
+            req.nextUrl.searchParams.get("view") ||
+            "daily";
 
-        const month =
+        const page = Math.max(
+            1,
             Number(
+                req.nextUrl.searchParams.get("page") || 1
+            )
+        );
 
-                req.nextUrl.searchParams.get("month")
-
-                ||
-
-                new Date().getMonth() + 1
-
-            );
-
-        const year =
+        const pageSize = Math.max(
+            1,
             Number(
-
-                req.nextUrl.searchParams.get("year")
-
-                ||
-
-                new Date().getFullYear()
-
-            );
-
-        const page =
-            Number(
-
-                req.nextUrl.searchParams.get("page")
-
-                ||
-
-                1
-
-            );
-
-        const pageSize =
-            Number(
-
-                req.nextUrl.searchParams.get("pageSize")
-
-                ||
-
-                5
-
-            );
+                req.nextUrl.searchParams.get("pageSize") || 5
+            )
+        );
 
         const search =
             req.nextUrl.searchParams.get("search") || "";
@@ -71,145 +35,219 @@ export async function GET(
         const offset =
             (page - 1) * pageSize;
 
+        if (
+            view !== "daily" &&
+            view !== "monthly"
+        ) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Invalid view.",
+                },
+                {
+                    status: 400,
+                }
+            );
+        }
+
         /*
         |--------------------------------------------------------------------------
-        | Where Clause
+        | Base Parameters
         |--------------------------------------------------------------------------
         */
 
         const params: any[] = [
-
-            month,
-
-            year,
-
+            user.id,
         ];
 
+        /*
+        |--------------------------------------------------------------------------
+        | Base WHERE
+        |--------------------------------------------------------------------------
+        */
+
         let where = `
-
             WHERE
-
                 dt.is_cancelled = FALSE
 
-            AND
-
-                EXTRACT(
-                    MONTH FROM dt.receipt_date
-                ) = $1
-
-            AND
-
-                EXTRACT(
-                    YEAR FROM dt.receipt_date
-                ) = $2
-
+                AND dt.encoded_by = $1
         `;
 
-        // Non-admin users only see their own transactions
-            params.push(user.id);
+        /*
+        |--------------------------------------------------------------------------
+        | DAILY
+        |--------------------------------------------------------------------------
+        |
+        | ONLY TODAY
+        |
+        */
 
+        if (view === "daily") {
             where += `
-
-                AND dt.encoded_by = $${params.length}
-
+                AND dt.receipt_date = (
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE 'Asia/Manila'
+                )::date
             `;
-
-        if (search) {
-
-            params.push(`%${search}%`);
-
-            where += `
-
-                AND (
-
-                    dt.or_number ILIKE $${params.length}
-
-                    OR
-
-                    dt.payor ILIKE $${params.length}
-
-                    OR
-
-                    af.form_code ILIKE $${params.length}
-
-                )
-
-            `;
-
         }
 
-                /*
+        /*
         |--------------------------------------------------------------------------
-        | Count Total Records
+        | MONTHLY
+        |--------------------------------------------------------------------------
+        |
+        | ENTIRE CURRENT MONTH
+        |
+        | Example:
+        |
+        | 2026-08-01
+        | through
+        | 2026-08-31
+        |
+        */
+
+        if (view === "monthly") {
+            where += `
+                AND dt.receipt_date >=
+                    DATE_TRUNC(
+                        'month',
+                        (
+                            CURRENT_TIMESTAMP
+                            AT TIME ZONE 'Asia/Manila'
+                        )::date
+                    )::date
+
+                AND dt.receipt_date <
+                    (
+                        DATE_TRUNC(
+                            'month',
+                            (
+                                CURRENT_TIMESTAMP
+                                AT TIME ZONE 'Asia/Manila'
+                            )::date
+                        )
+                        + INTERVAL '1 month'
+                    )::date
+            `;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
+
+        if (search.trim()) {
+            params.push(
+                `%${search.trim()}%`
+            );
+
+            where += `
+                AND (
+                    dt.or_number ILIKE $${params.length}
+
+                    OR dt.payor ILIKE $${params.length}
+
+                    OR af.form_code ILIKE $${params.length}
+
+                    OR af.form_name ILIKE $${params.length}
+                )
+            `;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | COUNT
         |--------------------------------------------------------------------------
         */
 
         const countResult =
             await pool.query(
-
                 `
-
                 SELECT
-
-                    COUNT(*)::INT
-                        AS total
+                    COUNT(*)::INT AS total
 
                 FROM dipp_transactions dt
 
                 INNER JOIN accountable_forms af
-
                     ON af.id =
-                    dt.accountable_form_id
+                       dt.accountable_form_id
 
                 ${where}
-
                 `,
-
                 params
-
             );
 
         const totalRecords =
             Number(
-
-                countResult.rows[0].total
-
+                countResult.rows[0]?.total || 0
             );
 
         const totalPages =
             Math.max(
-
                 1,
-
                 Math.ceil(
-
                     totalRecords /
-
                     pageSize
-
                 )
-
             );
 
         /*
         |--------------------------------------------------------------------------
-        | Main Query
+        | TOTAL AMOUNT
         |--------------------------------------------------------------------------
         */
 
-        params.push(
+        const totalResult =
+            await pool.query(
+                `
+                SELECT
+                    COALESCE(
+                        SUM(
+                            dt.grand_total
+                        ),
+                        0
+                    ) AS total_amount
 
+                FROM dipp_transactions dt
+
+                INNER JOIN accountable_forms af
+                    ON af.id =
+                       dt.accountable_form_id
+
+                ${where}
+                `,
+                params
+            );
+
+        const totalAmount =
+            Number(
+                totalResult.rows[0]
+                    ?.total_amount || 0
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | TRANSACTIONS
+        |--------------------------------------------------------------------------
+        */
+
+        const dataParams = [
+            ...params,
             pageSize,
+            offset,
+        ];
 
-            offset
+        const limitPosition =
+            dataParams.length - 1;
 
-        );
+        const offsetPosition =
+            dataParams.length;
 
         const result =
             await pool.query(
-
                 `
-
                 SELECT
 
                     dt.id,
@@ -224,6 +262,10 @@ export async function GET(
 
                     dt.grand_total,
 
+                    dt.status,
+
+                    dt.transaction_type,
+
                     af.form_code,
 
                     af.form_name,
@@ -234,76 +276,36 @@ export async function GET(
                 FROM dipp_transactions dt
 
                 INNER JOIN accountable_forms af
-
                     ON af.id =
-                    dt.accountable_form_id
+                       dt.accountable_form_id
 
                 LEFT JOIN users u
-
                     ON u.id =
-                    dt.encoded_by
+                       dt.encoded_by
 
                 ${where}
 
                 ORDER BY
-
                     dt.receipt_date DESC,
+                    dt.or_number DESC
 
-                    CAST(
-                        dt.or_number AS BIGINT
-                    ) DESC
+                LIMIT $${limitPosition}
 
-                LIMIT $${params.length - 1}
-
-                OFFSET $${params.length}
-
+                OFFSET $${offsetPosition}
                 `,
-
-                params
-
+                dataParams
             );
 
         /*
         |--------------------------------------------------------------------------
-        | Totals
-        |--------------------------------------------------------------------------
-        */
-
-        const totalReceipts =
-            result.rows.length;
-
-        const totalAmount =
-            result.rows.reduce(
-
-                (
-
-                    total,
-
-                    row
-
-                ) =>
-
-                    total +
-
-                    Number(
-
-                        row.grand_total
-
-                    ),
-
-                0
-
-            );
-
-                    /*
-        |--------------------------------------------------------------------------
-        | Response
+        | RESPONSE
         |--------------------------------------------------------------------------
         */
 
         return NextResponse.json({
-
             success: true,
+
+            view,
 
             rows: result.rows,
 
@@ -315,22 +317,18 @@ export async function GET(
 
             totalPages,
 
-            totalReceipts,
+            totalReceipts:
+                totalRecords,
 
             totalAmount,
-
         });
-
-    }
-
-    catch (err: any) {
-
+    } catch (err: any) {
         console.error(
             "===================================="
         );
 
         console.error(
-            "DIPP DAILY COLLECTIONS"
+            "DIPP COLLECTIONS"
         );
 
         console.error(err);
@@ -340,23 +338,15 @@ export async function GET(
         );
 
         return NextResponse.json(
-
             {
-
                 success: false,
-
-                message: err.message,
-
+                message:
+                    err?.message ||
+                    "Failed to load collections.",
             },
-
             {
-
                 status: 500,
-
             }
-
         );
-
     }
-
 }
