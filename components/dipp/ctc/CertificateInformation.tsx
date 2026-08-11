@@ -3,7 +3,6 @@
 import { CalendarDays } from "lucide-react";
 
 type Props = {
-
     booklet: any;
 
     issueDate: string;
@@ -12,6 +11,18 @@ type Props = {
 
     saving: boolean;
 
+    /*
+    | Optional so existing callers
+    | do not produce TypeScript errors.
+    |
+    | CTC-I can pass:
+    | "INDIVIDUAL"
+    |
+    | CTC-C can pass:
+    | "CORPORATION"
+    */
+    ctcType?: "INDIVIDUAL" | "CORPORATION";
+
     onIssueDateChange: (
         value: string
     ) => void;
@@ -19,7 +30,6 @@ type Props = {
     onPlaceIssuedChange: (
         value: string
     ) => void;
-
 };
 
 export default function CertificateInformation({
@@ -32,32 +42,53 @@ export default function CertificateInformation({
 
     saving,
 
+    ctcType,
+
     onIssueDateChange,
 
     onPlaceIssuedChange,
 
 }: Props) {
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fiscal Year
+    |--------------------------------------------------------------------------
+    */
+
     const fiscalYear =
         new Date(issueDate)
             .getFullYear();
 
-    const ctcType =
+    /*
+    |--------------------------------------------------------------------------
+    | CTC Type
+    |--------------------------------------------------------------------------
+    |
+    | If the modal explicitly provides ctcType,
+    | use that.
+    |
+    | Otherwise retain the old booklet-based
+    | behavior.
+    |
+    */
 
-        booklet?.form_code ===
-        "CTC-CORPORATION"
-
-            ?
-
-            "CORPORATION"
-
-            :
-
-            "INDIVIDUAL";
+    const displayCTCType =
+        ctcType ??
+        (
+            booklet?.form_code ===
+            "CTC-CORPORATION"
+                ? "CORPORATION"
+                : "INDIVIDUAL"
+        );
 
     return (
 
         <div className="rounded-xl border bg-white shadow-sm">
+
+            {/* ==========================================================
+                HEADER
+            ========================================================== */}
 
             <div className="border-b bg-slate-50 px-5 py-3">
 
@@ -69,11 +100,15 @@ export default function CertificateInformation({
 
             </div>
 
+            {/* ==========================================================
+                CONTENT
+            ========================================================== */}
+
             <div className="grid grid-cols-2 gap-8 p-6">
 
-                {/* =======================================
-                    Left
-                ======================================= */}
+                {/* ======================================================
+                    LEFT
+                ====================================================== */}
 
                 <div className="space-y-5">
 
@@ -109,70 +144,70 @@ export default function CertificateInformation({
 
                             <p className="text-lg font-semibold text-slate-800">
 
-                                {
+                                {new Date(
+                                    issueDate
+                                ).toLocaleDateString(
+                                    "en-PH",
+                                    {
+                                        weekday:
+                                            "long",
 
-                                    new Date(issueDate)
+                                        year:
+                                            "numeric",
 
-                                        .toLocaleDateString(
+                                        month:
+                                            "long",
 
-                                            "en-PH",
-
-                                            {
-
-                                                weekday: "long",
-
-                                                year: "numeric",
-
-                                                month: "long",
-
-                                                day: "numeric",
-
-                                            }
-
-                                        )
-
-                                }
+                                        day:
+                                            "numeric",
+                                    }
+                                )}
 
                             </p>
 
                             <div className="relative">
 
                                 <input
-
                                     type="date"
-
-                                    value={issueDate}
-
-                                    disabled={saving}
-
-                                    onChange={(e) =>
-
-                                        onIssueDateChange(
-
-                                            e.target.value
-
-                                        )
-
+                                    value={
+                                        issueDate
                                     }
-
-                                    className="absolute inset-0 cursor-pointer opacity-0"
-
+                                    disabled={
+                                        saving
+                                    }
+                                    onChange={(
+                                        e
+                                    ) =>
+                                        onIssueDateChange(
+                                            e.target.value
+                                        )
+                                    }
+                                    className="
+                                        absolute
+                                        inset-0
+                                        cursor-pointer
+                                        opacity-0
+                                    "
                                 />
 
                                 <button
-
                                     type="button"
-
-                                    disabled={saving}
-
-                                    className="rounded-lg border border-slate-300 bg-white p-2 hover:bg-slate-100 disabled:opacity-50"
-
+                                    disabled={
+                                        saving
+                                    }
+                                    className="
+                                        rounded-lg
+                                        border
+                                        border-slate-300
+                                        bg-white
+                                        p-2
+                                        hover:bg-slate-100
+                                        disabled:opacity-50
+                                    "
                                 >
 
                                     <CalendarDays
-
                                         size={18}
-
                                     />
 
                                 </button>
@@ -185,9 +220,9 @@ export default function CertificateInformation({
 
                 </div>
 
-                {/* =======================================
-                    Right
-                ======================================= */}
+                {/* ======================================================
+                    RIGHT
+                ====================================================== */}
 
                 <div className="space-y-5">
 
@@ -203,7 +238,7 @@ export default function CertificateInformation({
 
                         <p className="mt-1 rounded-lg bg-blue-600 px-4 py-2 text-center text-lg font-bold tracking-wide text-white">
 
-                            {ctcType}
+                            {displayCTCType}
 
                         </p>
 
@@ -220,23 +255,29 @@ export default function CertificateInformation({
                         </label>
 
                         <input
-
-                            value={placeIssued}
-
-                            disabled={saving}
-
-                            onChange={(e) =>
-
-                                onPlaceIssuedChange(
-
-                                    e.target.value
-
-                                )
-
+                            value={
+                                placeIssued
                             }
-
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 font-semibold uppercase"
-
+                            disabled={
+                                saving
+                            }
+                            onChange={(
+                                e
+                            ) =>
+                                onPlaceIssuedChange(
+                                    e.target.value
+                                )
+                            }
+                            className="
+                                w-full
+                                rounded-lg
+                                border
+                                border-slate-300
+                                px-3
+                                py-2
+                                font-semibold
+                                uppercase
+                            "
                         />
 
                     </div>

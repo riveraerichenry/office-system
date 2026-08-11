@@ -1,9 +1,9 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 type Props = {
-
     name: string;
     address: string;
     tin: string;
@@ -16,7 +16,6 @@ type Props = {
     birthDate: string;
     civilStatus: string;
     occupation: string;
-
     saving: boolean;
 
     onNameChange: (value: string) => void;
@@ -31,11 +30,13 @@ type Props = {
     onBirthDateChange: (value: string) => void;
     onCivilStatusChange: (value: string) => void;
     onOccupationChange: (value: string) => void;
+};
 
+type Barangay = {
+    barangay_name: string;
 };
 
 export default function IndividualInformation({
-
     name,
     address,
     tin,
@@ -48,7 +49,6 @@ export default function IndividualInformation({
     birthDate,
     civilStatus,
     occupation,
-
     saving,
 
     onNameChange,
@@ -63,467 +63,469 @@ export default function IndividualInformation({
     onBirthDateChange,
     onCivilStatusChange,
     onOccupationChange,
-
 }: Props) {
 
+    /*
+    |--------------------------------------------------------------------------
+    | Barangays
+    |--------------------------------------------------------------------------
+    */
+
+    const [barangays, setBarangays] =
+        useState<Barangay[]>([]);
+
+    const [loadingBarangays, setLoadingBarangays] =
+        useState(false);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Barangays
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        let mounted = true;
+
+        async function loadBarangays() {
+            try {
+                setLoadingBarangays(true);
+
+                const response = await axios.get(
+                    "/api/rpt/property-metadata"
+                );
+
+                if (!mounted) {
+                    return;
+                }
+
+                setBarangays(
+                    Array.isArray(response.data?.barangays)
+                        ? response.data.barangays
+                        : []
+                );
+
+            } catch (error) {
+                console.error(
+                    "Failed to load barangays:",
+                    error
+                );
+
+                if (mounted) {
+                    setBarangays([]);
+                }
+
+            } finally {
+                if (mounted) {
+                    setLoadingBarangays(false);
+                }
+            }
+        }
+
+        loadBarangays();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Styles
+    |--------------------------------------------------------------------------
+    */
+
+    const inputClass =
+        "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+
+    const labelClass =
+        "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-600";
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render
+    |--------------------------------------------------------------------------
+    */
+
     return (
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="rounded-xl border bg-white shadow-sm">
+            {/* ==============================================================
+                HEADER
+            ============================================================== */}
 
-            <div className="border-b bg-slate-50 px-5 py-3">
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
 
-                <h3 className="font-semibold">
+                <div className="text-sm font-bold text-slate-800">
+                    Individual Information
+                </div>
 
-                    Taxpayer Information
-
-                </h3>
+                <div className="mt-0.5 text-xs text-slate-500">
+                    Enter the taxpayer's personal information.
+                </div>
 
             </div>
 
-            <div className="grid grid-cols-2 gap-8 p-6">
-
-                {/* LEFT */}
-
-                <div className="space-y-5">
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Full Name
-
-                        </label>
-
-                        <input
-
-                            value={name}
-
-                            disabled={saving}
-
-                            onChange={(e)=>
-
-                                onNameChange(
-                                    e.target.value
-                                )
-
-                            }
-
-                            className="w-full rounded-lg border px-3 py-2"
-
-                        />
-
-                    </div>
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Address
-
-                        </label>
-
-                        <textarea
-
-                            value={address}
-
-                            disabled={saving}
-
-                            onChange={(e)=>
-
-                                onAddressChange(
-                                    e.target.value
-                                )
-
-                            }
-
-                            rows={3}
-
-                            className="w-full rounded-lg border px-3 py-2"
-
-                        />
-
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                TIN
-
-                            </label>
-
-                            <input
-
-                                value={tin}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onTinChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                C.R. No.
-
-                            </label>
-
-                            <input
-
-                                value={crNumber}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onCRNumberChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            />
-
-                        </div>
-
-                    </div>
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Citizenship
-
-                        </label>
-
-                        <input
-
-                            value={citizenship}
-
-                            disabled={saving}
-
-                            onChange={(e)=>
-
-                                onCitizenshipChange(
-                                    e.target.value
-                                )
-
-                            }
-
-                            className="w-full rounded-lg border px-3 py-2"
-
-                        />
-
-                    </div>
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Occupation
-
-                        </label>
-
-                        <input
-
-                            value={occupation}
-
-                            disabled={saving}
-
-                            onChange={(e)=>
-
-                                onOccupationChange(
-                                    e.target.value
-                                )
-
-                            }
-
-                            className="w-full rounded-lg border px-3 py-2"
-
-                        />
-
-                    </div>
+            {/* ==============================================================
+                BODY
+            ============================================================== */}
+
+            <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+
+                {/* ==========================================================
+                    NAME
+                ========================================================== */}
+
+                <div className="md:col-span-2">
+
+                    <label className={labelClass}>
+                        Full Name
+                    </label>
+
+                    <input
+                        type="text"
+                        value={name}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onNameChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter full name"
+                        className={inputClass}
+                    />
 
                 </div>
 
-                {/* RIGHT */}
-
-                <div className="space-y-5">
-
-                    <div className="grid grid-cols-2 gap-4">
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                Sex
-
-                            </label>
-
-                            <select
-
-                                value={sex}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onSexChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            >
-
-                                <option value="">
-                                    Select
-                                </option>
-
-                                <option value="Male">
-                                    Male
-                                </option>
-
-                                <option value="Female">
-                                    Female
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                Civil Status
-
-                            </label>
-
-                            <input
-
-                                value={civilStatus}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onCivilStatusChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            />
-
-                        </div>
-
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                Height
-
-                            </label>
-
-                            <input
-
-                                value={height}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onHeightChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <label className="mb-1 block text-sm font-medium">
-
-                                Weight
-
-                            </label>
-
-                            <input
-
-                                value={weight}
-
-                                disabled={saving}
-
-                                onChange={(e)=>
-
-                                    onWeightChange(
-                                        e.target.value
-                                    )
-
-                                }
-
-                                className="w-full rounded-lg border px-3 py-2"
-
-                            />
-
-                        </div>
-
-                    </div>
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Place of Birth
-
-                        </label>
-
-                        <input
-
-                            value={placeOfBirth}
-
-                            disabled={saving}
-
-                            onChange={(e)=>
-
-                                onPlaceOfBirthChange(
-                                    e.target.value
-                                )
-
-                            }
-
-                            className="w-full rounded-lg border px-3 py-2"
-
-                        />
-
-                    </div>
-
-                    <div>
-
-                        <label className="mb-1 block text-sm font-medium">
-
-                            Birth Date
-
-                        </label>
-
-                        <div className="flex items-center gap-3">
-
-                            <p className="flex-1 rounded-lg border bg-slate-50 px-3 py-2 font-medium">
-
-                                {
-
-                                    birthDate
-
-                                        ?
-
-                                        new Date(
-
-                                            birthDate
-
-                                        ).toLocaleDateString(
-
-                                            "en-PH",
-
-                                            {
-
-                                                year: "numeric",
-
-                                                month: "long",
-
-                                                day: "numeric",
-
-                                            }
-
-                                        )
-
-                                        :
-
-                                        "-"
-
-                                }
-
-                            </p>
-
-                            <div className="relative">
-
-                                <input
-
-                                    type="date"
-
-                                    value={birthDate}
-
-                                    disabled={saving}
-
-                                    onChange={(e)=>
-
-                                        onBirthDateChange(
-
-                                            e.target.value
-
-                                        )
-
-                                    }
-
-                                    className="absolute inset-0 cursor-pointer opacity-0"
-
-                                />
-
-                                <button
-
-                                    type="button"
-
-                                    disabled={saving}
-
-                                    className="rounded-lg border bg-white p-2 hover:bg-slate-100"
-
+                {/* ==========================================================
+                    ADDRESS / BARANGAY
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Address
+                    </label>
+
+                    <select
+                        value={address}
+                        disabled={
+                            saving ||
+                            loadingBarangays
+                        }
+                        onChange={(event) =>
+                            onAddressChange(
+                                event.target.value
+                            )
+                        }
+                        className={inputClass}
+                    >
+                        <option value="">
+                            {loadingBarangays
+                                ? "Loading barangays..."
+                                : "Select barangay"}
+                        </option>
+
+                        {barangays.map(
+                            (barangay, index) => (
+                                <option
+                                    key={`${barangay.barangay_name}-${index}`}
+                                    value={barangay.barangay_name}
                                 >
+                                    {barangay.barangay_name}
+                                </option>
+                            )
+                        )}
+                    </select>
 
-                                    <CalendarDays size={18} />
+                </div>
 
-                                </button>
+                {/* ==========================================================
+                    TIN
+                ========================================================== */}
 
-                            </div>
+                <div>
 
-                        </div>
+                    <label className={labelClass}>
+                        TIN
+                    </label>
 
-                    </div>
+                    <input
+                        type="text"
+                        value={tin}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onTinChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter TIN"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    CTC / CR NUMBER
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        CTC / CR Number
+                    </label>
+
+                    <input
+                        type="text"
+                        value={crNumber}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onCRNumberChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter CTC / CR number"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    CITIZENSHIP
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Citizenship
+                    </label>
+
+                    <input
+                        type="text"
+                        value={citizenship}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onCitizenshipChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter citizenship"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    SEX
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Sex
+                    </label>
+
+                    <select
+                        value={sex}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onSexChange(
+                                event.target.value
+                            )
+                        }
+                        className={inputClass}
+                    >
+
+                        <option value="">
+                            Select sex
+                        </option>
+
+                        <option value="MALE">
+                            Male
+                        </option>
+
+                        <option value="FEMALE">
+                            Female
+                        </option>
+
+                    </select>
+
+                </div>
+
+                {/* ==========================================================
+                    HEIGHT
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Height
+                    </label>
+
+                    <input
+                        type="text"
+                        value={height}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onHeightChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="e.g. 170 cm"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    WEIGHT
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Weight
+                    </label>
+
+                    <input
+                        type="text"
+                        value={weight}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onWeightChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="e.g. 70 kg"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    PLACE OF BIRTH
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Place of Birth
+                    </label>
+
+                    <input
+                        type="text"
+                        value={placeOfBirth}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onPlaceOfBirthChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter place of birth"
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    BIRTH DATE
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Birth Date
+                    </label>
+
+                    <input
+                        type="date"
+                        value={birthDate}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onBirthDateChange(
+                                event.target.value
+                            )
+                        }
+                        className={inputClass}
+                    />
+
+                </div>
+
+                {/* ==========================================================
+                    CIVIL STATUS
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Civil Status
+                    </label>
+
+                    <select
+                        value={civilStatus}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onCivilStatusChange(
+                                event.target.value
+                            )
+                        }
+                        className={inputClass}
+                    >
+
+                        <option value="">
+                            Select civil status
+                        </option>
+
+                        <option value="SINGLE">
+                            Single
+                        </option>
+
+                        <option value="MARRIED">
+                            Married
+                        </option>
+
+                        <option value="WIDOWED">
+                            Widowed
+                        </option>
+
+                        <option value="SEPARATED">
+                            Separated
+                        </option>
+
+                        <option value="DIVORCED">
+                            Divorced
+                        </option>
+
+                    </select>
+
+                </div>
+
+                {/* ==========================================================
+                    OCCUPATION
+                ========================================================== */}
+
+                <div>
+
+                    <label className={labelClass}>
+                        Occupation
+                    </label>
+
+                    <input
+                        type="text"
+                        value={occupation}
+                        disabled={saving}
+                        onChange={(event) =>
+                            onOccupationChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter occupation"
+                        className={inputClass}
+                    />
 
                 </div>
 
             </div>
 
-        </div>
-
+        </section>
     );
-
 }

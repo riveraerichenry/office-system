@@ -11,10 +11,24 @@ import ActiveBookletTable from "@/components/dipp/ActiveBookletTable";
 import FiscalYearSummary from "@/components/dipp/FiscalYearSummary";
 import DailyCollections from "@/components/dipp/DailyCollection";
 import DIPPSystemOptions from "@/components/dipp/DIPPSystemOptions";
-import OfficialReceiptDetailsModal from "@/components/dipp/OfficialReceiptModal";
-import AF56ReceiptModal from "@/components/dipp/AF56ReceiptModal";
-import GeneralReceiptModal from "@/components/dipp/GeneralReceiptModal";
-import MonthlyTransactionsModal from "@/components/dipp/MonthlyTransactionModal";
+
+import OfficialReceiptDetailsModal
+    from "@/components/dipp/OfficialReceiptModal";
+
+import AF56ReceiptModal
+    from "@/components/dipp/AF56ReceiptModal";
+
+import GeneralReceiptModal
+    from "@/components/dipp/GeneralReceiptModal";
+
+import MonthlyTransactionsModal
+    from "@/components/dipp/MonthlyTransactionModal";
+
+import CTCIReceiptModal
+    from "@/components/dipp/ctc/CTCIReceiptModal";
+
+import CTCCReceiptModal
+    from "@/components/dipp/ctc/CTCCReceiptModal";
 
 export default function DIPPPage() {
 
@@ -57,7 +71,7 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Receipt Modals
+    | Selected Booklet
     |--------------------------------------------------------------------------
     */
 
@@ -65,6 +79,12 @@ export default function DIPPPage() {
         selectedBooklet,
         setSelectedBooklet,
     ] = useState<any>(null);
+
+    /*
+    |--------------------------------------------------------------------------
+    | General / AF56
+    |--------------------------------------------------------------------------
+    */
 
     const [
         openGeneralModal,
@@ -74,6 +94,28 @@ export default function DIPPPage() {
     const [
         openAF56Modal,
         setOpenAF56Modal,
+    ] = useState(false);
+
+    /*
+    |--------------------------------------------------------------------------
+    | CTC-I
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openCTCI,
+        setOpenCTCI,
+    ] = useState(false);
+
+    /*
+    |--------------------------------------------------------------------------
+    | CTC-C
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openCTCC,
+        setOpenCTCC,
     ] = useState(false);
 
     /*
@@ -212,7 +254,7 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Fiscal Year Summary
+    | Fiscal Summary
     |--------------------------------------------------------------------------
     */
 
@@ -222,15 +264,8 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Daily / Monthly Collections
+    | Daily / Monthly
     |--------------------------------------------------------------------------
-    |
-    | Reload whenever:
-    |
-    | - view changes
-    | - search changes
-    | - page changes
-    |
     */
 
     useEffect(() => {
@@ -352,9 +387,7 @@ export default function DIPPPage() {
 
                 const updated =
                     rows.find(
-                        (
-                            x: any
-                        ) =>
+                        (x: any) =>
                             x.booklet_registration_id ===
                             selected.booklet_registration_id
                     );
@@ -397,7 +430,7 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Load Fiscal Year Summary
+    | Fiscal Summary
     |--------------------------------------------------------------------------
     */
 
@@ -450,19 +483,8 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Load Daily / Monthly Collections
+    | Daily / Monthly Collections
     |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    |
-    | Daily:
-    |     view=daily
-    |
-    | Monthly:
-    |     view=monthly
-    |
-    | The API handles receipt_date filtering.
-    |
     */
 
     async function loadDailyCollections() {
@@ -478,13 +500,6 @@ export default function DIPPPage() {
                     "/api/dipp/daily-collections",
                     {
                         params: {
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | This is the important parameter.
-                            |--------------------------------------------------------------------------
-                            */
-
                             view:
                                 viewMode,
 
@@ -500,22 +515,6 @@ export default function DIPPPage() {
                     }
                 );
 
-            console.log(
-                "DIPP COLLECTION VIEW:",
-                viewMode
-            );
-
-            console.log(
-                "DIPP COLLECTION RESPONSE:",
-                res.data
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Rows
-            |--------------------------------------------------------------------------
-            */
-
             setDailyCollections(
                 Array.isArray(
                     res.data.rows
@@ -523,12 +522,6 @@ export default function DIPPPage() {
                     ? res.data.rows
                     : []
             );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Pagination
-            |--------------------------------------------------------------------------
-            */
 
             setDailyTotalPages(
                 Number(
@@ -574,7 +567,7 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Change Daily / Monthly
+    | Daily / Monthly Toggle
     |--------------------------------------------------------------------------
     */
 
@@ -584,12 +577,6 @@ export default function DIPPPage() {
             | "monthly"
     ) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Already Selected
-        |--------------------------------------------------------------------------
-        */
-
         if (
             mode ===
             viewMode
@@ -597,35 +584,13 @@ export default function DIPPPage() {
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Clear Old Rows
-        |--------------------------------------------------------------------------
-        |
-        | Prevents the Daily records from remaining visible
-        | while Monthly is loading.
-        |
-        */
-
         setDailyCollections(
             []
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Reset Pagination
-        |--------------------------------------------------------------------------
-        */
-
         setDailyPage(
             1
         );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Change View
-        |--------------------------------------------------------------------------
-        */
 
         setViewMode(
             mode
@@ -634,13 +599,23 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Select Booklet
+    | Active Booklet Modal Routing
     |--------------------------------------------------------------------------
+    |
+    | The selected booklet determines which
+    | receipt modal will open.
+    |
     */
 
     function handleSelectBooklet(
         row: any
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save Selected Booklet
+        |--------------------------------------------------------------------------
+        */
 
         setSelected(
             row
@@ -650,36 +625,126 @@ export default function DIPPPage() {
             row
         );
 
+        /*
+        |--------------------------------------------------------------------------
+        | Close All Other Receipt Modals
+        |--------------------------------------------------------------------------
+        */
+
+        setOpenGeneralModal(
+            false
+        );
+
+        setOpenAF56Modal(
+            false
+        );
+
+        setOpenCTCI(
+            false
+        );
+
+        setOpenCTCC(
+            false
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize Form Code
+        |--------------------------------------------------------------------------
+        */
+
         const formCode =
-            row.form_code
-                ?.trim()
+            String(
+                row?.form_code ??
+                row?.accountable_form_code ??
+                row?.formCode ??
+                ""
+            )
+                .trim()
                 .toUpperCase();
 
-        switch (
+        console.log(
+            "SELECTED BOOKLET:",
+            row
+        );
+
+        console.log(
+            "FORM CODE:",
             formCode
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | AF56
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formCode ===
+            "AF56"
         ) {
 
-            case "AF56":
+            setOpenAF56Modal(
+                true
+            );
 
-                setOpenAF56Modal(
-                    true
-                );
-
-                break;
-
-            default:
-
-                setOpenGeneralModal(
-                    true
-                );
-
-                break;
+            return;
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CTC - INDIVIDUAL
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formCode === "CTC-I" ||
+            formCode === "CTCI" ||
+            formCode === "CTC-INDIVIDUAL" ||
+            formCode === "CTC INDIVIDUAL"
+        ) {
+
+            setOpenCTCI(
+                true
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CTC - CORPORATION
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formCode === "CTC-C" ||
+            formCode === "CTCC" ||
+            formCode === "CTC-CORPORATION" ||
+            formCode === "CTC CORPORATION"
+        ) {
+
+            setOpenCTCC(
+                true
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | General Receipt
+        |--------------------------------------------------------------------------
+        */
+
+        setOpenGeneralModal(
+            true
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Refresh After Receipt
+    | Refresh
     |--------------------------------------------------------------------------
     */
 
@@ -690,6 +755,7 @@ export default function DIPPPage() {
             loadSummary(),
             loadDailyCollections(),
         ]);
+
     }
 
     /*
@@ -714,7 +780,6 @@ export default function DIPPPage() {
                 <div className="col-span-2">
 
                     <ActiveBookletTable
-
                         data={
                             booklets
                         }
@@ -742,19 +807,17 @@ export default function DIPPPage() {
                         onSelect={
                             handleSelectBooklet
                         }
-
                     />
 
                 </div>
 
                 {/* ==========================================================
-                    FISCAL YEAR SUMMARY
+                    FISCAL SUMMARY
                 ========================================================== */}
 
                 <div className="col-span-7">
 
                     <FiscalYearSummary
-
                         forms={
                             summaryForms
                         }
@@ -796,13 +859,12 @@ export default function DIPPPage() {
                             );
 
                         }}
-
                     />
 
                 </div>
 
                 {/* ==========================================================
-                    DAILY / MONTHLY COLLECTIONS
+                    DAILY / MONTHLY
                 ========================================================== */}
 
                 <div className="col-span-3">
@@ -858,7 +920,7 @@ export default function DIPPPage() {
             </div>
 
             {/* ==============================================================
-                GENERAL RECEIPT MODAL
+                GENERAL RECEIPT
             ============================================================== */}
 
             <GeneralReceiptModal
@@ -902,7 +964,7 @@ export default function DIPPPage() {
             />
 
             {/* ==============================================================
-                AF56 RECEIPT MODAL
+                AF56
             ============================================================== */}
 
             <AF56ReceiptModal
@@ -946,7 +1008,95 @@ export default function DIPPPage() {
             />
 
             {/* ==============================================================
-                MONTHLY TRANSACTIONS MODAL
+                CTC-I
+            ============================================================== */}
+
+            <CTCIReceiptModal
+
+                open={
+                    openCTCI
+                }
+
+                booklet={
+                    selectedBooklet
+                }
+
+                onClose={() => {
+
+                    setOpenCTCI(
+                        false
+                    );
+
+                    setSelectedBooklet(
+                        null
+                    );
+
+                }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenCTCI(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
+
+            />
+
+            {/* ==============================================================
+                CTC-C
+            ============================================================== */}
+
+            <CTCCReceiptModal
+
+                open={
+                    openCTCC
+                }
+
+                booklet={
+                    selectedBooklet
+                }
+
+                onClose={() => {
+
+                    setOpenCTCC(
+                        false
+                    );
+
+                    setSelectedBooklet(
+                        null
+                    );
+
+                }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenCTCC(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
+
+            />
+
+            {/* ==============================================================
+                MONTHLY TRANSACTIONS
             ============================================================== */}
 
             <MonthlyTransactionsModal
@@ -976,7 +1126,7 @@ export default function DIPPPage() {
             />
 
             {/* ==============================================================
-                OFFICIAL RECEIPT DETAILS
+                TRANSACTION DETAILS
             ============================================================== */}
 
             <OfficialReceiptDetailsModal

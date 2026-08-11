@@ -8,11 +8,9 @@ import { MODULE_PATHS } from "@/lib/module-paths";
 export async function POST(
     req: NextRequest
 ) {
-
     let client: PoolClient | null = null;
 
     try {
-
         /*
         |--------------------------------------------------------------------------
         | Authorization
@@ -36,21 +34,13 @@ export async function POST(
             await req.json();
 
         const {
-
             booklet_registration_id,
-
             receipt_date,
-
             payor,
-
             payment_mode,
-
             remarks,
-
             items,
-
             ctc,
-
         } = body;
 
         /*
@@ -60,35 +50,27 @@ export async function POST(
         */
 
         if (!booklet_registration_id) {
-
             throw new Error(
                 "Booklet is required."
             );
-
         }
 
         if (!receipt_date) {
-
             throw new Error(
                 "Receipt date is required."
             );
-
         }
 
         if (!payor) {
-
             throw new Error(
                 "Payor is required."
             );
-
         }
 
         if (!payment_mode) {
-
             throw new Error(
                 "Payment mode is required."
             );
-
         }
 
         if (
@@ -96,16 +78,14 @@ export async function POST(
             !Array.isArray(items) ||
             items.length === 0
         ) {
-
             throw new Error(
                 "Please add at least one transaction item."
             );
-
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Begin Transaction
+        | Begin PostgreSQL Transaction
         |--------------------------------------------------------------------------
         */
 
@@ -118,13 +98,12 @@ export async function POST(
 
         /*
         |--------------------------------------------------------------------------
-        | Lock Booklet
+        | Lock Selected Booklet
         |--------------------------------------------------------------------------
         */
 
         const bookletResult =
             await client.query(
-
                 `
                 SELECT
 
@@ -144,7 +123,8 @@ export async function POST(
                 FROM smi_booklet_registration sbr
 
                 INNER JOIN lor_releases lr
-                    ON lr.booklet_registration_id = sbr.id
+                    ON lr.booklet_registration_id =
+                        sbr.id
 
                 WHERE
 
@@ -154,53 +134,71 @@ export async function POST(
 
                     sbr.is_active = TRUE
 
+                AND
+
+                    lr.is_active = TRUE
+
+                AND
+
+                    lr.status = 'ACTIVE'
+
                 FOR UPDATE
                 `,
-
                 [
                     booklet_registration_id,
                 ]
-
             );
 
         if (
             bookletResult.rows.length === 0
         ) {
-
             throw new Error(
                 "Booklet not found."
             );
-
         }
 
         const booklet =
             bookletResult.rows[0];
 
-
+        /*
+        |--------------------------------------------------------------------------
+        | Get Accountable Form
+        |--------------------------------------------------------------------------
+        */
 
         const formResult =
             await client.query(
-
                 `
                 SELECT
 
-                    form_code
+                    id,
+
+                    form_code,
+
+                    form_name
 
                 FROM accountable_forms
 
                 WHERE id = $1
                 `,
-
                 [
-
                     booklet.accountable_form_id,
-
                 ]
-
             );
 
+        if (
+            formResult.rows.length === 0
+        ) {
+            throw new Error(
+                "Accountable form not found."
+            );
+        }
+
+        const form =
+            formResult.rows[0];
+
         const formCode =
-            formResult.rows[0].form_code;
+            form.form_code;
 
         /*
         |--------------------------------------------------------------------------
@@ -208,139 +206,191 @@ export async function POST(
         |--------------------------------------------------------------------------
         */
 
+        const currentOR =
+            Number(
+                booklet.current_or
+            );
+
+        const endingOR =
+            Number(
+                booklet.ending_or
+            );
+
         if (
-
-            Number(booklet.current_or) >
-
-            Number(booklet.ending_or)
-
+            !Number.isFinite(
+                currentOR
+            ) ||
+            !Number.isFinite(
+                endingOR
+            )
         ) {
+            throw new Error(
+                "Invalid booklet OR range."
+            );
+        }
 
+        if (
+            currentOR >
+            endingOR
+        ) {
             throw new Error(
                 "This booklet has already been fully consumed."
             );
-
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Validate Items & Compute Total
+        | Determine Transaction Type
         |--------------------------------------------------------------------------
         */
 
-        /*
-|--------------------------------------------------------------------------
-| Validate Receipt Data
-|--------------------------------------------------------------------------
-*/
+        const isCTC =
+            formCode === "CTC-I" ||
+            formCode === "CTC-C";
 
-            let grandTotal = 0;
+        /*
+        |--------------------------------------------------------------------------
+        | Validate CTC
+        |--------------------------------------------------------------------------
+        */
+
+        let grandTotal = 0;
+
+        if (isCTC) {
+
+            if (!ctc) {
+                throw new Error(
+                    "CTC information is required."
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Make sure selected form and CTC type agree
+            |--------------------------------------------------------------------------
+            */
 
             if (
+                formCode === "CTC-I" &&
+                ctc.ctc_type &&
+                ctc.ctc_type !== "CTC-I"
+            ) {
+                throw new Error(
+                    "The selected accountable form is CTC-I."
+                );
+            }
 
-                formCode === "CTC-I" ||
+            if (
+                formCode === "CTC-C" &&
+                ctc.ctc_type &&
+                ctc.ctc_type !== "CTC-C"
+            ) {
+                throw new Error(
+                    "The selected accountable form is CTC-C."
+                );
+            }
 
-                formCode === "CTC-C"
+            /*
+            |--------------------------------------------------------------------------
+            | CTC Total
+            |--------------------------------------------------------------------------
+            |
+            | Keep compatibility with the existing working CTC
+            | modal, which may currently send grand_total.
+            |
+            */
 
+            grandTotal =
+                Number(
+                    ctc.total_amount ??
+                    ctc.grand_total ??
+                    0
+                );
+
+            if (
+                !Number.isFinite(
+                    grandTotal
+                ) ||
+                grandTotal <= 0
+            ) {
+                throw new Error(
+                    "Invalid CTC amount."
+                );
+            }
+
+        } else {
+
+            /*
+            |--------------------------------------------------------------------------
+            | General Receipt
+            |--------------------------------------------------------------------------
+            */
+
+            for (
+                const item
+                of items
             ) {
 
-                if (!ctc) {
-
+                if (
+                    !item.account_id
+                ) {
                     throw new Error(
-                        "CTC information is required."
+                        "Please select an account."
                     );
-
                 }
 
-                grandTotal =
+                const amount =
                     Number(
-
-                        ctc.grand_total || 0
-
+                        item.amount
                     );
 
-                if (grandTotal <= 0) {
-
+                if (
+                    !Number.isFinite(
+                        amount
+                    ) ||
+                    amount <= 0
+                ) {
                     throw new Error(
-                        "Invalid CTC amount."
+                        "Invalid transaction amount."
+                    );
+                }
+
+                const account =
+                    await client.query(
+                        `
+                        SELECT id
+
+                        FROM accounts
+
+                        WHERE
+
+                            id = $1
+
+                        AND
+
+                            is_active = TRUE
+
+                        AND
+
+                            is_postable = TRUE
+                        `,
+                        [
+                            item.account_id,
+                        ]
                     );
 
+                if (
+                    account.rows.length === 0
+                ) {
+                    throw new Error(
+                        "Selected account is invalid."
+                    );
                 }
 
+                grandTotal +=
+                    amount;
             }
-            else {
-
-                for (const item of items) {
-
-                    if (!item.account_id) {
-
-                        throw new Error(
-                            "Please select an account."
-                        );
-
-                    }
-
-                    if (
-
-                        Number(item.amount) <= 0
-
-                    ) {
-
-                        throw new Error(
-                            "Invalid transaction amount."
-                        );
-
-                    }
-
-                    const account =
-                        await client.query(
-
-                            `
-
-                            SELECT id
-
-                            FROM accounts
-
-                            WHERE
-
-                                id = $1
-
-                            AND
-
-                                is_active = TRUE
-
-                            AND
-
-                                is_postable = TRUE
-
-                            `,
-
-                            [
-
-                                item.account_id,
-
-                            ]
-
-                        );
-
-                    if (
-
-                        account.rows.length === 0
-
-                    ) {
-
-                        throw new Error(
-                            "Selected account is invalid."
-                        );
-
-                    }
-
-                    grandTotal +=
-                        Number(item.amount);
-
-                }
-
-            }
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -350,7 +400,6 @@ export async function POST(
 
         const transaction =
             await client.query(
-
                 `
                 INSERT INTO dipp_transactions (
 
@@ -376,7 +425,9 @@ export async function POST(
 
                     status,
 
-                    encoded_by
+                    encoded_by,
+
+                    transaction_type
 
                 )
 
@@ -404,281 +455,256 @@ export async function POST(
 
                     $11,
 
-                    $12
+                    $12,
+
+                    $13
 
                 )
 
                 RETURNING id
                 `,
-
                 [
 
-                    booklet.current_or,
+                    /*
+                    | OR Number
+                    */
+
+                    String(
+                        currentOR
+                    ),
+
+                    /*
+                    | Receipt Date
+                    */
 
                     receipt_date,
 
+                    /*
+                    | Booklet
+                    */
+
                     booklet_registration_id,
+
+                    /*
+                    | LOR Release
+                    */
 
                     booklet.lor_release_id,
 
+                    /*
+                    | Accountable Form
+                    */
+
                     booklet.accountable_form_id,
+
+                    /*
+                    | Collector
+                    */
 
                     booklet.accountable_officer_id,
 
+                    /*
+                    | Payor
+                    */
+
                     payor,
+
+                    /*
+                    | Payment Mode
+                    */
 
                     payment_mode,
 
-                    remarks,
+                    /*
+                    | Remarks
+                    */
+
+                    remarks ??
+                        null,
+
+                    /*
+                    | Grand Total
+                    */
 
                     grandTotal,
 
+                    /*
+                    | Status
+                    */
+
                     "ISSUED",
+
+                    /*
+                    | Encoder
+                    */
 
                     user.id,
 
-                ]
+                    /*
+                    | Transaction Type
+                    */
 
+                    isCTC
+                        ? formCode
+                        : "RPT",
+
+                ]
             );
 
         const transactionId =
             transaction.rows[0].id;
 
-                    /*
+        /*
         |--------------------------------------------------------------------------
-        | Insert Transaction Items
+        | Insert Detail
         |--------------------------------------------------------------------------
         */
 
-        /*
-|--------------------------------------------------------------------------
-| Insert Receipt Items
-|--------------------------------------------------------------------------
-*/
+        if (
+            formCode === "AF56"
+        ) {
 
-if (formCode === "AF56") {
+            /*
+            |--------------------------------------------------------------------------
+            | AF56
+            |--------------------------------------------------------------------------
+            */
 
-    /*
-    AF56
-    (We'll replace this in the next part.)
-    */
+            for (
+                const item
+                of items
+            ) {
 
-}
+                await client.query(
+                    `
+                    INSERT INTO dipp_transaction_items (
 
-else if (
+                        transaction_id,
 
-    formCode === "CTC-I" ||
+                        account_id,
 
-    formCode === "CTC-C"
+                        amount,
 
-) {
+                        remarks
 
-    await client.query(
+                    )
 
-        `
+                    VALUES (
 
-        INSERT INTO dipp_ctc_items (
+                        $1,
 
-            transaction_id,
+                        $2,
 
-            taxpayer_type,
+                        $3,
 
-            full_name,
+                        $4
 
-            corporation_name,
+                    )
+                    `,
+                    [
 
-            address,
+                        transactionId,
 
-            tin,
+                        item.account_id,
 
-            cr_number,
+                        Number(
+                            item.amount
+                        ),
 
-            citizenship,
+                        item.remarks ??
+                            null,
 
-            sex,
+                    ]
+                );
+            }
 
-            civil_status,
+        } else if (
+            formCode === "CTC-I" ||
+            formCode === "CTC-C"
+        ) {
 
-            occupation,
+            /*
+            |--------------------------------------------------------------------------
+            | CTC Detail
+            |--------------------------------------------------------------------------
+            |
+            | IMPORTANT:
+            | These column names match the actual
+            | dipp_ctc_items table.
+            |--------------------------------------------------------------------------
+            */
 
-            birth_date,
+            const salaryTax =
+                Number(
+                    ctc.salary_tax ??
+                    ctc.income_tax ??
+                    0
+                );
 
-            place_of_birth,
-
-            height,
-
-            weight,
-
-            sec_registration,
-
-            representative,
-
-            place_issued,
-
-            issue_date,
-
-            tax_mode,
-
-            taxable_amount,
-
-            basic_tax,
-
-            additional_tax,
-
-            interest,
-
-            penalty,
-
-            grand_total
-
-        )
-
-        VALUES (
-
-            $1,
-
-            $2,
-
-            $3,
-
-            $4,
-
-            $5,
-
-            $6,
-
-            $7,
-
-            $8,
-
-            $9,
-
-            $10,
-
-            $11,
-
-            $12,
-
-            $13,
-
-            $14,
-
-            $15,
-
-            $16,
-
-            $17,
-
-            $18,
-
-            $19,
-
-            $20,
-
-            $21,
-
-            $22,
-
-            $23,
-
-            $24,
-
-            $25,
-
-            $26
-
-        )
-
-        `,
-
-        [
-
-            transactionId,
-
-            formCode === "CTC-I"
-
-                ?
-
-                "INDIVIDUAL"
-
-                :
-
-                "CORPORATION",
-
-            ctc.full_name ?? null,
-
-            ctc.corporation_name ?? null,
-
-            ctc.address ?? null,
-
-            ctc.tin ?? null,
-
-            ctc.cr_number ?? null,
-
-            ctc.citizenship ?? null,
-
-            ctc.sex ?? null,
-
-            ctc.civil_status ?? null,
-
-            ctc.occupation ?? null,
-
-            ctc.birth_date || null,
-
-            ctc.place_of_birth ?? null,
-
-            ctc.height || null,
-
-            ctc.weight || null,
-
-            ctc.sec_registration ?? null,
-
-            ctc.representative ?? null,
-
-            ctc.place_issued ?? null,
-
-            ctc.issue_date || null,
-
-            ctc.tax_mode ?? null,
-
-            Number(ctc.taxable_amount || 0),
-
-            Number(ctc.basic_tax || 0),
-
-            Number(ctc.additional_tax || 0),
-
-            Number(ctc.interest || 0),
-
-            Number(ctc.penalty || 0),
-
-            Number(ctc.grand_total || grandTotal),
-
-        ]
-
-    );
-
-}
-
-else {
-
-    /*
-    General Receipt
-    */
-
-    for (const item of items) {
+            const totalAmount =
+                Number(
+                    ctc.total_amount ??
+                    ctc.grand_total ??
+                    grandTotal
+                );
 
             await client.query(
-
                 `
-                INSERT INTO dipp_transaction_items (
+                INSERT INTO dipp_ctc_items (
 
                     transaction_id,
 
-                    account_id,
+                    ctc_type,
 
-                    amount,
+                    full_name,
 
-                    remarks
+                    address,
+
+                    tin,
+
+                    cr_number,
+
+                    citizenship,
+
+                    sex,
+
+                    height,
+
+                    weight,
+
+                    place_of_birth,
+
+                    birth_date,
+
+                    civil_status,
+
+                    occupation,
+
+                    corporation_name,
+
+                    sec_registration,
+
+                    representative,
+
+                    place_issued,
+
+                    issue_date,
+
+                    tax_mode,
+
+                    taxable_amount,
+
+                    basic_tax,
+
+                    salary_tax,
+
+                    additional_tax,
+
+                    penalty,
+
+                    interest,
+
+                    total_amount
 
                 )
 
@@ -690,51 +716,250 @@ else {
 
                     $3,
 
-                    $4
+                    $4,
+
+                    $5,
+
+                    $6,
+
+                    $7,
+
+                    $8,
+
+                    $9,
+
+                    $10,
+
+                    $11,
+
+                    $12,
+
+                    $13,
+
+                    $14,
+
+                    $15,
+
+                    $16,
+
+                    $17,
+
+                    $18,
+
+                    $19,
+
+                    $20,
+
+                    $21,
+
+                    $22,
+
+                    $23,
+
+                    $24,
+
+                    $25,
+
+                    $26,
+
+                    $27
 
                 )
                 `,
-
                 [
+
+                    /*
+                    | Transaction
+                    */
 
                     transactionId,
 
-                    item.account_id,
+                    /*
+                    | CTC Type
+                    */
 
-                    Number(item.amount),
+                    formCode,
 
-                    item.remarks ?? null,
+                    /*
+                    | Individual / Common
+                    */
+
+                    ctc.full_name ??
+                        null,
+
+                    ctc.address ??
+                        null,
+
+                    ctc.tin ??
+                        null,
+
+                    ctc.cr_number ??
+                        null,
+
+                    ctc.citizenship ??
+                        null,
+
+                    ctc.sex ??
+                        null,
+
+                    ctc.height ??
+                        null,
+
+                    ctc.weight ??
+                        null,
+
+                    ctc.place_of_birth ??
+                        null,
+
+                    ctc.birth_date ||
+                        null,
+
+                    ctc.civil_status ??
+                        null,
+
+                    ctc.occupation ??
+                        null,
+
+                    /*
+                    | Corporation
+                    */
+
+                    ctc.corporation_name ??
+                        null,
+
+                    ctc.sec_registration ??
+                        null,
+
+                    ctc.representative ??
+                        null,
+
+                    /*
+                    | Certificate
+                    */
+
+                    ctc.place_issued ??
+                        null,
+
+                    ctc.issue_date ||
+                        null,
+
+                    /*
+                    | Tax
+                    */
+
+                    ctc.tax_mode ??
+                        null,
+
+                    Number(
+                        ctc.taxable_amount ??
+                        0
+                    ),
+
+                    Number(
+                        ctc.basic_tax ??
+                        0
+                    ),
+
+                    salaryTax,
+
+                    Number(
+                        ctc.additional_tax ??
+                        0
+                    ),
+
+                    Number(
+                        ctc.penalty ??
+                        0
+                    ),
+
+                    Number(
+                        ctc.interest ??
+                        0
+                    ),
+
+                    totalAmount,
 
                 ]
-
             );
 
-        }
+        } else {
 
-    }
+            /*
+            |--------------------------------------------------------------------------
+            | Other General Receipts
+            |--------------------------------------------------------------------------
+            */
+
+            for (
+                const item
+                of items
+            ) {
+
+                await client.query(
+                    `
+                    INSERT INTO dipp_transaction_items (
+
+                        transaction_id,
+
+                        account_id,
+
+                        amount,
+
+                        remarks
+
+                    )
+
+                    VALUES (
+
+                        $1,
+
+                        $2,
+
+                        $3,
+
+                        $4
+
+                    )
+                    `,
+                    [
+
+                        transactionId,
+
+                        item.account_id,
+
+                        Number(
+                            item.amount
+                        ),
+
+                        item.remarks ??
+                            null,
+
+                    ]
+                );
+            }
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Compute Booklet Status
+        | Increment OR
         |--------------------------------------------------------------------------
         */
 
         const nextOR =
-            Number(booklet.current_or) + 1;
+            currentOR + 1;
 
         const bookletStatus =
-            nextOR > Number(booklet.ending_or)
+            nextOR > endingOR
                 ? "CONSUMED"
                 : "IN USE";
 
         /*
         |--------------------------------------------------------------------------
-        | Update Booklet Registration
+        | Update Booklet
         |--------------------------------------------------------------------------
         */
 
         await client.query(
-
             `
             UPDATE smi_booklet_registration
 
@@ -748,26 +973,18 @@ else {
 
             WHERE id = $3
             `,
-
             [
 
-                nextOR,
+                String(
+                    nextOR
+                ),
 
                 bookletStatus,
 
                 booklet_registration_id,
 
             ]
-
         );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update LOR Status
-        |--------------------------------------------------------------------------
-        */
-
-       
 
         /*
         |--------------------------------------------------------------------------
@@ -778,6 +995,12 @@ else {
         await client.query(
             "COMMIT"
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return NextResponse.json({
 
@@ -790,10 +1013,14 @@ else {
                 transactionId,
 
             or_number:
-                booklet.current_or,
+                String(
+                    currentOR
+                ),
 
             next_or:
-                nextOR,
+                String(
+                    nextOR
+                ),
 
             grand_total:
                 grandTotal,
@@ -801,16 +1028,29 @@ else {
             booklet_status:
                 bookletStatus,
 
+            transaction_type:
+                isCTC
+                    ? formCode
+                    : "RPT",
+
         });
 
     } catch (err: any) {
 
         if (client) {
 
-            await client.query(
-                "ROLLBACK"
-            );
-
+            try {
+                await client.query(
+                    "ROLLBACK"
+                );
+            } catch (
+                rollbackError
+            ) {
+                console.error(
+                    "Rollback error:",
+                    rollbackError
+                );
+            }
         }
 
         console.error(
@@ -828,23 +1068,16 @@ else {
         );
 
         return NextResponse.json(
-
             {
-
                 success: false,
 
                 message:
-                    err.message ??
+                    err?.message ??
                     "Unable to process transaction.",
-
             },
-
             {
-
                 status: 500,
-
             }
-
         );
 
     } finally {
@@ -852,9 +1085,14 @@ else {
         client?.release();
 
     }
-
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| GET
+|--------------------------------------------------------------------------
+*/
 
 export async function GET(
     req: NextRequest
@@ -881,34 +1119,23 @@ export async function GET(
         if (!bookletId) {
 
             return NextResponse.json(
-
                 {
-
                     success: false,
 
                     message:
                         "booklet_registration_id is required.",
-
                 },
-
                 {
-
                     status: 400,
-
                 }
-
             );
-
         }
 
         const params: any[] = [
-
             bookletId,
-
         ];
 
         let where = `
-
             WHERE
 
                 dt.booklet_registration_id = $1
@@ -916,15 +1143,17 @@ export async function GET(
             AND
 
                 dt.is_cancelled = FALSE
-
         `;
 
-        if (search) {
+        if (
+            search
+        ) {
 
-            params.push(`%${search}%`);
+            params.push(
+                `%${search}%`
+            );
 
             where += `
-
                 AND (
 
                     dt.or_number ILIKE $${params.length}
@@ -934,16 +1163,12 @@ export async function GET(
                     dt.payor ILIKE $${params.length}
 
                 )
-
             `;
-
         }
 
         const result =
             await pool.query(
-
                 `
-
                 SELECT
 
                     dt.id,
@@ -960,6 +1185,8 @@ export async function GET(
 
                     dt.status,
 
+                    dt.transaction_type,
+
                     dt.created_at,
 
                     encoder.full_name
@@ -968,54 +1195,47 @@ export async function GET(
                 FROM dipp_transactions dt
 
                 LEFT JOIN users encoder
-
                     ON encoder.id =
-                    dt.encoded_by
+                        dt.encoded_by
 
                 ${where}
 
                 ORDER BY
 
-                    CAST(dt.or_number AS BIGINT) DESC
+                    CAST(
+                        dt.or_number
+                        AS BIGINT
+                    ) DESC
 
                 `,
-
                 params
-
             );
 
         return NextResponse.json({
 
             success: true,
 
-            data: result.rows,
+            data:
+                result.rows,
 
         });
 
-    }
-
-    catch (err: any) {
+    } catch (err: any) {
 
         console.error(err);
 
         return NextResponse.json(
-
             {
-
                 success: false,
 
-                message: err.message,
-
+                message:
+                    err?.message ||
+                    "Failed to load transactions.",
             },
-
             {
-
                 status: 500,
-
             }
-
         );
 
     }
-
 }
