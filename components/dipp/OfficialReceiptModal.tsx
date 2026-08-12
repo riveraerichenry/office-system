@@ -4,8 +4,10 @@ import { X, Printer } from "lucide-react";
 
 import GeneralItemsTable from "./GeneralItemsTable";
 import RPTItemsTable from "./RPTItemsTable";
+import Swal from "sweetalert2";
 
 type Header = {
+  id: string;
   or_number: string;
   receipt_date: string;
   payor: string;
@@ -82,6 +84,26 @@ export default function OfficialReceiptDetailsModal({
   const rptItems =
     items as RPTItem[];
 
+
+
+  const handlePrint = () => {
+  if (!header?.id) {
+    Swal.fire({
+      icon: "error",
+      title: "Unable to Print",
+      text: "Transaction ID is missing.",
+    });
+
+    return;
+  }
+
+  window.open(
+    `/print/dipp/receipt/${header.id}`,
+    "_blank",
+    "width=420,height=850"
+  );
+};
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
 
@@ -110,6 +132,8 @@ export default function OfficialReceiptDetailsModal({
             <div className="flex items-center gap-2">
 
               <button
+                type="button"
+                onClick={handlePrint}
                 className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 <Printer size={16} className="mr-2" />

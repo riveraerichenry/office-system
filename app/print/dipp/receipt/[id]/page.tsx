@@ -26,9 +26,13 @@ export default function ReceiptPrintPage() {
     const [items, setItems] =
         useState<any[]>([]);
 
+
     useEffect(() => {
 
-        if (!id) return;
+        if (!id) {
+            return;
+        }
+
 
         async function load() {
 
@@ -39,19 +43,23 @@ export default function ReceiptPrintPage() {
                         `/api/dipp/transactions/${id}`
                     );
 
+
                 setHeader(
                     res.data.header
                 );
 
+
                 setItems(
-                    res.data.items
+                    res.data.items || []
                 );
+
 
                 setTimeout(() => {
 
                     window.print();
 
                 }, 500);
+
 
                 window.onafterprint =
                     () => {
@@ -64,7 +72,10 @@ export default function ReceiptPrintPage() {
 
             catch (err) {
 
-                console.error(err);
+                console.error(
+                    "Unable to load receipt:",
+                    err
+                );
 
             }
 
@@ -76,9 +87,17 @@ export default function ReceiptPrintPage() {
 
         }
 
+
         load();
 
     }, [id]);
+
+
+    /*
+     * ============================================================
+     * LOADING
+     * ============================================================
+     */
 
     if (loading) {
 
@@ -87,7 +106,9 @@ export default function ReceiptPrintPage() {
             <div className="flex h-screen items-center justify-center">
 
                 <span className="text-lg font-medium">
+
                     Loading receipt...
+
                 </span>
 
             </div>
@@ -95,6 +116,13 @@ export default function ReceiptPrintPage() {
         );
 
     }
+
+
+    /*
+     * ============================================================
+     * RECEIPT NOT FOUND
+     * ============================================================
+     */
 
     if (!header) {
 
@@ -103,7 +131,9 @@ export default function ReceiptPrintPage() {
             <div className="flex h-screen items-center justify-center">
 
                 <span className="text-lg font-medium text-red-600">
+
                     Receipt not found.
+
                 </span>
 
             </div>
@@ -112,14 +142,18 @@ export default function ReceiptPrintPage() {
 
     }
 
+
+    /*
+     * ============================================================
+     * PRINTABLE RECEIPT
+     * ============================================================
+     */
+
     return (
 
         <Receipt
-
             transaction={header}
-
             items={items}
-
         />
 
     );

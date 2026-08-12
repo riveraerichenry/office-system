@@ -9,107 +9,112 @@ export default function ReceiptItems({
 }: Props) {
 
     return (
+        <div
+            className="receipt-items"
+            style={{
+                /*
+                 * =====================================================
+                 * ITEM POSITION CALIBRATION
+                 * =====================================================
+                 *
+                 * Change ONLY these values when calibrating
+                 * the physical receipt.
+                 *
+                 * X = left / right
+                 * Y = up / down
+                 */
 
-        <div className="receipt-items">
 
-            {/* Table Header */}
+                /* =====================================================
+                   NATURE OF COLLECTION
+                ===================================================== */
 
-            <div
-                style={{
-                    position: "absolute",
-                    top: "245px",
-                    left: "18px",
-                    width: "348px",
-                    display: "flex",
-                    fontWeight: 700,
-                    fontSize: "11px",
-                }}
-            >
+                "--receipt-nature-x": "18px",
+                "--receipt-nature-y": "380px",
 
-                
 
-                
+                /* =====================================================
+                   ACCOUNT CODE
+                ===================================================== */
 
-                <div
-                    style={{
-                        flex: 1,
-                        textAlign: "right",
-                    }}
-                >
-                    Amount
-                </div>
+                "--receipt-account-code-x": "170px",
+                "--receipt-account-code-y": "380px",
 
-            </div>
 
-            {/* Items */}
+                /* =====================================================
+                   ITEM AMOUNT
+                ===================================================== */
+
+                "--receipt-item-amount-x": "260px",
+                "--receipt-item-amount-y": "380px",
+
+
+                /* =====================================================
+                   ROW SPACING
+                ===================================================== */
+
+                "--receipt-item-spacing": "24px",
+
+            } as React.CSSProperties}
+        >
 
             {items.map(
-
                 (
                     item,
                     index
                 ) => (
 
                     <div
-
-                        key={index}
-
+                        key={
+                            item.id ??
+                            index
+                        }
+                        className="receipt-item"
                         style={{
-
-                            position: "absolute",
-
-                            top: `${270 + index * 24}px`,
-
-                            left: "18px",
-
-                            width: "348px",
-
-                            display: "flex",
-
-                            fontSize: "11px",
-
-                        }}
-
+                            "--item-index":
+                                index,
+                        } as React.CSSProperties}
                     >
 
-                        {/* Nature */}
+                        {/* =================================================
+                            NATURE OF COLLECTION
+                        ================================================= */}
 
                         <div
-                            style={{
-                                width: "185px",
-                                paddingRight: "8px",
-                                wordBreak: "break-word",
-                            }}
+                            className="receipt-item-nature"
                         >
                             {item.account_name}
                         </div>
 
-                        {/* Account Code */}
+
+                        {/* =================================================
+                            ACCOUNT CODE
+                        ================================================= */}
 
                         <div
-                            style={{
-                                width: "70px",
-                                textAlign: "center",
-                            }}
+                            className="receipt-item-account-code"
                         >
                             {item.account_code}
                         </div>
 
-                        {/* Amount */}
+
+                        {/* =================================================
+                            EXACT AMOUNT
+                        ================================================= */}
 
                         <div
-                            style={{
-                                flex: 1,
-                                textAlign: "right",
-                            }}
+                            className="receipt-item-amount"
                         >
                             {Number(
-                                item.amount
+                                item.amount ?? 0
                             ).toLocaleString(
                                 "en-PH",
                                 {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
+                                    minimumFractionDigits:
+                                        2,
+
+                                    maximumFractionDigits:
+                                        2,
                                 }
                             )}
                         </div>
@@ -117,11 +122,109 @@ export default function ReceiptItems({
                     </div>
 
                 )
-
             )}
 
+
+            <style jsx>{`
+
+                /* =====================================================
+                   ITEM ROW
+                ===================================================== */
+
+                .receipt-item {
+
+                    position: absolute;
+
+                    width: 348px;
+
+                    display: flex;
+
+                    font-size: 11px;
+
+                }
+
+
+                /* =====================================================
+                   NATURE OF COLLECTION
+                ===================================================== */
+
+                .receipt-item-nature {
+
+                    position: absolute;
+
+                    top: calc(
+                        var(--receipt-nature-y) +
+                        (
+                            var(--item-index) *
+                            var(--receipt-item-spacing)
+                        )
+                    );
+
+                    left:
+                        var(--receipt-nature-x);
+
+                    width: 185px;
+
+                    padding-right: 8px;
+
+                    word-break: break-word;
+
+                }
+
+
+                /* =====================================================
+                   ACCOUNT CODE
+                ===================================================== */
+
+                .receipt-item-account-code {
+
+                    position: absolute;
+
+                    top: calc(
+                        var(--receipt-account-code-y) +
+                        (
+                            var(--item-index) *
+                            var(--receipt-item-spacing)
+                        )
+                    );
+
+                    left:
+                        var(--receipt-account-code-x);
+
+                    width: 70px;
+
+                    text-align: center;
+
+                }
+
+
+                /* =====================================================
+                   EXACT AMOUNT
+                ===================================================== */
+
+                .receipt-item-amount {
+
+                    position: absolute;
+
+                    top: calc(
+                        var(--receipt-item-amount-y) +
+                        (
+                            var(--item-index) *
+                            var(--receipt-item-spacing)
+                        )
+                    );
+
+                    left:
+                        var(--receipt-item-amount-x);
+
+                    width: 75px;
+
+                    text-align: right;
+
+                }
+
+            `}</style>
+
         </div>
-
     );
-
 }

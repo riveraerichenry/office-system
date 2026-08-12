@@ -1,52 +1,176 @@
 @page {
-    size: letter;
+    size: Letter portrait;
     margin: 0;
 }
 
 :root {
+    /*
+     * ============================================================
+     * PRINT PAPER
+     * ============================================================
+     *
+     * Physical printer paper:
+     *
+     * 8.5in x 11in
+     *
+     */
 
-    /* Print Calibration */
+    --paper-width: 8.5in;
+    --paper-height: 11in;
 
-    --offset-x: 0in;
+    /*
+     * ============================================================
+     * RECEIPT USABLE AREA
+     * ============================================================
+     *
+     * Actual receipt design:
+     *
+     * 4in x 8in
+     *
+     * IMPORTANT:
+     * Do NOT change these when changing printer paper.
+     */
 
-    --offset-y: 1.5in;
+    --receipt-width: 4in;
+    --receipt-height: 8in;
 
+    /*
+     * ============================================================
+     * RECEIPT POSITION
+     * ============================================================
+     *
+     * Position of the 4 x 8 receipt
+     * INSIDE the 8.5 x 11 Letter paper.
+     *
+     * Change these only for printer calibration.
+     */
+
+    --receipt-left: 0in;
+    --receipt-top: 0in;
 }
+
+
+/* ================================================================
+   PAPER
+================================================================ */
 
 html,
 body {
 
-    width: 8.5in;
-    height: 11in;
+    width: var(--paper-width);
+    height: var(--paper-height);
 
     margin: 0;
     padding: 0;
 
     background: white;
 
-    font-family: "Times New Roman", serif;
+    font-family:
+        "Times New Roman",
+        serif;
 
 }
+
+
+/* ================================================================
+   PRINT PAGE
+================================================================ */
 
 .print-page {
 
     position: relative;
 
-    width: 8.5in;
-    height: 11in;
+    width: var(--paper-width);
+    height: var(--paper-height);
+
+    margin: 0;
+    padding: 0;
 
     background: white;
 
     overflow: hidden;
 
-    transform: translate(
-        var(--offset-x),
-        var(--offset-y)
-    );
+}
+
+
+/* ================================================================
+   ACTUAL RECEIPT CANVAS
+================================================================ */
+
+/*
+ * This is the important part.
+ *
+ * The printer receives an 8.5 x 11 page.
+ *
+ * The receipt itself remains exactly 4 x 8.
+ */
+
+.receipt {
+
+    position: absolute;
+
+    left: var(--receipt-left);
+    top: var(--receipt-top);
+
+    width: var(--receipt-width);
+    height: var(--receipt-height);
+
+    overflow: hidden;
+
+    background: white;
 
 }
 
-/* ---------- Typography ---------- */
+
+/* ================================================================
+   HEADER
+================================================================ */
+
+.receipt-header {
+
+    position: absolute;
+
+    left: 0;
+    top: 0;
+
+    width: var(--receipt-width);
+
+}
+
+
+/* ================================================================
+   ITEMS
+================================================================ */
+
+.receipt-items {
+
+    position: absolute;
+
+    left: 0;
+
+    width: var(--receipt-width);
+
+}
+
+
+/* ================================================================
+   FOOTER
+================================================================ */
+
+.receipt-footer {
+
+    position: absolute;
+
+    left: 0;
+
+    width: var(--receipt-width);
+
+}
+
+
+/* ================================================================
+   TYPOGRAPHY
+================================================================ */
 
 .small {
 
@@ -72,44 +196,10 @@ body {
 
 }
 
-/* ---------- Header ---------- */
 
-.receipt-header {
-
-    position: absolute;
-
-    left: 0;
-    top: 0;
-
-    width: 100%;
-
-}
-
-/* ---------- Items ---------- */
-
-.receipt-items {
-
-    position: absolute;
-
-    left: 0;
-
-    width: 100%;
-
-}
-
-/* ---------- Footer ---------- */
-
-.receipt-footer {
-
-    position: absolute;
-
-    left: 0;
-
-    width: 100%;
-
-}
-
-/* ---------- Utility ---------- */
+/* ================================================================
+   UTILITY
+================================================================ */
 
 .row {
 
@@ -140,5 +230,49 @@ body {
 .uppercase {
 
     text-transform: uppercase;
+
+}
+
+
+/* ================================================================
+   PRINT
+================================================================ */
+
+@media print {
+
+    html,
+    body {
+
+        width: 8.5in;
+        height: 11in;
+
+        margin: 0;
+        padding: 0;
+
+        background: white;
+
+    }
+
+    .print-page {
+
+        width: 8.5in;
+        height: 11in;
+
+        margin: 0;
+        padding: 0;
+
+        overflow: hidden;
+
+    }
+
+    .receipt {
+
+        width: 4in;
+        height: 8in;
+
+        left: var(--receipt-left);
+        top: var(--receipt-top);
+
+    }
 
 }

@@ -899,7 +899,7 @@ export default function DIPPPage() {
                     ACTIVE BOOKLETS
                 ========================================================== */}
 
-                <div className="col-span-2">
+                <div className="col-span-3">
 
                     <ActiveBookletTable
 
@@ -940,7 +940,7 @@ export default function DIPPPage() {
                     FISCAL SUMMARY
                 ========================================================== */}
 
-                <div className="col-span-7">
+                <div className="col-span-6">
 
                     <FiscalYearSummary
 
