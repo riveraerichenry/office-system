@@ -13,6 +13,8 @@ import DailyCollections from "@/components/dipp/DailyCollection";
 import DIPPSystemOptions from "@/components/dipp/DIPPSystemOptions";
 import AF58ReceiptModal from "@/components/dipp/a58/AF58ReceiptModal";
 import AF54ReceiptModal from "@/components/dipp/af54/AF54ReceiptModal";
+import GenerateRCDModal
+    from "@/components/dipp/systemoptionmodal/GenerateRCDModal";
 
 import OfficialReceiptDetailsModal
     from "@/components/dipp/OfficialReceiptModal";
@@ -33,6 +35,13 @@ import CTCCReceiptModal
     from "@/components/dipp/ctc/CTCCReceiptModal";
 
 export default function DIPPPage() {
+
+
+
+    const [
+        openGenerateRCDModal,
+        setOpenGenerateRCDModal,
+    ] = useState(false);
 
     /*
     |--------------------------------------------------------------------------
@@ -1335,11 +1344,8 @@ export default function DIPPPage() {
                 }}
 
                 onGenerateRCD={() => {
-
-                    console.log(
-                        "Generate RCD"
-                    );
-
+                    setSystemOpen(false);
+                    setOpenGenerateRCDModal(true);
                 }}
 
                 onMyReports={() => {
