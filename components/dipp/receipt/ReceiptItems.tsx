@@ -38,7 +38,7 @@ export default function ReceiptItems({
                    ACCOUNT CODE
                 ===================================================== */
 
-                "--receipt-account-code-x": "190px",
+                "--receipt-account-code-x": "220px",
                 "--receipt-account-code-y": "380px",
 
 
