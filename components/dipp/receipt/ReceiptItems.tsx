@@ -30,7 +30,7 @@ export default function ReceiptItems({
                    NATURE OF COLLECTION
                 ===================================================== */
 
-                "--receipt-nature-x": "18px",
+                "--receipt-nature-x": "10px",
                 "--receipt-nature-y": "380px",
 
 
