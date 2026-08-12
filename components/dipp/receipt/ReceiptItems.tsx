@@ -12,6 +12,7 @@ export default function ReceiptItems({
         <div
             className="receipt-items"
             style={{
+
                 /*
                  * =====================================================
                  * ITEM POSITION CALIBRATION
@@ -105,7 +106,7 @@ export default function ReceiptItems({
                         <div
                             className="receipt-item-amount"
                         >
-                            {Number(
+                            ₱{Number(
                                 item.amount ?? 0
                             ).toLocaleString(
                                 "en-PH",

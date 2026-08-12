@@ -276,8 +276,8 @@ export default function ReceiptFooter({
                    TOTAL
                 ===================================================== */
 
-                "--receipt-total-x": "220px",
-                "--receipt-total-y": "590px",
+                "--receipt-total-x": "200px",
+                "--receipt-total-y": "575px",
 
 
                 /* =====================================================
