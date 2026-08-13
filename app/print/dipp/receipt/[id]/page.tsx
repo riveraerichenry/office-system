@@ -11,11 +11,17 @@ import axios from "axios";
 
 import Receipt from "@/components/dipp/receipt/Receipt";
 
+import A51Print from "@/components/dipp/receipt/A51Print";
+
+import "@/components/dipp/receipt/a51-print.css";
+
 export default function ReceiptPrintPage() {
 
     const params = useParams();
 
-    const id = params.id as string;
+    const id =
+        params.id as string;
+
 
     const [loading, setLoading] =
         useState(true);
@@ -34,51 +40,62 @@ export default function ReceiptPrintPage() {
         }
 
 
-        async function load() {
+        let printTimer: ReturnType<
+            typeof setTimeout
+        >;
+
+
+        async function loadReceipt() {
 
             try {
 
-                const res =
+                const response =
                     await axios.get(
                         `/api/dipp/transactions/${id}`
                     );
 
 
-                setHeader(
-                    res.data.header
-                );
+                const receiptHeader =
+                    response.data.header;
 
+                const receiptItems =
+                    response.data.items || [];
+
+
+                setHeader(
+                    receiptHeader
+                );
 
                 setItems(
-                    res.data.items || []
+                    receiptItems
                 );
 
 
-                setTimeout(() => {
+                /*
+                ========================================================
+                WAIT UNTIL REACT FINISHES RENDERING
+                ========================================================
+                */
 
-                    window.print();
+                printTimer =
+                    setTimeout(
+                        () => {
 
-                }, 500);
+                            window.print();
 
-
-                window.onafterprint =
-                    () => {
-
-                        window.close();
-
-                    };
+                        },
+                        1000
+                    );
 
             }
-
-            catch (err) {
+            catch (error) {
 
                 console.error(
-                    "Unable to load receipt:",
-                    err
+                    "Unable to load A51 receipt:",
+                    error
                 );
 
             }
-
             finally {
 
                 setLoading(false);
@@ -88,73 +105,84 @@ export default function ReceiptPrintPage() {
         }
 
 
-        load();
+        loadReceipt();
+
+
+        /*
+        ========================================================
+        CLEANUP
+        ========================================================
+        */
+
+        return () => {
+
+            if (printTimer) {
+
+                clearTimeout(
+                    printTimer
+                );
+
+            }
+
+        };
 
     }, [id]);
 
 
     /*
-     * ============================================================
-     * LOADING
-     * ============================================================
-     */
+    ============================================================
+    LOADING
+    ============================================================
+    */
 
     if (loading) {
 
         return (
+            <div className="a51-loading">
 
-            <div className="flex h-screen items-center justify-center">
-
-                <span className="text-lg font-medium">
-
-                    Loading receipt...
-
-                </span>
+                Loading receipt...
 
             </div>
-
         );
 
     }
 
 
     /*
-     * ============================================================
-     * RECEIPT NOT FOUND
-     * ============================================================
-     */
+    ============================================================
+    RECEIPT NOT FOUND
+    ============================================================
+    */
 
     if (!header) {
 
         return (
+            <div className="a51-error">
 
-            <div className="flex h-screen items-center justify-center">
-
-                <span className="text-lg font-medium text-red-600">
-
-                    Receipt not found.
-
-                </span>
+                Receipt not found.
 
             </div>
-
         );
 
     }
 
 
     /*
-     * ============================================================
-     * PRINTABLE RECEIPT
-     * ============================================================
-     */
+    ============================================================
+    PRINT PAGE
+    ============================================================
+    */
 
     return (
 
-        <Receipt
-            transaction={header}
-            items={items}
-        />
+        <main className="a51-print-document">
+
+            <A51Print
+                transaction={header}
+                items={items}
+            />
+
+        </main>
 
     );
 

@@ -3,62 +3,15 @@
     margin: 0;
 }
 
-:root {
-    /*
-     * ============================================================
-     * PRINT PAPER
-     * ============================================================
-     *
-     * Physical printer paper:
-     *
-     * 8.5in x 11in
-     *
-     */
 
-    --paper-width: 8.5in;
-    --paper-height: 11in;
-
-    /*
-     * ============================================================
-     * RECEIPT USABLE AREA
-     * ============================================================
-     *
-     * Actual receipt design:
-     *
-     * 4in x 8in
-     *
-     * IMPORTANT:
-     * Do NOT change these when changing printer paper.
-     */
-
-    --receipt-width: 4in;
-    --receipt-height: 8in;
-
-    /*
-     * ============================================================
-     * RECEIPT POSITION
-     * ============================================================
-     *
-     * Position of the 4 x 8 receipt
-     * INSIDE the 8.5 x 11 Letter paper.
-     *
-     * Change these only for printer calibration.
-     */
-
-    --receipt-left: 0in;
-    --receipt-top: 0in;
-}
-
-
-/* ================================================================
-   PAPER
-================================================================ */
+/* ============================================================
+   PAGE
+============================================================ */
 
 html,
 body {
-
-    width: var(--paper-width);
-    height: var(--paper-height);
+    width: 8.5in;
+    height: 11in;
 
     margin: 0;
     padding: 0;
@@ -66,213 +19,260 @@ body {
     background: white;
 
     font-family:
-        "Times New Roman",
-        serif;
+        Arial,
+        sans-serif;
 
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 
-/* ================================================================
-   PRINT PAGE
-================================================================ */
+/* ============================================================
+   PRINT CANVAS
+============================================================ */
 
 .print-page {
-
     position: relative;
 
-    width: var(--paper-width);
-    height: var(--paper-height);
+    width: 8.5in;
+    height: 11in;
 
     margin: 0;
     padding: 0;
 
-    background: white;
+    background: #ffffff;
 
     overflow: hidden;
 
+    box-sizing: border-box;
 }
 
 
-/* ================================================================
-   ACTUAL RECEIPT CANVAS
-================================================================ */
-
-/*
- * This is the important part.
- *
- * The printer receives an 8.5 x 11 page.
- *
- * The receipt itself remains exactly 4 x 8.
- */
-
-.receipt {
-
-    position: absolute;
-
-    left: var(--receipt-left);
-    top: var(--receipt-top);
-
-    width: var(--receipt-width);
-    height: var(--receipt-height);
-
-    overflow: hidden;
-
-    background: white;
-
-}
-
-
-/* ================================================================
-   HEADER
-================================================================ */
+/* ============================================================
+   RECEIPT COMPONENT CONTAINERS
+============================================================ */
 
 .receipt-header {
-
     position: absolute;
 
     left: 0;
     top: 0;
 
-    width: var(--receipt-width);
+    width: 8.5in;
 
+    margin: 0;
+    padding: 0;
 }
 
-
-/* ================================================================
-   ITEMS
-================================================================ */
 
 .receipt-items {
-
     position: absolute;
 
     left: 0;
+    top: 0;
 
-    width: var(--receipt-width);
+    width: 8.5in;
 
+    margin: 0;
+    padding: 0;
 }
 
-
-/* ================================================================
-   FOOTER
-================================================================ */
 
 .receipt-footer {
-
     position: absolute;
 
     left: 0;
+    top: 0;
 
-    width: var(--receipt-width);
+    width: 8.5in;
 
+    margin: 0;
+    padding: 0;
 }
 
 
-/* ================================================================
-   TYPOGRAPHY
-================================================================ */
+/* ============================================================
+   GENERAL TEXT
+============================================================ */
 
 .small {
-
     font-size: 10px;
-
 }
 
 .normal {
-
     font-size: 12px;
-
 }
 
 .large {
-
     font-size: 15px;
-
 }
 
 .bold {
-
     font-weight: bold;
-
 }
 
 
-/* ================================================================
+/* ============================================================
    UTILITY
-================================================================ */
+============================================================ */
 
 .row {
-
     display: flex;
-
     align-items: center;
-
 }
 
 .space-between {
-
     justify-content: space-between;
-
 }
 
 .center {
-
     text-align: center;
-
 }
 
 .right {
-
     text-align: right;
-
 }
 
 .uppercase {
-
     text-transform: uppercase;
-
 }
 
 
-/* ================================================================
+/* ============================================================
    PRINT
-================================================================ */
+============================================================ */
 
 @media print {
 
+    @page {
+        size: Letter portrait;
+        margin: 0;
+    }
+
+
     html,
     body {
+        width: 8.5in !important;
+        height: 11in !important;
 
-        width: 8.5in;
-        height: 11in;
+        min-width: 8.5in !important;
+        min-height: 11in !important;
 
-        margin: 0;
-        padding: 0;
+        margin: 0 !important;
+        padding: 0 !important;
 
-        background: white;
+        background: #ffffff !important;
 
+        overflow: hidden !important;
+
+        font-family:
+            Arial,
+            sans-serif !important;
+
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: grayscale !important;
+
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
     }
+
+
+    /* ========================================================
+       EXACT LETTER PRINT CANVAS
+    ======================================================== */
 
     .print-page {
+        position: relative;
 
-        width: 8.5in;
-        height: 11in;
+        width: 8.5in !important;
+        height: 11in !important;
 
-        margin: 0;
-        padding: 0;
+        min-width: 8.5in !important;
+        min-height: 11in !important;
 
-        overflow: hidden;
+        margin: 0 !important;
+        padding: 0 !important;
 
+        overflow: hidden !important;
+
+        background: #ffffff !important;
+
+        box-sizing: border-box !important;
+
+        transform: none !important;
+        zoom: 1 !important;
+
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
     }
 
-    .receipt {
 
-        width: 4in;
-        height: 8in;
+    /* ========================================================
+       RECEIPT CONTAINERS
+    ======================================================== */
 
-        left: var(--receipt-left);
-        top: var(--receipt-top);
+    .receipt-header,
+    .receipt-items,
+    .receipt-footer {
+        transform: none !important;
 
+        zoom: 1 !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+
+    /* ========================================================
+       DON'T SCALE TEXT
+    ======================================================== */
+
+    .receipt-header *,
+    .receipt-items *,
+    .receipt-footer * {
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        font-synthesis: none !important;
+    }
+
+
+    /* ========================================================
+       HIDE NON-PRINT ELEMENTS
+    ======================================================== */
+
+    .no-print {
+        display: none !important;
+    }
+
+
+    .print-only {
+        display: block !important;
+    }
+
+
+    /* ========================================================
+       REMOVE LINK STYLING
+    ======================================================== */
+
+    a {
+        color: #000000 !important;
+
+        text-decoration: none !important;
+    }
+
+
+    /* ========================================================
+       BLACK TEXT
+    ======================================================== */
+
+    .print-page,
+    .print-page * {
+        color: #000000;
     }
 
 }

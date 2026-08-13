@@ -1,0 +1,458 @@
+@page {
+    size: Letter portrait;
+    margin: 0;
+}
+
+
+/* ============================================================
+   PAGE
+============================================================ */
+
+html,
+body {
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff;
+
+    font-family:
+        Arial,
+        sans-serif;
+}
+
+
+/* ============================================================
+   A51 PRINT CANVAS
+============================================================ */
+
+.a51-simple-print {
+    position: relative;
+
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    color: #000000;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   DATE
+============================================================ */
+
+.a51-date {
+    position: absolute;
+
+    left: 205px;
+    top: 240px;
+
+    width: 155px;
+
+    font-size: 12px;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   AGENCY
+============================================================ */
+
+.a51-agency {
+    position: absolute;
+
+    left: 66px;
+    top: 270px;
+
+    width: 120px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   FUND
+============================================================ */
+
+.a51-fund {
+    position: absolute;
+
+    left: 280px;
+    top: 280px;
+
+    width: 60px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   PAYOR
+============================================================ */
+
+.a51-payor {
+    position: absolute;
+
+    left: 66px;
+    top: 310px;
+
+    width: 340px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   ITEMS CONTAINER
+============================================================ */
+
+.a51-items {
+    position: absolute;
+
+    left: 0;
+    top: 0;
+
+    width: 8.5in;
+}
+
+
+/* ============================================================
+   ITEM
+============================================================ */
+
+.a51-item {
+    position: absolute;
+
+    left: 0;
+
+    top: calc(
+        380px +
+        (
+            var(--item-index) *
+            24px
+        )
+    );
+
+    width: 348px;
+
+    height: 20px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   ITEM NAME
+============================================================ */
+
+.a51-item-name {
+    position: absolute;
+
+    left: 10px;
+    top: 0;
+
+    width: 185px;
+
+    overflow: hidden;
+
+    white-space: nowrap;
+
+    text-overflow: clip;
+}
+
+
+/* ============================================================
+   ITEM CODE
+============================================================ */
+
+.a51-item-code {
+    position: absolute;
+
+    left: 220px;
+    top: 0;
+
+    width: 70px;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   ITEM AMOUNT
+============================================================ */
+
+.a51-item-amount {
+    position: absolute;
+
+    left: 260px;
+    top: 0;
+
+    width: 75px;
+
+    text-align: right;
+}
+
+
+/* ============================================================
+   REMARKS
+============================================================ */
+
+.a51-remarks {
+    position: absolute;
+
+    left: 18px;
+    top: 570px;
+
+    width: 340px;
+
+    min-height: 38px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   TOTAL
+============================================================ */
+
+.a51-total {
+    position: absolute;
+
+    left: 200px;
+    top: 575px;
+
+    width: 120px;
+
+    text-align: right;
+
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   AMOUNT IN WORDS
+============================================================ */
+
+.a51-words {
+    position: absolute;
+
+    left: 18px;
+    top: 630px;
+
+    width: 340px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   COLLECTOR
+============================================================ */
+
+.a51-collector {
+    position: absolute;
+
+    left: 10px;
+    top: 760px;
+
+    width: 150px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   COLLECTOR FIRST NAME
+============================================================ */
+
+.a51-collector-first-name {
+    position: absolute;
+
+    left: 10px;
+    top: 810px;
+
+    width: 150px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   TRANSACTION DATE / TIME
+============================================================ */
+
+.a51-transaction-datetime {
+    position: absolute;
+
+    left: 10px;
+    top: 820px;
+
+    width: 180px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   MUNICIPAL TREASURER
+============================================================ */
+
+.a51-treasurer {
+    position: absolute;
+
+    left: 200px;
+    top: 760px;
+
+    width: 150px;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   TREASURER NAME
+============================================================ */
+
+.a51-treasurer-name {
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   TREASURER TITLE
+============================================================ */
+
+.a51-treasurer-title {
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+    @page {
+        size: Letter portrait;
+        margin: 0;
+    }
+
+
+    html,
+    body {
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        overflow: hidden !important;
+    }
+
+
+    .a51-simple-print {
+        position: relative;
+
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        overflow: hidden !important;
+
+        background: #ffffff !important;
+
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        box-sizing: border-box !important;
+    }
+
+
+    .a51-simple-print * {
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        -webkit-print-color-adjust: exact !important;
+
+        print-color-adjust: exact !important;
+    }
+
+}

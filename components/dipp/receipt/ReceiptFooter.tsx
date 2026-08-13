@@ -309,7 +309,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-transaction-datetime-x": "10px",
-                "--receipt-transaction-datetime-y": "820px",
+                "--receipt-transaction-datetime-y": "825px",
 
 
                 /* =====================================================
