@@ -13,33 +13,56 @@ import {
     FileSpreadsheet,
     Receipt,
     ChevronRight,
+    Send,
 } from "lucide-react";
 
 
 type Props = {
+
     open: boolean;
+
     setOpen: (v: boolean) => void;
 
+
     onSetupBooklet: () => void;
+
     onGenerateRCD: () => void;
+
     onMyReports: () => void;
+
     onDeposits: () => void;
+
+    onRemittance: () => void;
+
     onSkip: () => void;
+
     onExcl: () => void;
+
     onRAAF: () => void;
+
 };
 
 
 export default function DIPPSystemOptions({
+
     open,
+
     setOpen,
 
     onSetupBooklet,
+
     onGenerateRCD,
+
     onMyReports,
+
     onDeposits,
+
+    onRemittance,
+
     onSkip,
+
     onExcl,
+
     onRAAF,
 
 }: Props) {
@@ -49,6 +72,9 @@ export default function DIPPSystemOptions({
         useRef<HTMLDivElement>(null);
 
 
+    // =========================================================
+    // CLICK OUTSIDE
+    // =========================================================
 
     useEffect(() => {
 
@@ -90,22 +116,40 @@ export default function DIPPSystemOptions({
 
         };
 
+    }, [
 
-    },[
         open,
-        setOpen
+
+        setOpen,
+
     ]);
 
 
+    // =========================================================
+    // ACTIVE ITEM
+    // =========================================================
 
     const Item = ({
+
         icon,
+
         title,
+
         onClick,
 
-    }: any) => (
+    }: {
+
+        icon: React.ReactNode;
+
+        title: string;
+
+        onClick: () => void;
+
+    }) => (
 
         <button
+
+            type="button"
 
             onClick={() => {
 
@@ -130,32 +174,123 @@ export default function DIPPSystemOptions({
 
         >
 
-            <div className="flex items-center gap-3">
+            <div
+                className="
+                    flex
+                    items-center
+                    gap-3
+                "
+            >
 
                 {icon}
 
 
-                <span className="
-                    font-medium
-                    text-gray-700
-                ">
-                    {title}
-                </span>
+                <span
+                    className="
+                        font-medium
+                        text-gray-700
+                    "
+                >
 
+                    {title}
+
+                </span>
 
             </div>
 
 
             <ChevronRight
                 size={18}
-                className="text-gray-400"
+                className="
+                    text-gray-400
+                "
             />
-
 
         </button>
 
     );
 
+
+    // =========================================================
+    // INACTIVE ITEM
+    // =========================================================
+
+    const InactiveItem = ({
+
+        icon,
+
+        title,
+
+    }: {
+
+        icon: React.ReactNode;
+
+        title: string;
+
+    }) => (
+
+        <button
+
+            type="button"
+
+            disabled
+
+            className="
+                w-full
+                flex
+                items-center
+                justify-between
+                px-4
+                py-3
+                border-b
+                border-gray-200
+                bg-gray-50
+                cursor-not-allowed
+                opacity-50
+            "
+
+        >
+
+            <div
+                className="
+                    flex
+                    items-center
+                    gap-3
+                "
+            >
+
+                {icon}
+
+
+                <span
+                    className="
+                        font-medium
+                        text-gray-500
+                    "
+                >
+
+                    {title}
+
+                </span>
+
+            </div>
+
+
+            <span
+                className="
+                    text-xs
+                    font-semibold
+                    text-gray-400
+                "
+            >
+
+                Inactive
+
+            </span>
+
+        </button>
+
+    );
 
 
     return (
@@ -177,7 +312,9 @@ export default function DIPPSystemOptions({
         >
 
 
-            {/* PANEL */}
+            {/* =================================================
+                PANEL
+            ================================================= */}
 
             <div
 
@@ -194,13 +331,17 @@ export default function DIPPSystemOptions({
 
                     ${
                         open
-                        ? "w-80 opacity-100"
-                        : "w-0 opacity-0"
+                            ? "w-80 opacity-100"
+                            : "w-0 opacity-0"
                     }
                 `}
 
             >
 
+
+                {/* =================================================
+                    HEADER
+                ================================================= */}
 
                 <div
                     className="
@@ -212,18 +353,27 @@ export default function DIPPSystemOptions({
                         text-lg
                     "
                 >
+
                     System Options
+
                 </div>
 
 
+                {/* =================================================
+                    GENERATE RCD
+                ================================================= */}
 
                 <Item
 
                     icon={
-                        <FileBarChart2 size={18}/>
+                        <FileBarChart2
+                            size={18}
+                        />
                     }
 
-                    title="Generate RCD Report"
+                    title="
+                        Generate RCD Report
+                    "
 
                     onClick={
                         onGenerateRCD
@@ -232,14 +382,120 @@ export default function DIPPSystemOptions({
                 />
 
 
+                {/* =================================================
+                    MY RCD REMITTANCE
+                ================================================= */}
 
                 <Item
 
                     icon={
-                        <FolderOpen size={18}/>
+                        <Send size={18} />
                     }
 
-                    title="My RCD Reports"
+                    title="My RCD Remittance"
+
+                    onClick={
+                        onRemittance
+                    }
+
+                />
+
+
+                {/* =================================================
+                    MY RCD DEPOSITS
+                    INACTIVE
+                ================================================= */}
+
+                <InactiveItem
+
+                    icon={
+                        <Landmark
+                            size={18}
+                        />
+                    }
+
+                    title="
+                        My RCD Deposits
+                    "
+
+                />
+
+
+                {/* =================================================
+                    MY SKIP REQUESTS
+                    INACTIVE
+                ================================================= */}
+
+                <InactiveItem
+
+                    icon={
+                        <ClipboardList
+                            size={18}
+                        />
+                    }
+
+                    title="
+                        My SKIP Requests
+                    "
+
+                />
+
+
+                {/* =================================================
+                    MY EXCL TRANSACTIONS
+                    INACTIVE
+                ================================================= */}
+
+                <InactiveItem
+
+                    icon={
+                        <FileSpreadsheet
+                            size={18}
+                        />
+                    }
+
+                    title="
+                        My EXCL Transactions
+                    "
+
+                />
+
+
+                {/* =================================================
+                    MY RAAF REPORTS
+                    INACTIVE
+                ================================================= */}
+
+                <InactiveItem
+
+                    icon={
+                        <Receipt
+                            size={18}
+                        />
+                    }
+
+                    title="
+                        My RAAF Reports
+                    "
+
+                />
+
+
+                {/* =================================================
+                    MY RCD REPORTS
+                ================================================= */}
+
+                <Item
+
+                    icon={
+                        <FolderOpen
+                            size={18}
+                        />
+                    }
+
+                    title="
+                        My RCD Reports
+                    "
 
                     onClick={
                         onMyReports
@@ -248,78 +504,16 @@ export default function DIPPSystemOptions({
                 />
 
 
-
-                <Item
-
-                    icon={
-                        <Landmark size={18}/>
-                    }
-
-                    title="My RCD Deposits"
-
-                    onClick={
-                        onDeposits
-                    }
-
-                />
-
-
-
-                <Item
-
-                    icon={
-                        <ClipboardList size={18}/>
-                    }
-
-                    title="My SKIP Requests"
-
-                    onClick={
-                        onSkip
-                    }
-
-                />
-
-
-
-                <Item
-
-                    icon={
-                        <FileSpreadsheet size={18}/>
-                    }
-
-                    title="My EXCL Transactions"
-
-                    onClick={
-                        onExcl
-                    }
-
-                />
-
-
-
-                <Item
-
-                    icon={
-                        <Receipt size={18}/>
-                    }
-
-                    title="My RAAF Reports"
-
-                    onClick={
-                        onRAAF
-                    }
-
-                />
-
-
             </div>
 
 
-
-
-            {/* TAB */}
+            {/* =====================================================
+                TAB
+            ===================================================== */}
 
             <button
+
+                type="button"
 
                 onClick={() =>
                     setOpen(!open)
@@ -341,18 +535,26 @@ export default function DIPPSystemOptions({
                 "
 
                 style={{
-                    writingMode:"vertical-rl",
-                    transform:"rotate(180deg)",
+
+                    writingMode:
+                        "vertical-rl",
+
+                    transform:
+                        "rotate(180deg)",
+
                 }}
 
             >
 
                 {
-                    open
-                    ? "Close"
-                    : "System Options"
-                }
 
+                    open
+
+                        ? "Close"
+
+                        : "System Options"
+
+                }
 
             </button>
 

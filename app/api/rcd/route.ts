@@ -1,48 +1,100 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+    NextRequest,
+    NextResponse,
+} from "next/server";
+
 import jwt from "jsonwebtoken";
 
-import { pool } from "@/lib/db";
+import {
+    pool,
+} from "@/lib/db";
+
+import {
+    randomUUID,
+} from "crypto";
+
+
+// =============================================================
+// JWT PAYLOAD
+// =============================================================
 
 type JwtPayload = {
     id?: string;
+
     username?: string;
+
     full_name?: string;
 };
 
-export async function GET(
+
+// =============================================================
+// PREVIOUS FORM ROW
+// =============================================================
+
+type PreviousFormRow = {
+
+    formCode: string;
+
+    beginningFrom:
+        | string
+        | null;
+
+    beginningTo:
+        | string
+        | null;
+
+    endingFrom:
+        | string
+        | null;
+
+    endingTo:
+        | string
+        | null;
+
+};
+
+
+// =============================================================
+// POST
+// =============================================================
+
+export async function POST(
     request: NextRequest
 ) {
+
+    const client =
+        await pool.connect();
+
+
     try {
+
         // =====================================================
-        // PARAMETERS
+        // REQUEST BODY
         // =====================================================
 
-        const { searchParams } =
-            new URL(request.url);
+        const body =
+            await request.json();
 
-        const fundSourceId =
-            searchParams.get(
-                "fund_source_id"
-            );
 
-        const dateFrom =
-            searchParams.get(
-                "date_from"
-            );
+        const {
+            fund_source_id,
+            date_from,
+            date_to,
+        } = body;
 
-        const dateTo =
-            searchParams.get(
-                "date_to"
-            );
 
         // =====================================================
         // VALIDATION
         // =====================================================
 
-        if (!fundSourceId) {
+        if (
+            !fund_source_id
+        ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Fund source is required.",
                 },
@@ -50,46 +102,49 @@ export async function GET(
                     status: 400,
                 }
             );
+
         }
 
-        if (!dateFrom) {
+
+        if (
+            !date_from ||
+            !date_to
+        ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
-                        "Beginning date is required.",
+                        "Date range is required.",
                 },
                 {
                     status: 400,
                 }
             );
+
         }
 
-        if (!dateTo) {
+
+        if (
+            date_from >
+            date_to
+        ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
-                        "Ending date is required.",
+                        "Date From cannot be later than Date To.",
                 },
                 {
                     status: 400,
                 }
             );
+
         }
 
-        if (dateFrom > dateTo) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "Beginning date cannot be later than ending date.",
-                },
-                {
-                    status: 400,
-                }
-            );
-        }
 
         // =====================================================
         // AUTHENTICATION
@@ -100,10 +155,15 @@ export async function GET(
                 "token"
             )?.value;
 
-        if (!token) {
+
+        if (
+            !token
+        ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Authentication required.",
                 },
@@ -111,19 +171,27 @@ export async function GET(
                     status: 401,
                 }
             );
+
         }
+
 
         const jwtSecret =
             process.env.JWT_SECRET;
 
-        if (!jwtSecret) {
+
+        if (
+            !jwtSecret
+        ) {
+
             console.error(
                 "JWT_SECRET is not configured."
             );
 
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Authentication configuration error.",
                 },
@@ -131,25 +199,40 @@ export async function GET(
                     status: 500,
                 }
             );
+
         }
 
-        let decoded: JwtPayload;
+
+        // =====================================================
+        // VERIFY JWT
+        // =====================================================
+
+        let decoded:
+            JwtPayload;
+
 
         try {
+
             decoded =
                 jwt.verify(
                     token,
                     jwtSecret
                 ) as JwtPayload;
-        } catch (error) {
+
+        } catch (
+            error
+        ) {
+
             console.error(
                 "RCD JWT ERROR:",
                 error
             );
 
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Invalid or expired session.",
                 },
@@ -157,12 +240,18 @@ export async function GET(
                     status: 401,
                 }
             );
+
         }
 
-        if (!decoded?.id) {
+
+        if (
+            !decoded?.id
+        ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Unable to determine logged-in user.",
                 },
@@ -170,21 +259,29 @@ export async function GET(
                     status: 401,
                 }
             );
+
         }
 
+
         // =====================================================
-        // LOGGED-IN USER
+        // VERIFY LOGGED-IN USER
         // =====================================================
 
         const userResult =
-            await pool.query(
+            await client.query(
                 `
                 SELECT
+
                     id,
+
                     username,
+
                     full_name
+
                 FROM users
+
                 WHERE id = $1
+
                 LIMIT 1
                 `,
                 [
@@ -192,12 +289,15 @@ export async function GET(
                 ]
             );
 
+
         if (
             userResult.rows.length === 0
         ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
                         "Logged-in user was not found.",
                 },
@@ -205,865 +305,1459 @@ export async function GET(
                     status: 401,
                 }
             );
+
         }
+
 
         const loggedInUser =
             userResult.rows[0];
 
+
         // =====================================================
-        // FUND SOURCE
+        // VERIFY FUND SOURCE
         // =====================================================
 
-        const fundResult =
-            await pool.query(
+        const fundSourceResult =
+            await client.query(
                 `
                 SELECT
+
                     id,
+
                     fund_code,
+
                     fund_name,
+
                     acronym
+
                 FROM fund_sources
+
                 WHERE id = $1
-                  AND is_active = TRUE
+
+                AND is_active = TRUE
+
                 LIMIT 1
                 `,
                 [
-                    fundSourceId,
+                    fund_source_id,
                 ]
             );
 
+
         if (
-            fundResult.rows.length === 0
+            fundSourceResult.rows.length === 0
         ) {
+
             return NextResponse.json(
                 {
                     success: false,
+
                     message:
-                        "Fund source not found.",
+                        "Fund source not found or inactive.",
                 },
                 {
                     status: 404,
                 }
             );
+
         }
 
+
         const fundSource =
-            fundResult.rows[0];
+            fundSourceResult.rows[0];
+
 
         // =====================================================
-        // A. COLLECTIONS
-        //
-        // Only actual DIPP transactions.
-        //
-        // Fund source:
-        // lor_releases.fund_source_id
-        //
-        // Date:
-        // dipp_transactions.receipt_date
+        // BEGIN DATABASE TRANSACTION
         // =====================================================
 
-        const collectionsResult =
-            await pool.query(
+        await client.query(
+            "BEGIN"
+        );
+
+
+        // =====================================================
+        // LOCK RCD NUMBER GENERATION
+        // =====================================================
+
+        await client.query(
+            `
+            SELECT pg_advisory_xact_lock(
+                hashtext(
+                    'RCD_REPORT_NUMBER_GENERATION'
+                )
+            )
+            `
+        );
+
+
+        // =====================================================
+        // GET ELIGIBLE DIPP TRANSACTIONS
+        //
+        // NO transaction_type = 'RPT' FILTER.
+        //
+        // AF51 can be RPT.
+        // CTC-I can be CTC-I.
+        // Both are valid accountable forms.
+        // =====================================================
+
+        const transactionsResult =
+            await client.query(
                 `
                 SELECT
-                    dt.booklet_registration_id,
 
-                    sbr.control_no,
-                    sbr.fiscal_year,
-                    sbr.series,
+                    dt.id,
 
-                    af.id AS accountable_form_id,
-                    af.form_code,
-                    af.form_name,
+                    dt.or_number,
 
-                    MIN(
-                        NULLIF(
-                            TRIM(
-                                dt.or_number
-                            ),
-                            ''
-                        )::BIGINT
-                    ) AS from_or,
+                    dt.receipt_date,
 
-                    MAX(
-                        NULLIF(
-                            TRIM(
-                                dt.or_number
-                            ),
-                            ''
-                        )::BIGINT
-                    ) AS to_or,
+                    dt.collector_id,
 
-                    COUNT(
-                        DISTINCT dt.or_number
-                    ) AS used_count,
+                    dt.payor,
 
-                    COUNT(
-                        dt.id
-                    ) AS transaction_count,
+                    dt.payment_mode,
+
+                    dt.remarks,
 
                     COALESCE(
-                        SUM(
-                            COALESCE(
-                                dt.grand_total,
-                                0
-                            )
-                        ),
+                        dt.grand_total,
                         0
-                    ) AS collection_amount
+                    ) AS amount,
+
+                    dt.accountable_form_id,
+
+                    dt.booklet_registration_id,
+
+
+                    /*
+                    =================================================
+                    BOOKLET
+                    =================================================
+                    */
+
+                    sbr.beginning_or
+                        AS booklet_beginning_or,
+
+                    sbr.ending_or
+                        AS booklet_ending_or,
+
+                    sbr.current_or
+                        AS booklet_current_or,
+
+
+                    dt.lor_release_id,
+
+                    dt.encoded_by,
+
+                    dt.status,
+
+                    dt.transaction_type,
+
+                    dt.is_cancelled,
+
+                    dt.is_remitted,
+
+                    dt.remittance_id,
+
+
+                    /*
+                    =================================================
+                    ACCOUNTABLE FORM
+                    =================================================
+                    */
+
+                    af.form_code,
+
+                    af.form_name
 
                 FROM dipp_transactions dt
 
+
+                /*
+                =====================================================
+                LOR RELEASE
+                =====================================================
+                */
+
                 INNER JOIN lor_releases lr
+
                     ON lr.id =
                         dt.lor_release_id
 
-                INNER JOIN smi_booklet_registration sbr
-                    ON sbr.id =
-                        dt.booklet_registration_id
 
-                INNER JOIN accountable_forms af
+                /*
+                =====================================================
+                ACCOUNTABLE FORM
+                =====================================================
+                */
+
+                LEFT JOIN accountable_forms af
+
                     ON af.id =
                         dt.accountable_form_id
 
+
+                /*
+                =====================================================
+                BOOKLET
+                =====================================================
+                */
+
+                LEFT JOIN smi_booklet_registration sbr
+
+                    ON sbr.id =
+                        dt.booklet_registration_id
+
+
                 WHERE
+
+
+                    /*
+                    =================================================
+                    FUND SOURCE
+                    =================================================
+                    */
+
                     lr.fund_source_id =
                         $1
 
-                    AND lr.accountable_officer_id =
-                        $2
 
-                    AND lr.is_active =
-                        TRUE
-
-                    AND dt.booklet_registration_id
-                        IS NOT NULL
+                    /*
+                    =================================================
+                    DATE FROM
+                    =================================================
+                    */
 
                     AND dt.receipt_date >=
-                        $3::date
+                        $2::date
+
+
+                    /*
+                    =================================================
+                    DATE TO
+                    =================================================
+                    */
 
                     AND dt.receipt_date <
                         (
-                            $4::date
+                            $3::date
                             + INTERVAL '1 day'
                         )
+
+
+                    /*
+                    =================================================
+                    LOGGED-IN USER
+                    =================================================
+                    */
+
+                    AND dt.encoded_by =
+                        $4
+
+
+                    /*
+                    =================================================
+                    ISSUED ONLY
+                    =================================================
+                    */
+
+                    AND dt.status =
+                        'ISSUED'
+
+
+                    /*
+                    =================================================
+                    NOT CANCELLED
+                    =================================================
+                    */
 
                     AND COALESCE(
                         dt.is_cancelled,
                         FALSE
                     ) = FALSE
 
-                    AND dt.or_number
-                        IS NOT NULL
 
-                    AND TRIM(
-                        dt.or_number
-                    ) <> ''
+                    /*
+                    =================================================
+                    NOT REMITTED
+                    =================================================
+                    */
 
-                GROUP BY
-                    dt.booklet_registration_id,
+                    AND COALESCE(
+                        dt.is_remitted,
+                        FALSE
+                    ) = FALSE
 
-                    sbr.control_no,
-                    sbr.fiscal_year,
-                    sbr.series,
 
-                    af.id,
-                    af.form_code,
-                    af.form_name
+                    /*
+                    =================================================
+                    NO REMITTANCE ID
+                    =================================================
+                    */
+
+                    AND dt.remittance_id IS NULL
+
+
+                    /*
+                    =================================================
+                    NOT ALREADY IN RCD
+                    =================================================
+                    */
+
+                    AND NOT EXISTS (
+
+                        SELECT 1
+
+                        FROM rcd_items ri
+
+                        WHERE
+                            ri.dipp_transaction_id =
+                                dt.id
+
+                    )
+
 
                 ORDER BY
+
                     af.form_code ASC,
 
-                    MIN(
-                        NULLIF(
-                            TRIM(
-                                dt.or_number
-                            ),
-                            ''
-                        )::BIGINT
-                    ) ASC
+                    dt.receipt_date ASC,
+
+                    CASE
+
+                        WHEN
+
+                            NULLIF(
+                                TRIM(
+                                    dt.or_number
+                                ),
+                                ''
+                            ) ~ '^[0-9]+$'
+
+                        THEN
+
+                            NULLIF(
+                                TRIM(
+                                    dt.or_number
+                                ),
+                                ''
+                            )::BIGINT
+
+                        ELSE
+                            NULL
+
+                    END ASC,
+
+                    dt.or_number ASC
                 `,
                 [
-                    fundSourceId,
+                    fund_source_id,
+
+                    date_from,
+
+                    date_to,
+
                     loggedInUser.id,
-                    dateFrom,
-                    dateTo,
                 ]
             );
 
+
+        const transactions =
+            transactionsResult.rows;
+
+
         // =====================================================
-        // FORMAT COLLECTIONS
+        // NO TRANSACTIONS
         // =====================================================
 
-        const collections =
-            collectionsResult.rows.map(
-                (
-                    row: any
-                ) => ({
-                    booklet_registration_id:
-                        row.booklet_registration_id,
+        if (
+            transactions.length === 0
+        ) {
 
-                    control_no:
-                        row.control_no,
-
-                    fiscal_year:
-                        row.fiscal_year,
-
-                    series:
-                        row.series,
-
-                    accountable_form_id:
-                        row.accountable_form_id,
-
-                    form_code:
-                        row.form_code,
-
-                    form_name:
-                        row.form_name,
-
-                    from_or:
-                        row.from_or !== null
-                            ? Number(
-                                row.from_or
-                            )
-                            : null,
-
-                    to_or:
-                        row.to_or !== null
-                            ? Number(
-                                row.to_or
-                            )
-                            : null,
-
-                    used_count:
-                        Number(
-                            row.used_count ??
-                            0
-                        ),
-
-                    transaction_count:
-                        Number(
-                            row.transaction_count ??
-                            0
-                        ),
-
-                    collection_amount:
-                        Number(
-                            row.collection_amount ??
-                            0
-                        ),
-                })
+            await client.query(
+                "ROLLBACK"
             );
+
+
+            return NextResponse.json(
+                {
+                    success: false,
+
+                    message:
+                        "No eligible DIPP transactions were found for the selected fund source, date range, and logged-in user.",
+                },
+                {
+                    status: 404,
+                }
+            );
+
+        }
+
 
         // =====================================================
         // TOTAL COLLECTIONS
         // =====================================================
 
         const totalCollections =
-            collections.reduce(
+            transactions.reduce(
                 (
                     total: number,
-                    item: any
-                ) =>
-                    total +
-                    Number(
-                        item.collection_amount ??
-                        0
-                    ),
-                0
-            );
 
-        const totalUsedORs =
-            collections.reduce(
-                (
-                    total: number,
-                    item: any
-                ) =>
-                    total +
-                    Number(
-                        item.used_count ??
-                        0
-                    ),
-                0
-            );
+                    transaction: any
+                ) => {
 
-        // =====================================================
-        // C. ACCOUNTABILITY FOR ACCOUNTABLE FORMS
-        //
-        // IMPORTANT:
-        //
-        // Start from dipp_transactions.
-        //
-        // Therefore:
-        //
-        // NO TRANSACTION
-        //      =
-        // UNUSED FORM
-        //      =
-        // NOT INCLUDED
-        //
-        // Only forms with actual used ORs appear.
-        // =====================================================
+                    return (
 
-        const formsResult =
-            await pool.query(
-                `
-                SELECT
-                    sbr.id AS booklet_registration_id,
+                        total +
 
-                    lr.id AS lor_id,
-                    lr.lor_no,
-
-                    lr.fund_source_id,
-                    lr.accountable_form_id,
-
-                    af.form_code,
-                    af.form_name,
-
-                    sbr.control_no,
-                    sbr.fiscal_year,
-                    sbr.series,
-
-                    sbr.beginning_or,
-                    sbr.ending_or,
-                    sbr.receipt_count,
-
-                    MIN(
-                        NULLIF(
-                            TRIM(
-                                dt.or_number
-                            ),
-                            ''
-                        )::BIGINT
-                    ) AS issued_beginning_or,
-
-                    MAX(
-                        NULLIF(
-                            TRIM(
-                                dt.or_number
-                            ),
-                            ''
-                        )::BIGINT
-                    ) AS issued_ending_or,
-
-                    COUNT(
-                        DISTINCT dt.or_number
-                    ) AS issued_count,
-
-                    COALESCE(
-                        SUM(
-                            COALESCE(
-                                dt.grand_total,
+                        Number(
+                            transaction.amount ??
                                 0
-                            )
-                        ),
-                        0
-                    ) AS collection_total
-
-                FROM dipp_transactions dt
-
-                INNER JOIN lor_releases lr
-                    ON lr.id =
-                        dt.lor_release_id
-
-                INNER JOIN smi_booklet_registration sbr
-                    ON sbr.id =
-                        dt.booklet_registration_id
-
-                INNER JOIN accountable_forms af
-                    ON af.id =
-                        dt.accountable_form_id
-
-                WHERE
-                    lr.fund_source_id =
-                        $1
-
-                    AND lr.accountable_officer_id =
-                        $2
-
-                    AND lr.is_active =
-                        TRUE
-
-                    AND dt.booklet_registration_id
-                        IS NOT NULL
-
-                    AND dt.receipt_date >=
-                        $3::date
-
-                    AND dt.receipt_date <
-                        (
-                            $4::date
-                            + INTERVAL '1 day'
                         )
 
-                    AND COALESCE(
-                        dt.is_cancelled,
-                        FALSE
-                    ) = FALSE
+                    );
 
-                    AND dt.or_number
-                        IS NOT NULL
-
-                    AND TRIM(
-                        dt.or_number
-                    ) <> ''
-
-                GROUP BY
-                    sbr.id,
-
-                    lr.id,
-                    lr.lor_no,
-
-                    lr.fund_source_id,
-                    lr.accountable_form_id,
-
-                    af.form_code,
-                    af.form_name,
-
-                    sbr.control_no,
-                    sbr.fiscal_year,
-                    sbr.series,
-
-                    sbr.beginning_or,
-                    sbr.ending_or,
-                    sbr.receipt_count
-
-                ORDER BY
-                    af.form_code ASC,
-                    sbr.beginning_or ASC
-                `,
-                [
-                    fundSourceId,
-                    loggedInUser.id,
-                    dateFrom,
-                    dateTo,
-                ]
+                },
+                0
             );
 
+
         // =====================================================
-        // GROUP TABLE C BY ACCOUNTABLE FORM
+        // BUILD ACCOUNTABILITY DATA
         // =====================================================
 
-        const formsMap =
-            new Map<string, any>();
+        const previousFormRows:
+            PreviousFormRow[] = [];
+
+
+        const formGroups =
+            new Map<
+                string,
+                any[]
+            >();
+
+
+        // =====================================================
+        // GROUP TRANSACTIONS BY FORM
+        // =====================================================
 
         for (
-            const row of
-                formsResult.rows
+            const transaction
+            of transactions
         ) {
 
-            const formId =
-                row.accountable_form_id;
+            const formCode =
+                String(
+                    transaction.form_code ??
+                        "—"
+                ).trim();
+
 
             if (
-                !formsMap.has(
-                    formId
+                !formGroups.has(
+                    formCode
                 )
             ) {
 
-                formsMap.set(
-                    formId,
-                    {
-                        accountable_form_id:
-                            formId,
-
-                        form_code:
-                            row.form_code,
-
-                        form_name:
-                            row.form_name,
-
-                        booklets: [],
-
-                        booklet_count:
-                            0,
-
-                        beginning_or:
-                            null,
-
-                        ending_or:
-                            null,
-
-                        receipt_count:
-                            0,
-
-                        issued_count:
-                            0,
-
-                        ending_balance_count:
-                            0,
-
-                        collection_total:
-                            0,
-                    }
+                formGroups.set(
+                    formCode,
+                    []
                 );
+
             }
 
-            const form =
-                formsMap.get(
-                    formId
+
+            formGroups
+                .get(
+                    formCode
+                )!
+                .push(
+                    transaction
                 );
 
-            const beginningOR =
-                row.beginning_or !== null
-                    ? Number(
-                        row.beginning_or
-                    )
-                    : null;
+        }
 
-            const endingOR =
-                row.ending_or !== null
-                    ? Number(
-                        row.ending_or
-                    )
-                    : null;
 
-            const receiptCount =
-                Number(
-                    row.receipt_count ??
-                    0
+        // =====================================================
+        // BUILD ACCOUNTABILITY ROWS
+        // =====================================================
+
+        for (
+            const [
+                formCode,
+                groupTransactions,
+            ]
+            of formGroups.entries()
+        ) {
+
+            // =================================================
+            // CURRENT RCD ORs
+            // =================================================
+
+            const serials =
+                groupTransactions
+                    .map(
+                        transaction =>
+                            String(
+                                transaction.or_number ??
+                                    ""
+                            ).trim()
+                    )
+                    .filter(
+                        value =>
+                            value !== ""
+                    );
+
+
+            const numericSerials =
+                serials
+                    .map(
+                        value =>
+                            Number(
+                                value
+                            )
+                    )
+                    .filter(
+                        value =>
+                            !Number.isNaN(
+                                value
+                            )
+                    );
+
+
+            if (
+                numericSerials.length === 0
+            ) {
+
+                previousFormRows.push({
+
+                    formCode,
+
+                    beginningFrom:
+                        null,
+
+                    beginningTo:
+                        null,
+
+                    endingFrom:
+                        null,
+
+                    endingTo:
+                        null,
+
+                });
+
+
+                continue;
+
+            }
+
+
+            // =================================================
+            // FIRST OR
+            // =================================================
+
+            const currentMin =
+                Math.min(
+                    ...numericSerials
                 );
 
-            const issuedCount =
-                Number(
-                    row.issued_count ??
-                    0
+
+            // =================================================
+            // LAST OR
+            // =================================================
+
+            const currentMax =
+                Math.max(
+                    ...numericSerials
                 );
 
-            const issuedFrom =
-                row.issued_beginning_or !==
-                null
+
+            // =================================================
+            // FIND BOOKLET
+            // =================================================
+
+            const bookletTransaction =
+                groupTransactions.find(
+                    transaction =>
+
+                        transaction
+                            .booklet_ending_or !==
+                            null &&
+
+                        transaction
+                            .booklet_ending_or !==
+                            undefined &&
+
+                        String(
+                            transaction
+                                .booklet_ending_or
+                        ).trim() !== ""
+
+                ) ??
+                groupTransactions[0];
+
+
+            // =================================================
+            // BOOKLET ENDING OR
+            // =================================================
+
+            const bookletEndingRaw =
+                bookletTransaction
+                    ?.booklet_ending_or;
+
+
+            const bookletEnding =
+                bookletEndingRaw !==
+                    null &&
+
+                bookletEndingRaw !==
+                    undefined &&
+
+                String(
+                    bookletEndingRaw
+                ).trim() !== ""
+
                     ? Number(
-                        row.issued_beginning_or
+                        bookletEndingRaw
                     )
+
                     : null;
 
-            const issuedTo =
-                row.issued_ending_or !==
-                null
-                    ? Number(
-                        row.issued_ending_or
+
+            // =================================================
+            // SERIAL WIDTH
+            // =================================================
+
+            const firstSerialString =
+                serials[0] ??
+                String(
+                    currentMin
+                );
+
+
+            const endingSerialString =
+                bookletEndingRaw !==
+                    null &&
+                bookletEndingRaw !==
+                    undefined
+
+                    ? String(
+                        bookletEndingRaw
                     )
+
+                    : "";
+
+
+            const serialWidth =
+                Math.max(
+
+                    firstSerialString.length,
+
+                    endingSerialString.length
+
+                );
+
+
+            // =================================================
+            // BEGINNING BALANCE
+            //
+            // Example:
+            //
+            // Current RCD starts at 103
+            // Booklet ends at 150
+            //
+            // Beginning:
+            //
+            // 103 - 150
+            // =================================================
+
+            const beginningFrom =
+                String(
+                    currentMin
+                ).padStart(
+                    serialWidth,
+                    "0"
+                );
+
+
+            const beginningTo =
+                bookletEnding !== null
+
+                    ? String(
+                        bookletEnding
+                    ).padStart(
+                        serialWidth,
+                        "0"
+                    )
+
                     : null;
+
 
             // =================================================
             // ENDING BALANCE
             //
-            // Remaining ORs after the last used OR.
-            //
             // Example:
             //
-            // Booklet:
-            // 10001 - 10050
+            // Issued: 103
             //
-            // Used:
-            // 10001 - 10005
+            // Ending:
             //
-            // Remaining:
-            // 10006 - 10050
+            // 104 - 150
             // =================================================
 
-            const endingBalanceFrom =
-                issuedTo !== null
-                    ? issuedTo + 1
-                    : beginningOR;
+            let endingFrom:
+                string | null =
+                null;
 
-            const endingBalanceTo =
-                endingOR;
 
-            const endingBalanceCount =
-                endingBalanceFrom !== null &&
-                endingBalanceTo !== null &&
-                endingBalanceTo >=
-                    endingBalanceFrom
-                    ? endingBalanceTo -
-                      endingBalanceFrom +
-                      1
-                    : 0;
+            let endingTo:
+                string | null =
+                null;
 
-            const booklet = {
 
-                booklet_registration_id:
-                    row.booklet_registration_id,
+            if (
+                bookletEnding !== null &&
 
-                lor_id:
-                    row.lor_id,
+                currentMax <
+                    bookletEnding
+            ) {
 
-                lor_no:
-                    row.lor_no,
+                endingFrom =
+                    String(
+                        currentMax + 1
+                    ).padStart(
+                        serialWidth,
+                        "0"
+                    );
 
-                fund_source_id:
-                    row.fund_source_id,
 
-                accountable_form_id:
-                    formId,
+                endingTo =
+                    String(
+                        bookletEnding
+                    ).padStart(
+                        serialWidth,
+                        "0"
+                    );
 
-                form_code:
-                    row.form_code,
+            }
 
-                form_name:
-                    row.form_name,
 
-                control_no:
-                    row.control_no,
+            // =================================================
+            // DEBUG
+            // =================================================
 
-                fiscal_year:
-                    row.fiscal_year,
+            console.log(
+                "RCD BOOKLET ACCOUNTABILITY",
+                {
 
-                series:
-                    row.series,
+                    formCode,
 
-                beginning_or:
-                    beginningOR,
+                    transactionCount:
+                        groupTransactions.length,
 
-                ending_or:
-                    endingOR,
+                    bookletId:
+                        bookletTransaction
+                            ?.booklet_registration_id,
 
-                receipt_count:
-                    receiptCount,
+                    bookletBeginningOR:
+                        bookletTransaction
+                            ?.booklet_beginning_or,
 
-                issued_count:
-                    issuedCount,
+                    bookletEndingOR:
+                        bookletEnding,
 
-                issued_beginning_or:
-                    issuedFrom,
+                    bookletCurrentOR:
+                        bookletTransaction
+                            ?.booklet_current_or,
 
-                issued_ending_or:
-                    issuedTo,
+                    currentRCDFirstOR:
+                        currentMin,
 
-                ending_balance_count:
-                    endingBalanceCount,
+                    currentRCDLastOR:
+                        currentMax,
 
-                ending_balance_beginning_or:
-                    endingBalanceFrom,
+                    beginningFrom,
 
-                ending_balance_ending_or:
-                    endingBalanceTo,
+                    beginningTo,
 
-                collection_total:
-                    Number(
-                        row.collection_total ??
-                        0
-                    ),
-            };
+                    endingFrom,
 
-            form.booklets.push(
-                booklet
+                    endingTo,
+
+                }
             );
 
-            form.booklet_count =
-                form.booklets.length;
-
-            form.receipt_count +=
-                receiptCount;
-
-            form.issued_count +=
-                issuedCount;
-
-            form.ending_balance_count +=
-                endingBalanceCount;
-
-            form.collection_total +=
-                Number(
-                    row.collection_total ??
-                    0
-                );
 
             // =================================================
-            // FORM BEGINNING RANGE
+            // SAVE
             // =================================================
 
-            if (
-                form.beginning_or ===
-                    null ||
-                (
-                    beginningOR !==
-                        null &&
-                    beginningOR <
-                        form.beginning_or
-                )
-            ) {
-                form.beginning_or =
-                    beginningOR;
-            }
+            previousFormRows.push({
 
-            // =================================================
-            // FORM ENDING RANGE
-            // =================================================
+                formCode,
 
-            if (
-                form.ending_or ===
-                    null ||
-                (
-                    endingOR !==
-                        null &&
-                    endingOR >
-                        form.ending_or
-                )
-            ) {
-                form.ending_or =
-                    endingOR;
-            }
+                beginningFrom,
+
+                beginningTo,
+
+                endingFrom,
+
+                endingTo,
+
+            });
+
         }
 
+
         // =====================================================
-        // ONLY USED FORMS
-        //
-        // Since formsResult starts from dipp_transactions,
-        // this already excludes unused forms.
-        //
-        // The extra filter guarantees that no empty form
-        // reaches the printable.
+        // DEBUG
         // =====================================================
 
-        const forms =
-            Array.from(
-                formsMap.values()
-            ).filter(
-                (
-                    form: any
-                ) =>
-                    form.booklets.length >
-                    0 &&
-                    form.issued_count >
-                    0
+        console.log(
+            "RCD PREVIOUS FORM ROWS",
+            previousFormRows
+        );
+
+
+        // =====================================================
+        // REPORT NUMBER
+        //
+        // FORMAT:
+        //
+        // YYMMDDNNNNN-ACRONYM
+        //
+        // Example:
+        //
+        // 26081700001-GF
+        //
+        // Instead of:
+        //
+        // 26081700001-RPT
+        // =====================================================
+
+        const reportDate =
+            new Date();
+
+
+        const yy =
+            String(
+                reportDate.getFullYear()
+            ).slice(-2);
+
+
+        const mm =
+            String(
+                reportDate.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
             );
+
+
+        const dd =
+            String(
+                reportDate.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const datePrefix =
+            `${yy}${mm}${dd}`;
+
+
+        // =====================================================
+        // GET NEXT DAILY SEQUENCE
+        // =====================================================
+
+        const sequenceResult =
+            await client.query(
+                `
+                SELECT
+
+                    COUNT(*) + 1
+                        AS sequence
+
+                FROM rcd_transaction
+
+                WHERE report_date =
+                    CURRENT_DATE
+                `
+            );
+
+
+        const sequence =
+            String(
+                sequenceResult
+                    .rows[0]
+                    .sequence
+            ).padStart(
+                5,
+                "0"
+            );
+
+
+        // =====================================================
+        // FUND SOURCE ACRONYM
+        // =====================================================
+
+        const fundSourceAcronym =
+            String(
+                fundSource.acronym ??
+                    ""
+            )
+                .trim()
+                .toUpperCase();
+
+
+        // =====================================================
+        // FALLBACK
+        //
+        // If the selected fund source has no acronym,
+        // use RPT so the report number is never malformed.
+        // =====================================================
+
+        const reportSuffix =
+            fundSourceAcronym ||
+            "RPT";
+
+
+        // =====================================================
+        // FINAL REPORT NUMBER
+        // =====================================================
+
+        const reportNo =
+            `${datePrefix}${sequence}-${reportSuffix}`;
+
+
+        console.log(
+            "RCD REPORT NUMBER",
+            {
+
+                reportNo,
+
+                datePrefix,
+
+                sequence,
+
+                fundSourceAcronym,
+
+            }
+        );
+
+
+        // =====================================================
+        // CREATE RCD
+        // =====================================================
+
+        const rcdId =
+            randomUUID();
+
+
+        const rcdResult =
+            await client.query(
+                `
+                INSERT INTO rcd_transaction (
+
+                    id,
+
+                    report_no,
+
+                    report_date,
+
+                    fund_source_id,
+
+                    date_from,
+
+                    date_to,
+
+                    total_collections,
+
+                    total_remittances,
+
+                    total_deposits,
+
+                    balance,
+
+                    status,
+
+                    rcd_by,
+
+                    created_at,
+
+                    updated_at
+
+                )
+
+                VALUES (
+
+                    $1,
+
+                    $2,
+
+                    CURRENT_DATE,
+
+                    $3,
+
+                    $4,
+
+                    $5,
+
+                    $6,
+
+                    0,
+
+                    0,
+
+                    $6,
+
+                    'DRAFT',
+
+                    $7,
+
+                    CURRENT_TIMESTAMP,
+
+                    CURRENT_TIMESTAMP
+
+                )
+
+                RETURNING *
+                `,
+                [
+
+                    rcdId,
+
+                    reportNo,
+
+                    fund_source_id,
+
+                    date_from,
+
+                    date_to,
+
+                    totalCollections,
+
+                    loggedInUser.id,
+
+                ]
+            );
+
+
+        const rcd =
+            rcdResult.rows[0];
+
+
+        // =====================================================
+        // INSERT ALL RCD ITEMS
+        // =====================================================
+
+        for (
+            const transaction
+            of transactions
+        ) {
+
+            await client.query(
+                `
+                INSERT INTO rcd_items (
+
+                    id,
+
+                    rcd_transaction_id,
+
+                    dipp_transaction_id,
+
+                    or_number,
+
+                    receipt_date,
+
+                    collector_id,
+
+                    payor,
+
+                    payment_mode,
+
+                    amount,
+
+                    created_at
+
+                )
+
+                VALUES (
+
+                    $1,
+
+                    $2,
+
+                    $3,
+
+                    $4,
+
+                    $5,
+
+                    $6,
+
+                    $7,
+
+                    $8,
+
+                    $9,
+
+                    CURRENT_TIMESTAMP
+
+                )
+                `,
+                [
+
+                    randomUUID(),
+
+                    rcdId,
+
+                    transaction.id,
+
+                    transaction.or_number,
+
+                    transaction.receipt_date,
+
+                    transaction.collector_id,
+
+                    transaction.payor,
+
+                    transaction.payment_mode,
+
+                    transaction.amount,
+
+                ]
+            );
+
+        }
+
+
+        // =====================================================
+        // MARK TRANSACTIONS AS REMITTED
+        // =====================================================
+
+        const transactionIds =
+            transactions.map(
+                (
+                    transaction: any
+                ) =>
+                    transaction.id
+            );
+
+
+        await client.query(
+            `
+            UPDATE dipp_transactions
+
+            SET
+
+                is_remitted =
+                    TRUE,
+
+                remittance_id =
+                    $1,
+
+                updated_at =
+                    CURRENT_TIMESTAMP
+
+            WHERE
+
+                id =
+                    ANY(
+                        $2::uuid[]
+                    )
+            `,
+            [
+
+                rcdId,
+
+                transactionIds,
+
+            ]
+        );
+
+
+        // =====================================================
+        // COMMIT
+        // =====================================================
+
+        await client.query(
+            "COMMIT"
+        );
+
+
+        // =====================================================
+        // FORMAT RCD
+        // =====================================================
+
+        const formattedRCD = {
+
+            ...rcd,
+
+            total_collections:
+                Number(
+                    rcd.total_collections ??
+                        0
+                ),
+
+            total_remittances:
+                Number(
+                    rcd.total_remittances ??
+                        0
+                ),
+
+            total_deposits:
+                Number(
+                    rcd.total_deposits ??
+                        0
+                ),
+
+            balance:
+                Number(
+                    rcd.balance ??
+                        0
+                ),
+
+        };
+
+
+        // =====================================================
+        // FORMAT ITEMS FOR PREVIEW
+        // =====================================================
+
+        const formattedItems =
+            transactions.map(
+                (
+                    transaction: any
+                ) => {
+
+                    return {
+
+                        id:
+                            transaction.id,
+
+                        dipp_transaction_id:
+                            transaction.id,
+
+                        or_number:
+                            transaction.or_number,
+
+                        receipt_date:
+                            transaction.receipt_date,
+
+                        collector_id:
+                            transaction.collector_id,
+
+                        payor:
+                            transaction.payor,
+
+                        payment_mode:
+                            transaction.payment_mode,
+
+                        amount:
+                            Number(
+                                transaction.amount ??
+                                    0
+                            ),
+
+                        form_code:
+                            transaction.form_code,
+
+                        form_name:
+                            transaction.form_name,
+
+
+                        // =====================================
+                        // BOOKLET
+                        // =====================================
+
+                        booklet_registration_id:
+                            transaction
+                                .booklet_registration_id,
+
+                        booklet_beginning_or:
+                            transaction
+                                .booklet_beginning_or,
+
+                        booklet_ending_or:
+                            transaction
+                                .booklet_ending_or,
+
+                        booklet_current_or:
+                            transaction
+                                .booklet_current_or,
+
+                    };
+
+                }
+            );
+
 
         // =====================================================
         // RESPONSE
         // =====================================================
 
-        return NextResponse.json({
+        return NextResponse.json(
+            {
 
-            success: true,
+                success: true,
 
-            // =================================================
-            // LOGGED-IN USER
-            // =================================================
+                message:
+                    "RCD generated successfully.",
 
-            user: {
-                id:
-                    loggedInUser.id,
 
-                username:
-                    loggedInUser.username,
+                // =================================================
+                // RCD
+                // =================================================
 
-                full_name:
-                    loggedInUser.full_name,
+                rcd:
+                    formattedRCD,
+
+
+                // =================================================
+                // ITEMS
+                // =================================================
+
+                items:
+                    formattedItems,
+
+
+                // =================================================
+                // ACCOUNTABILITY
+                // =================================================
+
+                previous_form_rows:
+                    previousFormRows,
+
+
+                // =================================================
+                // SUMMARY
+                // =================================================
+
+                summary: {
+
+                    transaction_count:
+                        transactions.length,
+
+                    total_collections:
+                        totalCollections,
+
+                    total_remittances:
+                        0,
+
+                    total_deposits:
+                        0,
+
+                    balance:
+                        totalCollections,
+
+                },
+
+
+                // =================================================
+                // FUND SOURCE
+                // =================================================
+
+                fund_source: {
+
+                    id:
+                        fundSource.id,
+
+                    fund_code:
+                        fundSource.fund_code,
+
+                    fund_name:
+                        fundSource.fund_name,
+
+                    acronym:
+                        fundSource.acronym,
+
+                },
+
+
+                // =================================================
+                // USER
+                // =================================================
+
+                user: {
+
+                    id:
+                        loggedInUser.id,
+
+                    username:
+                        loggedInUser.username,
+
+                    full_name:
+                        loggedInUser.full_name,
+
+                },
+
             },
+            {
+                status: 201,
+            }
+        );
 
-            // =================================================
-            // FUND SOURCE
-            // =================================================
-
-            fund_source: {
-                id:
-                    fundSource.id,
-
-                fund_code:
-                    fundSource.fund_code,
-
-                fund_name:
-                    fundSource.fund_name,
-
-                acronym:
-                    fundSource.acronym,
-            },
-
-            // =================================================
-            // FILTERS
-            // =================================================
-
-            filters: {
-                fund_source_id:
-                    fundSourceId,
-
-                date_from:
-                    dateFrom,
-
-                date_to:
-                    dateTo,
-            },
-
-            // =================================================
-            // A. COLLECTIONS
-            // =================================================
-
-            collections,
-
-            // =================================================
-            // C. ACCOUNTABILITY
-            // =================================================
-
-            forms,
-
-            // =================================================
-            // B.
-            //
-            // Keep your existing remittance/deposit query
-            // here if you already have one.
-            // =================================================
-
-            remittances: [],
-
-            deposits: [],
-
-            // =================================================
-            // SUMMARY
-            // =================================================
-
-            summary: {
-
-                total_collections:
-                    totalCollections,
-
-                total_used_ors:
-                    totalUsedORs,
-
-                total_booklets:
-                    forms.reduce(
-                        (
-                            total: number,
-                            form: any
-                        ) =>
-                            total +
-                            Number(
-                                form.booklet_count ??
-                                0
-                            ),
-                        0
-                    ),
-
-                total_remittances:
-                    0,
-
-                total_deposits:
-                    0,
-
-                balance:
-                    totalCollections,
-            },
-        });
 
     } catch (
         error: any
     ) {
 
+        // =====================================================
+        // ROLLBACK
+        // =====================================================
+
+        try {
+
+            await client.query(
+                "ROLLBACK"
+            );
+
+        } catch (
+            rollbackError
+        ) {
+
+            console.error(
+                "RCD ROLLBACK ERROR:",
+                rollbackError
+            );
+
+        }
+
+
+        // =====================================================
+        // ERROR
+        // =====================================================
+
         console.error(
-            "RCD API ERROR:",
+            "RCD GENERATION ERROR:",
             error
         );
 
+
         return NextResponse.json(
             {
+
                 success: false,
+
                 message:
-                    error?.message ??
-                    "Unable to generate RCD.",
+                    error?.message ||
+                    "Failed to generate RCD.",
+
             },
             {
                 status: 500,
             }
         );
+
+
+    } finally {
+
+        client.release();
+
     }
+
 }

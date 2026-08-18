@@ -28,6 +28,8 @@ import AF54ReceiptModal
 import GenerateRCDModal
     from "@/components/dipp/systemoptionmodal/GenerateRCDModal";
 
+import RCDRemittanceModal from "@/components/dipp/systemoptionmodal/rcd-remittance/RCDRemittanceModal";
+
 import OfficialReceiptDetailsModal
     from "@/components/dipp/OfficialReceiptModal";
 
@@ -47,6 +49,8 @@ import CTCCReceiptModal
     from "@/components/dipp/ctc/CTCCReceiptModal";
 
 
+
+
 export default function DIPPPage() {
 
     /*
@@ -63,6 +67,11 @@ export default function DIPPPage() {
     const [
         generateRCDOpen,
         setGenerateRCDOpen,
+    ] = useState(false);
+
+    const [
+        remittanceOpen,
+        setRemittanceOpen,
     ] = useState(false);
 
 
@@ -1448,6 +1457,26 @@ export default function DIPPPage() {
 
                 }}
 
+                onRemittance={() => {
+
+                    console.log(
+                        "RCD Remittance clicked"
+                    );
+
+                    setSystemOpen(
+                        false
+                    );
+
+                    setTimeout(() => {
+
+                        setRemittanceOpen(
+                            true
+                        );
+
+                    }, 0);
+
+                }}
+
                 onSkip={() => {
 
                     console.log(
@@ -1469,6 +1498,37 @@ export default function DIPPPage() {
                     console.log(
                         "RAAF"
                     );
+
+                }}
+
+            />
+
+
+            {/* ==============================================================
+                RCD REMITTANCE
+            ============================================================== */}
+
+            <RCDRemittanceModal
+
+                open={
+                    remittanceOpen
+                }
+
+                onClose={() => {
+
+                    setRemittanceOpen(
+                        false
+                    );
+
+                }}
+
+                onSuccess={() => {
+
+                    setRemittanceOpen(
+                        false
+                    );
+
+                    refreshDashboard();
 
                 }}
 
