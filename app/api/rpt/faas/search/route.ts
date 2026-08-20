@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
             SELECT
                 objid,
                 tdno,
+                prevtdno,
                 owner_name,
                 owner_address,
                 fullpin,
@@ -33,27 +34,38 @@ export async function GET(req: NextRequest) {
             WHERE state <> 'CANCELLED'
         `;
 
-        const params: any[] = [];
+        const params: string[] = [];
         const keyword = `%${q}%`;
 
         switch (type) {
             case "owner":
-                sql += " AND owner_name LIKE ?";
+                sql += `
+                    AND owner_name LIKE ?
+                `;
                 params.push(keyword);
                 break;
 
             case "td":
-                sql += " AND tdno LIKE ?";
-                params.push(keyword);
+                sql += `
+                    AND (
+                        tdno LIKE ?
+                        OR prevtdno LIKE ?
+                    )
+                `;
+                params.push(keyword, keyword);
                 break;
 
             case "pin":
-                sql += " AND fullpin LIKE ?";
+                sql += `
+                    AND fullpin LIKE ?
+                `;
                 params.push(keyword);
                 break;
 
             case "barangay":
-                sql += " AND barangay_name LIKE ?";
+                sql += `
+                    AND barangay_name LIKE ?
+                `;
                 params.push(keyword);
                 break;
 
@@ -62,6 +74,7 @@ export async function GET(req: NextRequest) {
                     AND (
                         owner_name LIKE ?
                         OR tdno LIKE ?
+                        OR prevtdno LIKE ?
                         OR fullpin LIKE ?
                         OR barangay_name LIKE ?
                     )
@@ -71,12 +84,15 @@ export async function GET(req: NextRequest) {
                     keyword,
                     keyword,
                     keyword,
+                    keyword,
                     keyword
                 );
+
+                break;
         }
 
         sql += `
-            ORDER BY owner_name
+            ORDER BY owner_name ASC
             LIMIT 20
         `;
 
@@ -86,15 +102,23 @@ export async function GET(req: NextRequest) {
             success: true,
             results: rows,
         });
-    } catch (error: any) {
-        console.error(error);
+    } catch (error: unknown) {
+        console.error("FAAS SEARCH ERROR:", error);
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : "An unexpected error occurred.";
 
         return NextResponse.json(
             {
                 success: false,
-                message: error.message,
+                message,
+                results: [],
             },
-            { status: 500 }
+            {
+                status: 500,
+            }
         );
     }
 }

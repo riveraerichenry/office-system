@@ -3,6 +3,7 @@
 import {
     useEffect,
     useRef,
+    useState,
 } from "react";
 
 import {
@@ -16,6 +17,7 @@ import {
     Send,
 } from "lucide-react";
 
+import MyRCDReportsModal from "./systemoptionmodal/rcd-reports/MyRCDReportsModal";
 
 type Props = {
 
@@ -68,13 +70,33 @@ export default function DIPPSystemOptions({
 }: Props) {
 
 
+    /*
+    =========================================================
+    SYSTEM OPTIONS PANEL
+    =========================================================
+    */
+
     const panelRef =
         useRef<HTMLDivElement>(null);
 
 
-    // =========================================================
-    // CLICK OUTSIDE
-    // =========================================================
+    /*
+    =========================================================
+    MY RCD REPORTS MODAL
+    =========================================================
+    */
+
+    const [
+        myRCDReportsOpen,
+        setMyRCDReportsOpen,
+    ] = useState(false);
+
+
+    /*
+    =========================================================
+    CLICK OUTSIDE
+    =========================================================
+    */
 
     useEffect(() => {
 
@@ -117,17 +139,16 @@ export default function DIPPSystemOptions({
         };
 
     }, [
-
         open,
-
         setOpen,
-
     ]);
 
 
-    // =========================================================
-    // ACTIVE ITEM
-    // =========================================================
+    /*
+    =========================================================
+    ACTIVE ITEM
+    =========================================================
+    */
 
     const Item = ({
 
@@ -211,9 +232,11 @@ export default function DIPPSystemOptions({
     );
 
 
-    // =========================================================
-    // INACTIVE ITEM
-    // =========================================================
+    /*
+    =========================================================
+    INACTIVE ITEM
+    =========================================================
+    */
 
     const InactiveItem = ({
 
@@ -293,273 +316,322 @@ export default function DIPPSystemOptions({
     );
 
 
+    /*
+    =========================================================
+    RENDER
+    =========================================================
+    */
+
     return (
 
-        <div
-
-            ref={panelRef}
-
-            className="
-                fixed
-                right-0
-                top-1/2
-                -translate-y-1/2
-                flex
-                items-center
-                z-50
-            "
-
-        >
-
-
-            {/* =================================================
-                PANEL
-            ================================================= */}
+        <>
 
             <div
 
-                className={`
-                    bg-white
-                    rounded-l-xl
-                    shadow-2xl
-                    overflow-hidden
-                    border
-                    border-gray-200
-                    transition-all
-                    duration-300
-                    ease-in-out
+                ref={panelRef}
 
-                    ${
-                        open
-                            ? "w-80 opacity-100"
-                            : "w-0 opacity-0"
-                    }
-                `}
+                className="
+                    fixed
+                    right-0
+                    top-1/2
+                    -translate-y-1/2
+                    flex
+                    items-center
+                    z-50
+                "
 
             >
 
 
                 {/* =================================================
-                    HEADER
+                    PANEL
                 ================================================= */}
 
                 <div
-                    className="
-                        bg-blue-900
-                        text-white
-                        px-5
-                        py-4
-                        font-bold
-                        text-lg
-                    "
+
+                    className={`
+                        bg-white
+                        rounded-l-xl
+                        shadow-2xl
+                        overflow-hidden
+                        border
+                        border-gray-200
+                        transition-all
+                        duration-300
+                        ease-in-out
+
+                        ${
+                            open
+
+                                ? "w-80 opacity-100"
+
+                                : "w-0 opacity-0"
+                        }
+                    `}
+
                 >
 
-                    System Options
+
+                    {/* =================================================
+                        HEADER
+                    ================================================= */}
+
+                    <div
+                        className="
+                            bg-blue-900
+                            text-white
+                            px-5
+                            py-4
+                            font-bold
+                            text-lg
+                        "
+                    >
+
+                        System Options
+
+                    </div>
+
+
+                    {/* =================================================
+                        GENERATE RCD
+                    ================================================= */}
+
+                    <Item
+
+                        icon={
+                            <FileBarChart2
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            Generate RCD Report
+                        "
+
+                        onClick={
+                            onGenerateRCD
+                        }
+
+                    />
+
+
+                    {/* =================================================
+                        MY RCD REMITTANCE
+                    ================================================= */}
+
+                    <Item
+
+                        icon={
+                            <Send
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My RCD Remittance
+                        "
+
+                        onClick={
+                            onRemittance
+                        }
+
+                    />
+
+
+                    {/* =================================================
+                        MY RCD DEPOSITS
+                    ================================================= */}
+
+                    <InactiveItem
+
+                        icon={
+                            <Landmark
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My RCD Deposits
+                        "
+
+                    />
+
+
+                    {/* =================================================
+                        MY SKIP REQUESTS
+                    ================================================= */}
+
+                    <InactiveItem
+
+                        icon={
+                            <ClipboardList
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My SKIP Requests
+                        "
+
+                    />
+
+
+                    {/* =================================================
+                        MY EXCL TRANSACTIONS
+                    ================================================= */}
+
+                    <InactiveItem
+
+                        icon={
+                            <FileSpreadsheet
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My EXCL Transactions
+                        "
+
+                    />
+
+
+                    {/* =================================================
+                        MY RAAF REPORTS
+                    ================================================= */}
+
+                    <InactiveItem
+
+                        icon={
+                            <Receipt
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My RAAF Reports
+                        "
+
+                    />
+
+
+                    {/* =================================================
+                        MY RCD REPORTS
+                    ================================================= */}
+
+                    <Item
+
+                        icon={
+                            <FolderOpen
+                                size={18}
+                            />
+                        }
+
+                        title="
+                            My RCD Reports
+                        "
+
+                        onClick={() => {
+
+                            /*
+                            -----------------------------------------
+                            Keep the existing callback.
+                            -----------------------------------------
+                            */
+
+                            onMyReports();
+
+
+                            /*
+                            -----------------------------------------
+                            Open the new modal.
+                            -----------------------------------------
+                            */
+
+                            setMyRCDReportsOpen(
+                                true
+                            );
+
+                        }}
+
+                    />
 
                 </div>
 
 
                 {/* =================================================
-                    GENERATE RCD
+                    TAB
                 ================================================= */}
 
-                <Item
+                <button
 
-                    icon={
-                        <FileBarChart2
-                            size={18}
-                        />
+                    type="button"
+
+                    onClick={() =>
+                        setOpen(!open)
                     }
 
-                    title="
-                        Generate RCD Report
+                    className="
+                        h-40
+                        w-11
+                        bg-yellow-500
+                        hover:bg-yellow-600
+                        text-white
+                        font-bold
+                        shadow-xl
+                        rounded-l-lg
+                        flex
+                        items-center
+                        justify-center
+                        transition
                     "
 
-                    onClick={
-                        onGenerateRCD
+                    style={{
+
+                        writingMode:
+                            "vertical-rl",
+
+                        transform:
+                            "rotate(180deg)",
+
+                    }}
+
+                >
+
+                    {
+
+                        open
+
+                            ? "Close"
+
+                            : "System Options"
+
                     }
 
-                />
-
-
-                {/* =================================================
-                    MY RCD REMITTANCE
-                ================================================= */}
-
-                <Item
-
-                    icon={
-                        <Send size={18} />
-                    }
-
-                    title="My RCD Remittance"
-
-                    onClick={
-                        onRemittance
-                    }
-
-                />
-
-
-                {/* =================================================
-                    MY RCD DEPOSITS
-                    INACTIVE
-                ================================================= */}
-
-                <InactiveItem
-
-                    icon={
-                        <Landmark
-                            size={18}
-                        />
-                    }
-
-                    title="
-                        My RCD Deposits
-                    "
-
-                />
-
-
-                {/* =================================================
-                    MY SKIP REQUESTS
-                    INACTIVE
-                ================================================= */}
-
-                <InactiveItem
-
-                    icon={
-                        <ClipboardList
-                            size={18}
-                        />
-                    }
-
-                    title="
-                        My SKIP Requests
-                    "
-
-                />
-
-
-                {/* =================================================
-                    MY EXCL TRANSACTIONS
-                    INACTIVE
-                ================================================= */}
-
-                <InactiveItem
-
-                    icon={
-                        <FileSpreadsheet
-                            size={18}
-                        />
-                    }
-
-                    title="
-                        My EXCL Transactions
-                    "
-
-                />
-
-
-                {/* =================================================
-                    MY RAAF REPORTS
-                    INACTIVE
-                ================================================= */}
-
-                <InactiveItem
-
-                    icon={
-                        <Receipt
-                            size={18}
-                        />
-                    }
-
-                    title="
-                        My RAAF Reports
-                    "
-
-                />
-
-
-                {/* =================================================
-                    MY RCD REPORTS
-                ================================================= */}
-
-                <Item
-
-                    icon={
-                        <FolderOpen
-                            size={18}
-                        />
-                    }
-
-                    title="
-                        My RCD Reports
-                    "
-
-                    onClick={
-                        onMyReports
-                    }
-
-                />
+                </button>
 
 
             </div>
 
 
             {/* =====================================================
-                TAB
+                MY RCD REPORTS MODAL
             ===================================================== */}
 
-            <button
+            <MyRCDReportsModal
 
-                type="button"
-
-                onClick={() =>
-                    setOpen(!open)
+                open={
+                    myRCDReportsOpen
                 }
 
-                className="
-                    h-40
-                    w-11
-                    bg-yellow-500
-                    hover:bg-yellow-600
-                    text-white
-                    font-bold
-                    shadow-xl
-                    rounded-l-lg
-                    flex
-                    items-center
-                    justify-center
-                    transition
-                "
-
-                style={{
-
-                    writingMode:
-                        "vertical-rl",
-
-                    transform:
-                        "rotate(180deg)",
-
-                }}
-
-            >
-
-                {
-
-                    open
-
-                        ? "Close"
-
-                        : "System Options"
-
+                onClose={() =>
+                    setMyRCDReportsOpen(
+                        false
+                    )
                 }
 
-            </button>
+            />
 
-
-        </div>
+        </>
 
     );
 

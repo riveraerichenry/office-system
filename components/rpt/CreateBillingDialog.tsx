@@ -18,38 +18,12 @@ const quarters = [
 
 const currentYear = new Date().getFullYear();
 
-const years = Array.from(
-    { length: 10 },
-    (_, i) => currentYear - 2 + i
-);
-
-function Field({
-    label,
-    value,
-}: {
-    label: string;
-    value: React.ReactNode;
-}) {
-    return (
-        <div>
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {label}
-            </div>
-
-            <div className="rounded-lg border bg-white px-3 py-2 font-medium">
-                {value || "-"}
-            </div>
-        </div>
-    );
-}
-
 export default function CreateBillingDialog({
     open,
     onClose,
     property,
     onBillingCreated,
 }: Props) {
-
     const [fromQuarter, setFromQuarter] = useState(1);
     const [fromYear, setFromYear] = useState(currentYear);
 
@@ -59,7 +33,6 @@ export default function CreateBillingDialog({
     if (!open || !property) return null;
 
     function createBilling() {
-
         const start =
             fromYear * 10 + fromQuarter;
 
@@ -70,13 +43,16 @@ export default function CreateBillingDialog({
             alert(
                 "Coverage From cannot be greater than Coverage To."
             );
+
             return;
         }
 
         onBillingCreated({
             property,
+
             fromQuarter,
             fromYear,
+
             toQuarter,
             toYear,
         });
@@ -85,206 +61,468 @@ export default function CreateBillingDialog({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+            className="
+                fixed
+                inset-0
+                z-50
+                flex
+                items-center
+                justify-center
+                bg-black/50
+                p-2
+                sm:p-4
+            "
+        >
+            <div
+                className="
+                    flex
+                    w-full
+                    max-w-5xl
+                    max-h-[calc(100vh-1rem)]
+                    sm:max-h-[calc(100vh-2rem)]
+                    flex-col
+                    overflow-hidden
+                    rounded-lg
+                    sm:rounded-xl
+                    bg-white
+                    shadow-2xl
+                "
+            >
 
-            <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl">
+                {/* =====================================================
+                    HEADER
+                ====================================================== */}
 
-                {/* Header */}
+                <div
+                    className="
+                        flex
+                        shrink-0
+                        items-start
+                        justify-between
+                        gap-4
+                        border-b
+                        border-slate-200
+                        px-4
+                        py-3
+                        sm:px-6
+                        sm:py-3.5
+                    "
+                >
 
-                <div className="flex items-center justify-between border-b px-6 py-4">
+                    <div className="min-w-0 flex-1">
 
-                    <div>
+                        {/* =================================================
+                            PROPERTY SUMMARY
+                        ================================================== */}
 
-                        <h2 className="text-2xl font-bold">
-                            Create RPT Billing
-                        </h2>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 
-                        <p className="text-sm text-gray-500">
-                            Select the billing coverage.
-                        </p>
+                            <h2
+                                className="
+                                    text-base
+                                    font-semibold
+                                    leading-5
+                                    text-slate-900
+                                    sm:text-lg
+                                "
+                            >
+                                 {property.owner_name || "-"}
+                            </h2>
+
+                            <span className="hidden text-slate-300 sm:inline">
+                                |
+                            </span>
+
+                            <span className="text-xs text-slate-500">
+                                PIN:
+                                <span className="ml-1 font-semibold text-slate-800">
+                                    {property.fullpin || "-"}
+                                </span>
+                            </span>
+
+                            <span className="hidden text-slate-300 sm:inline">
+                                |
+                            </span>
+
+                            <span className="text-xs text-slate-500">
+                                TD:
+                                <span className="ml-1 font-semibold text-slate-800">
+                                    {property.tdno || "-"}
+                                </span>
+                            </span>
+
+                        </div>
+
+
+                        {/* =================================================
+                            PROPERTY DETAILS
+                        ================================================== */}
+
+                        <div
+                            className="
+                                mt-1.5
+                                flex
+                                flex-wrap
+                                items-center
+                                gap-x-3
+                                gap-y-1
+                                text-xs
+                            "
+                        >
+
+                            {/* OWNER */}
+
+                           
+
+                            <span className="text-slate-300">
+                                |
+                            </span>
+
+
+                            {/* PREVIOUS TD */}
+
+                            <div className="min-w-0">
+
+                                <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                    Previous TD
+                                </span>{" "}
+
+                                <span className="font-medium text-slate-600">
+                                    {property.prevtdno || "-"}
+                                </span>
+
+                            </div>
+
+                            <span className="text-slate-300">
+                                |
+                            </span>
+
+
+                            {/* BARANGAY */}
+
+                            <div className="min-w-0">
+
+                                <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                    Barangay
+                                </span>{" "}
+
+                                <span className="font-medium text-slate-700">
+                                    {property.barangay_name || "-"}
+                                </span>
+
+                            </div>
+
+                            <span className="text-slate-300">
+                                |
+                            </span>
+
+
+                            {/* CLASSIFICATION */}
+
+                            <div className="min-w-0">
+
+                                <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                    Classification
+                                </span>{" "}
+
+                                <span className="font-medium text-slate-700">
+                                    {property.classification_name || "-"}
+                                </span>
+
+                            </div>
+
+                            <span className="text-slate-300">
+                                |
+                            </span>
+
+
+                            {/* TYPE */}
+
+                            <div className="min-w-0">
+
+                                <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                    Type
+                                </span>{" "}
+
+                                <span className="font-medium text-slate-700">
+                                    {property.rputype || "-"}
+                                </span>
+
+                            </div>
+
+                            <span className="text-slate-300">
+                                |
+                            </span>
+
+
+                            {/* ASSESSED VALUE */}
+
+                            <div>
+
+                                <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                    AV
+                                </span>{" "}
+
+                                <span className="font-bold text-blue-700">
+                                    ₱
+                                    {Number(
+                                        property.totalav || 0
+                                    ).toLocaleString(
+                                        "en-PH",
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        }
+                                    )}
+                                </span>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
+
+                    {/* =================================================
+                        CLOSE
+                    ================================================== */}
+
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="text-2xl text-gray-500 hover:text-red-600"
+                        className="
+                            shrink-0
+                            rounded-md
+                            px-2
+                            py-1
+                            text-2xl
+                            leading-none
+                            text-slate-400
+                            transition
+                            hover:bg-slate-100
+                            hover:text-slate-700
+                        "
+                        aria-label="Close"
                     >
                         ×
                     </button>
 
                 </div>
 
-                {/* Body */}
 
-                <div className="space-y-6 p-6">
+                {/* =====================================================
+                    BODY
+                ====================================================== */}
 
-                    {/* Property */}
+                <div
+                    className="
+                        min-h-0
+                        flex-1
+                        overflow-y-auto
+                    "
+                >
 
-                    <div className="rounded-xl border bg-gray-50">
+                    <div
+                        className="
+                            space-y-4
+                            p-4
+                            sm:p-5
+                        "
+                    >
 
-                        <div className="border-b bg-gray-100 px-6 py-3">
+                        {/* =================================================
+                            BILLING COVERAGE
+                        ================================================= */}
 
-                            <h3 className="font-semibold uppercase tracking-wide text-gray-700">
-                                Property Information
-                            </h3>
+                        <div className="px-1 py-2">
 
-                        </div>
+                            {/* HEADER */}
 
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-5 p-6">
+                            <div className="flex items-center justify-between">
 
-                            <Field
-                                label="Declared Owner"
-                                value={property.owner_name}
-                            />
+                                <div>
 
-                            <Field
-                                label="Tax Declaration No."
-                                value={property.tdno}
-                            />
+                                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                        Billing Coverage
+                                    </h3>
 
-                            <Field
-                                label="Property Index No."
-                                value={property.fullpin}
-                            />
-
-                            <Field
-                                label="Barangay"
-                                value={property.barangay_name}
-                            />
-
-                            <Field
-                                label="Classification"
-                                value={property.classification_name}
-                            />
-
-                            <Field
-                                label="Property Type"
-                                value={property.rputype}
-                            />
-
-                            <Field
-                                label="Market Value"
-                                value={`₱${Number(
-                                    property.totalmv
-                                ).toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}`}
-                            />
-
-                            <Field
-                                label="Assessed Value"
-                                value={`₱${Number(
-                                    property.totalav
-                                ).toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}`}
-                            />
-
-                        </div>
-
-                    </div>
-
-                    {/* Coverage */}
-
-                    <div className="rounded-xl border">
-
-                        <div className="border-b bg-blue-50 px-6 py-3">
-
-                            <h3 className="font-semibold uppercase tracking-wide text-blue-700">
-                                Billing Coverage
-                            </h3>
-
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-8 p-6">
-
-                            {/* FROM */}
-
-                            <div>
-
-                                <label className="mb-2 block font-semibold">
-                                    From
-                                </label>
-
-                                <div className="flex gap-3">
-
-                                    <select
-                                        value={fromQuarter}
-                                        onChange={(e) =>
-                                            setFromQuarter(
-                                                Number(e.target.value)
-                                            )
-                                        }
-                                        className="w-full rounded-lg border p-3"
-                                    >
-                                        {quarters.map((q, i) => (
-                                            <option
-                                                key={q}
-                                                value={i + 1}
-                                            >
-                                                {q}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <input
-                                        type="number"
-                                        value={fromYear}
-                                        onChange={(e) =>
-                                            setFromYear(Number(e.target.value))
-                                        }
-                                        min={1900}
-                                        max={9999}
-                                        placeholder="Year"
-                                        className="w-full rounded-lg border p-3"
-                                    />
+                                    <p className="mt-0.5 text-[10px] text-slate-400">
+                                        Select assessment period
+                                    </p>
 
                                 </div>
 
                             </div>
 
-                            {/* TO */}
 
-                            <div>
+                            {/* COVERAGE */}
 
-                                <label className="mb-2 block font-semibold">
-                                    To
-                                </label>
+                            <div
+                                className="
+                                    mt-3
+                                    grid
+                                    grid-cols-1
+                                    gap-4
+                                    sm:grid-cols-2
+                                    sm:gap-6
+                                "
+                            >
 
-                                <div className="flex gap-3">
+                                {/* FROM */}
 
-                                    <select
-                                        value={toQuarter}
-                                        onChange={(e) =>
-                                            setToQuarter(
-                                                Number(e.target.value)
-                                            )
-                                        }
-                                        className="w-full rounded-lg border p-3"
-                                    >
-                                        {quarters.map((q, i) => (
-                                            <option
-                                                key={q}
-                                                value={i + 1}
-                                            >
-                                                {q}
-                                            </option>
-                                        ))}
-                                    </select>
+                                <div className="min-w-0">
 
-                                    <input
-                                        type="number"
-                                        value={toYear}
-                                        onChange={(e) =>
-                                            setToYear(Number(e.target.value))
-                                        }
-                                        min={1900}
-                                        max={9999}
-                                        placeholder="Year"
-                                        className="w-full rounded-lg border p-3"
-                                    />
+                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                        From
+                                    </label>
+
+                                    <div className="flex gap-2">
+
+                                        <select
+                                            value={fromQuarter}
+                                            onChange={(e) =>
+                                                setFromQuarter(
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                            className="
+                                                min-w-0
+                                                flex-1
+                                                border-0
+                                                border-b
+                                                border-slate-300
+                                                bg-transparent
+                                                px-0
+                                                py-1.5
+                                                text-sm
+                                                font-medium
+                                                text-slate-800
+                                                outline-none
+                                                focus:border-blue-600
+                                                focus:ring-0
+                                            "
+                                        >
+
+                                            {quarters.map((q, i) => (
+                                                <option
+                                                    key={q}
+                                                    value={i + 1}
+                                                >
+                                                    {q}
+                                                </option>
+                                            ))}
+
+                                        </select>
+
+
+                                        <input
+                                            type="number"
+                                            value={fromYear}
+                                            onChange={(e) =>
+                                                setFromYear(
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                            min={1900}
+                                            max={9999}
+                                            className="
+                                                w-24
+                                                border-0
+                                                border-b
+                                                border-slate-300
+                                                bg-transparent
+                                                px-0
+                                                py-1.5
+                                                text-sm
+                                                font-medium
+                                                text-slate-800
+                                                outline-none
+                                                focus:border-blue-600
+                                                focus:ring-0
+                                            "
+                                        />
+
+                                    </div>
+
+                                </div>
+
+
+                                {/* TO */}
+
+                                <div className="min-w-0">
+
+                                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                        To
+                                    </label>
+
+                                    <div className="flex gap-2">
+
+                                        <select
+                                            value={toQuarter}
+                                            onChange={(e) =>
+                                                setToQuarter(
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                            className="
+                                                min-w-0
+                                                flex-1
+                                                border-0
+                                                border-b
+                                                border-slate-300
+                                                bg-transparent
+                                                px-0
+                                                py-1.5
+                                                text-sm
+                                                font-medium
+                                                text-slate-800
+                                                outline-none
+                                                focus:border-blue-600
+                                                focus:ring-0
+                                            "
+                                        >
+
+                                            {quarters.map((q, i) => (
+                                                <option
+                                                    key={q}
+                                                    value={i + 1}
+                                                >
+                                                    {q}
+                                                </option>
+                                            ))}
+
+                                        </select>
+
+
+                                        <input
+                                            type="number"
+                                            value={toYear}
+                                            onChange={(e) =>
+                                                setToYear(
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                            min={1900}
+                                            max={9999}
+                                            className="
+                                                w-24
+                                                border-0
+                                                border-b
+                                                border-slate-300
+                                                bg-transparent
+                                                px-0
+                                                py-1.5
+                                                text-sm
+                                                font-medium
+                                                text-slate-800
+                                                outline-none
+                                                focus:border-blue-600
+                                                focus:ring-0
+                                            "
+                                        />
+
+                                    </div>
 
                                 </div>
 
@@ -296,22 +534,69 @@ export default function CreateBillingDialog({
 
                 </div>
 
-                {/* Footer */}
 
-                <div className="flex justify-end gap-3 border-t px-6 py-4">
+                {/* =====================================================
+                    FOOTER
+                ====================================================== */}
+
+                <div
+                    className="
+                        flex
+                        shrink-0
+                        flex-col-reverse
+                        gap-2
+                        border-t
+                        border-slate-200
+                        bg-white
+                        px-4
+                        py-2.5
+                        sm:flex-row
+                        sm:justify-end
+                        sm:gap-2
+                        sm:px-6
+                    "
+                >
 
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="rounded-lg border px-6 py-2 hover:bg-gray-100"
+                        className="
+                            w-full
+                            rounded-md
+                            border
+                            border-slate-300
+                            px-5
+                            py-2
+                            text-sm
+                            font-medium
+                            text-slate-700
+                            transition
+                            hover:bg-slate-50
+                            sm:w-auto
+                        "
                     >
                         Cancel
                     </button>
 
+
                     <button
+                        type="button"
                         onClick={createBilling}
-                        className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700"
+                        className="
+                            w-full
+                            rounded-md
+                            bg-blue-600
+                            px-5
+                            py-2
+                            text-sm
+                            font-semibold
+                            text-white
+                            transition
+                            hover:bg-blue-700
+                            sm:w-auto
+                        "
                     >
-                        Create Billing
+                        Create Assessment
                     </button>
 
                 </div>

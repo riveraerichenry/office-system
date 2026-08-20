@@ -21,13 +21,9 @@ JWT PAYLOAD
 */
 
 type JwtPayload = {
-
     id?: string;
-
     username?: string;
-
     full_name?: string;
-
 };
 
 
@@ -51,30 +47,26 @@ function toNumber(
             number
         )
     ) {
-
         return 0;
-
     }
 
     return number;
+}
 
+
+function toCents(
+    value: unknown
+): number {
+
+    return Math.round(
+        toNumber(value) * 100
+    );
 }
 
 
 /*
 =========================================================
 GET
-=========================================================
-
-Returns RCDs for the My RCD Remittance list.
-
-Optional filters:
-
-?date_from=2026-08-01
-&date_to=2026-08-17
-&fund_source_id=...
-&search=260817
-
 =========================================================
 */
 
@@ -84,7 +76,6 @@ export async function GET(
 
     const client =
         await pool.connect();
-
 
     try {
 
@@ -100,14 +91,11 @@ export async function GET(
             )?.value;
 
 
-        if (
-            !token
-        ) {
+        if (!token) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication required.",
                 },
@@ -123,19 +111,11 @@ export async function GET(
             process.env.JWT_SECRET;
 
 
-        if (
-            !jwtSecret
-        ) {
-
-            console.error(
-                "JWT_SECRET is not configured."
-            );
-
+        if (!jwtSecret) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication configuration error.",
                 },
@@ -147,9 +127,7 @@ export async function GET(
         }
 
 
-        let decoded:
-            JwtPayload;
-
+        let decoded: JwtPayload;
 
         try {
 
@@ -159,20 +137,11 @@ export async function GET(
                     jwtSecret
                 ) as JwtPayload;
 
-        } catch (
-            error
-        ) {
-
-            console.error(
-                "RCD REMITTANCE JWT ERROR:",
-                error
-            );
-
+        } catch {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Invalid or expired session.",
                 },
@@ -184,14 +153,11 @@ export async function GET(
         }
 
 
-        if (
-            !decoded?.id
-        ) {
+        if (!decoded?.id) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Unable to determine logged-in user.",
                 },
@@ -211,10 +177,9 @@ export async function GET(
 
         const {
             searchParams,
-        } =
-            new URL(
-                request.url
-            );
+        } = new URL(
+            request.url
+        );
 
 
         const dateFrom =
@@ -222,18 +187,15 @@ export async function GET(
                 "date_from"
             );
 
-
         const dateTo =
             searchParams.get(
                 "date_to"
             );
 
-
         const fundSourceId =
             searchParams.get(
                 "fund_source_id"
             );
-
 
         const search =
             searchParams.get(
@@ -247,117 +209,74 @@ export async function GET(
         =================================================
         */
 
-        const conditions:
-            string[] = [];
+        const conditions: string[] = [];
+
+        const values: any[] = [];
+
+        let parameterIndex = 1;
 
 
-        const values:
-            any[] = [];
-
-
-        let parameterIndex =
-            1;
-
-
-        /*
-        =================================================
-        DATE FROM
-        =================================================
-        */
-
-        if (
-            dateFrom
-        ) {
+        if (dateFrom) {
 
             conditions.push(
                 `
-                    rt.report_date >=
-                    $${parameterIndex}::date
+                rt.report_date >=
+                $${parameterIndex}::date
                 `
             );
-
 
             values.push(
                 dateFrom
             );
 
-
             parameterIndex++;
 
         }
 
 
-        /*
-        =================================================
-        DATE TO
-        =================================================
-        */
-
-        if (
-            dateTo
-        ) {
+        if (dateTo) {
 
             conditions.push(
                 `
-                    rt.report_date <=
-                    $${parameterIndex}::date
+                rt.report_date <=
+                $${parameterIndex}::date
                 `
             );
-
 
             values.push(
                 dateTo
             );
 
-
             parameterIndex++;
 
         }
 
 
-        /*
-        =================================================
-        FUND SOURCE
-        =================================================
-        */
-
-        if (
-            fundSourceId
-        ) {
+        if (fundSourceId) {
 
             conditions.push(
                 `
-                    rt.fund_source_id =
-                    $${parameterIndex}
+                rt.fund_source_id =
+                $${parameterIndex}
                 `
             );
-
 
             values.push(
                 fundSourceId
             );
 
-
             parameterIndex++;
 
         }
 
 
-        /*
-        =================================================
-        SEARCH
-        =================================================
-        */
-
-        if (
-            search
-        ) {
+        if (search) {
 
             conditions.push(
                 `
                 (
                     rt.report_no ILIKE
-                        $${parameterIndex}
+                    $${parameterIndex}
 
                     OR
 
@@ -365,7 +284,7 @@ export async function GET(
                         fs.fund_code,
                         ''
                     ) ILIKE
-                        $${parameterIndex}
+                    $${parameterIndex}
 
                     OR
 
@@ -373,7 +292,7 @@ export async function GET(
                         fs.fund_name,
                         ''
                     ) ILIKE
-                        $${parameterIndex}
+                    $${parameterIndex}
 
                     OR
 
@@ -381,16 +300,14 @@ export async function GET(
                         fs.acronym,
                         ''
                     ) ILIKE
-                        $${parameterIndex}
+                    $${parameterIndex}
                 )
                 `
             );
 
-
             values.push(
                 `%${search}%`
             );
-
 
             parameterIndex++;
 
@@ -399,14 +316,12 @@ export async function GET(
 
         const whereClause =
             conditions.length > 0
-
                 ? `
                     WHERE
-                        ${conditions.join(
-                            " AND "
-                        )}
+                    ${conditions.join(
+                        " AND "
+                    )}
                 `
-
                 : "";
 
 
@@ -422,52 +337,30 @@ export async function GET(
                 SELECT
 
                     rt.id,
-
                     rt.report_no,
-
                     rt.report_date,
-
                     rt.fund_source_id,
 
                     rt.date_from,
-
                     rt.date_to,
 
                     rt.total_collections,
-
                     rt.total_remittances,
-
                     rt.total_deposits,
-
                     rt.balance,
 
                     rt.status,
-
                     rt.rcd_by,
 
-
-                    /* =====================================
-                       FUND SOURCE
-                    ===================================== */
-
                     fs.fund_code,
-
                     fs.fund_name,
-
                     fs.acronym,
-
-
-                    /* =====================================
-                       REMITTANCE
-                    ===================================== */
 
                     rr.id
                         AS remittance_id,
 
                     rr.payment_type,
-
                     rr.cash_amount,
-
                     rr.check_amount,
 
                     rr.total_amount
@@ -489,10 +382,6 @@ export async function GET(
                         AS remittance_created_at,
 
 
-                    /* =====================================
-                       DENOMINATIONS
-                    ===================================== */
-
                     COALESCE(
                         (
                             SELECT
@@ -500,13 +389,11 @@ export async function GET(
                                     rd.denomination::text,
                                     rd.quantity
                                 )
-
                             FROM
                                 rcd_remittance_denominations rd
-
                             WHERE
                                 rd.remittance_id =
-                                    rr.id
+                                rr.id
                         ),
                         '{}'::jsonb
                     )
@@ -519,13 +406,11 @@ export async function GET(
                                 SUM(
                                     rd.amount
                                 )
-
                             FROM
                                 rcd_remittance_denominations rd
-
                             WHERE
                                 rd.remittance_id =
-                                    rr.id
+                                rr.id
                         ),
                         0
                     )
@@ -535,34 +420,23 @@ export async function GET(
                 FROM
                     rcd_transaction rt
 
-
                 LEFT JOIN fund_sources fs
-
                     ON fs.id =
-                        rt.fund_source_id
-
+                    rt.fund_source_id
 
                 LEFT JOIN rcd_remittance rr
-
                     ON rr.rcd_transaction_id =
-                        rt.id
-
+                    rt.id
 
                 LEFT JOIN users remitter
-
                     ON remitter.id =
-                        rr.remitted_by
-
+                    rr.remitted_by
 
                 ${whereClause}
 
-
                 ORDER BY
-
                     rt.report_date DESC,
-
                     rt.created_at DESC
-
                 `,
                 values
             );
@@ -570,7 +444,7 @@ export async function GET(
 
         /*
         =================================================
-        FORMAT RESPONSE
+        RESPONSE
         =================================================
         */
 
@@ -626,7 +500,6 @@ export async function GET(
                     rcd_by:
                         row.rcd_by,
 
-
                     fund_code:
                         row.fund_code,
 
@@ -636,36 +509,21 @@ export async function GET(
                     acronym:
                         row.acronym,
 
-
-                    /*
-                    =====================================
-                    REMITTANCE
-                    =====================================
-                    */
-
                     has_remittance:
                         !!row.remittance_id,
 
-
                     remittance:
                         row.remittance_id
-
                             ? {
 
                                 id:
                                     row.remittance_id,
 
-                                /*
-                                RCD REPORT NUMBER
-                                */
-
                                 report_no:
                                     row.report_no,
 
-
                                 payment_type:
                                     row.payment_type,
-
 
                                 cash_amount:
                                     Number(
@@ -673,13 +531,11 @@ export async function GET(
                                         0
                                     ),
 
-
                                 check_amount:
                                     Number(
                                         row.check_amount ??
                                         0
                                     ),
-
 
                                 total_amount:
                                     Number(
@@ -687,32 +543,20 @@ export async function GET(
                                         0
                                     ),
 
-
                                 report_date:
                                     row.remittance_report_date,
-
 
                                 remitted_by:
                                     row.remittance_remitted_by,
 
-
                                 remitted_by_name:
                                     row.remitted_by_name,
-
 
                                 created_by:
                                     row.remittance_created_by,
 
-
                                 created_at:
                                     row.remittance_created_at,
-
-
-                                /*
-                                =====================================
-                                DENOMINATION TOTAL
-                                =====================================
-                                */
 
                                 denomination_total:
                                     Number(
@@ -720,29 +564,11 @@ export async function GET(
                                         0
                                     ),
 
-
-                                /*
-                                =====================================
-                                DENOMINATIONS
-                                =====================================
-
-                                Example:
-
-                                {
-                                    "1000": 2,
-                                    "500": 3,
-                                    "100": 5
-                                }
-
-                                =====================================
-                                */
-
                                 denominations:
                                     row.remittance_denominations ??
                                     {},
 
                             }
-
                             : null,
 
                 })
@@ -752,12 +578,8 @@ export async function GET(
         return NextResponse.json(
             {
                 success: true,
-
-                data:
-                    rcds,
-
-                count:
-                    rcds.length,
+                data: rcds,
+                count: rcds.length,
             }
         );
 
@@ -775,7 +597,6 @@ export async function GET(
         return NextResponse.json(
             {
                 success: false,
-
                 message:
                     error?.message ||
                     "Failed to load RCD remittances.",
@@ -798,13 +619,6 @@ export async function GET(
 /*
 =========================================================
 POST
-=========================================================
-
-Creates:
-
-1. rcd_remittance
-2. rcd_remittance_denominations
-
 =========================================================
 */
 
@@ -829,36 +643,25 @@ export async function POST(
 
 
         const {
-
             rcd_id,
-
             payment_type,
-
             cash_amount,
-
             check_amount,
-
-            total_amount,
-
             denominations,
-
         } = body;
 
 
         /*
         =================================================
-        VALIDATION
+        BASIC VALIDATION
         =================================================
         */
 
-        if (
-            !rcd_id
-        ) {
+        if (!rcd_id) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "RCD is required.",
                 },
@@ -883,7 +686,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Invalid payment type.",
                 },
@@ -897,7 +699,7 @@ export async function POST(
 
         /*
         =================================================
-        NORMALIZE AMOUNTS
+        NORMALIZE PAYMENT AMOUNTS
         =================================================
         */
 
@@ -906,22 +708,15 @@ export async function POST(
                 cash_amount
             );
 
-
         let checkAmount =
             toNumber(
                 check_amount
             );
 
 
-        let totalAmount =
-            toNumber(
-                total_amount
-            );
-
-
         /*
         =================================================
-        PAYMENT TYPE RULES
+        PAYMENT TYPE
         =================================================
         */
 
@@ -930,8 +725,7 @@ export async function POST(
             "CASH"
         ) {
 
-            checkAmount =
-                0;
+            checkAmount = 0;
 
         }
 
@@ -941,18 +735,18 @@ export async function POST(
             "CHECK"
         ) {
 
-            cashAmount =
-                0;
+            cashAmount = 0;
 
         }
 
 
         /*
-        ALWAYS CALCULATE TOTAL
-        FROM CASH + CHECK
+        =================================================
+        TOTAL
+        =================================================
         */
 
-        totalAmount =
+        const totalAmount =
             cashAmount +
             checkAmount;
 
@@ -969,14 +763,11 @@ export async function POST(
             )?.value;
 
 
-        if (
-            !token
-        ) {
+        if (!token) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication required.",
                 },
@@ -992,19 +783,11 @@ export async function POST(
             process.env.JWT_SECRET;
 
 
-        if (
-            !jwtSecret
-        ) {
-
-            console.error(
-                "JWT_SECRET is not configured."
-            );
-
+        if (!jwtSecret) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication configuration error.",
                 },
@@ -1016,9 +799,7 @@ export async function POST(
         }
 
 
-        let decoded:
-            JwtPayload;
-
+        let decoded: JwtPayload;
 
         try {
 
@@ -1028,20 +809,11 @@ export async function POST(
                     jwtSecret
                 ) as JwtPayload;
 
-        } catch (
-            error
-        ) {
-
-            console.error(
-                "RCD REMITTANCE JWT ERROR:",
-                error
-            );
-
+        } catch {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Invalid or expired session.",
                 },
@@ -1053,14 +825,11 @@ export async function POST(
         }
 
 
-        if (
-            !decoded?.id
-        ) {
+        if (!decoded?.id) {
 
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Unable to determine logged-in user.",
                 },
@@ -1086,11 +855,6 @@ export async function POST(
         /*
         =================================================
         LOCK REMITTANCE CREATION
-        =================================================
-
-        Prevent two users/processes from creating a
-        remittance for the same RCD simultaneously.
-
         =================================================
         */
 
@@ -1118,44 +882,33 @@ export async function POST(
                 SELECT
 
                     rt.id,
-
                     rt.report_no,
-
                     rt.report_date,
-
                     rt.fund_source_id,
 
                     rt.date_from,
-
                     rt.date_to,
 
                     rt.total_collections,
-
                     rt.total_remittances,
-
                     rt.total_deposits,
 
                     rt.balance,
-
                     rt.status,
 
                     fs.fund_code,
-
                     fs.fund_name,
-
                     fs.acronym
 
                 FROM
                     rcd_transaction rt
 
                 INNER JOIN fund_sources fs
-
                     ON fs.id =
-                        rt.fund_source_id
+                    rt.fund_source_id
 
                 WHERE
-                    rt.id =
-                    $1
+                    rt.id = $1
 
                 FOR UPDATE
                 `,
@@ -1174,11 +927,9 @@ export async function POST(
                 "ROLLBACK"
             );
 
-
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "RCD was not found.",
                 },
@@ -1204,25 +955,15 @@ export async function POST(
             await client.query(
                 `
                 SELECT
-
                     id,
-
                     rcd_transaction_id,
-
                     payment_type,
-
                     cash_amount,
-
                     check_amount,
-
                     total_amount,
-
                     report_date,
-
                     remitted_by,
-
                     created_by,
-
                     created_at
 
                 FROM
@@ -1251,21 +992,16 @@ export async function POST(
                 "ROLLBACK"
             );
 
-
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "This RCD already has a remittance.",
 
                     remittance: {
-
                         ...existingResult.rows[0],
-
                         report_no:
                             rcd.report_no,
-
                     },
                 },
                 {
@@ -1288,36 +1024,27 @@ export async function POST(
             );
 
 
+        const rcdCents =
+            toCents(
+                rcdAmount
+            );
+
+
         /*
         =================================================
-        AMOUNT VALIDATION
-        =================================================
-
-        Use cents to avoid floating point problems.
-
+        TOTAL VALIDATION
         =================================================
         */
 
-        const rcdCents =
-            Math.round(
-                rcdAmount *
-                100
-            );
-
-
         const cashCents =
-            Math.round(
-                cashAmount *
-                100
+            toCents(
+                cashAmount
             );
-
 
         const checkCents =
-            Math.round(
-                checkAmount *
-                100
+            toCents(
+                checkAmount
             );
-
 
         const totalCents =
             cashCents +
@@ -1332,7 +1059,6 @@ export async function POST(
             await client.query(
                 "ROLLBACK"
             );
-
 
             return NextResponse.json(
                 {
@@ -1357,8 +1083,7 @@ export async function POST(
                         (
                             rcdCents -
                             totalCents
-                        ) /
-                        100,
+                        ) / 100,
                 },
                 {
                     status: 400,
@@ -1372,44 +1097,18 @@ export async function POST(
         =================================================
         NORMALIZE DENOMINATIONS
         =================================================
-
-        Supports ARRAY:
-
-        [
-            {
-                denomination: 1000,
-                quantity: 2
-            },
-            {
-                denomination: 500,
-                quantity: 3
-            }
-        ]
-
-        AND OBJECT:
-
-        {
-            "1000": 2,
-            "500": 3
-        }
-
-        =================================================
         */
 
-        const denominationRows:
-            {
-                denomination: number;
-
-                quantity: number;
-
-                amount: number;
-
-            }[] = [];
+        const denominationRows: {
+            denomination: number;
+            quantity: number;
+            amount: number;
+        }[] = [];
 
 
         /*
         =================================================
-        ARRAY FORMAT
+        ARRAY
         =================================================
         */
 
@@ -1429,7 +1128,6 @@ export async function POST(
                         item?.denomination
                     );
 
-
                 const quantity =
                     Math.max(
                         0,
@@ -1442,20 +1140,11 @@ export async function POST(
 
 
                 if (
-                    denomination <=
-                    0 ||
-                    quantity <=
-                    0
+                    denomination <= 0 ||
+                    quantity <= 0
                 ) {
-
                     continue;
-
                 }
-
-
-                const amount =
-                    denomination *
-                    quantity;
 
 
                 denominationRows.push({
@@ -1464,7 +1153,9 @@ export async function POST(
 
                     quantity,
 
-                    amount,
+                    amount:
+                        denomination *
+                        quantity,
 
                 });
 
@@ -1475,23 +1166,14 @@ export async function POST(
 
         /*
         =================================================
-        OBJECT FORMAT
-        =================================================
-
-        Example:
-
-        {
-            "1000": 2,
-            "500": 3
-        }
-
+        OBJECT
         =================================================
         */
 
         else if (
             denominations &&
             typeof denominations ===
-                "object"
+            "object"
         ) {
 
             for (
@@ -1509,7 +1191,6 @@ export async function POST(
                         denominationKey
                     );
 
-
                 const quantity =
                     Math.max(
                         0,
@@ -1522,14 +1203,10 @@ export async function POST(
 
 
                 if (
-                    denomination <=
-                    0 ||
-                    quantity <=
-                    0
+                    denomination <= 0 ||
+                    quantity <= 0
                 ) {
-
                     continue;
-
                 }
 
 
@@ -1558,46 +1235,25 @@ export async function POST(
 
         const denominationTotal =
             denominationRows.reduce(
-
                 (
                     total,
                     item
-                ) => {
-
-                    return (
-                        total +
-                        item.amount
-                    );
-
-                },
-
+                ) =>
+                    total +
+                    item.amount,
                 0
-
             );
 
 
         const denominationCents =
-            Math.round(
-                denominationTotal *
-                100
+            toCents(
+                denominationTotal
             );
 
 
         /*
         =================================================
         DENOMINATION VALIDATION
-        =================================================
-
-        CHECK:
-            No cash.
-            No denomination required.
-
-        CASH:
-            denomination total = cash.
-
-        BOTH:
-            denomination total = cash portion.
-
         =================================================
         */
 
@@ -1615,13 +1271,14 @@ export async function POST(
                     "ROLLBACK"
                 );
 
-
                 return NextResponse.json(
                     {
                         success: false,
 
                         message:
                             "Cash denominations must equal the cash amount.",
+
+                        payment_type,
 
                         cash_amount:
                             cashAmount,
@@ -1633,8 +1290,10 @@ export async function POST(
                             (
                                 cashCents -
                                 denominationCents
-                            ) /
-                            100,
+                            ) / 100,
+
+                        denominations:
+                            denominationRows,
                     },
                     {
                         status: 400,
@@ -1659,63 +1318,49 @@ export async function POST(
         const remittanceResult =
             await client.query(
                 `
-                INSERT INTO rcd_remittance (
-
+                INSERT INTO rcd_remittance
+                (
                     id,
-
                     rcd_transaction_id,
 
                     payment_type,
 
                     cash_amount,
-
                     check_amount,
-
                     total_amount,
 
                     report_date,
 
                     remitted_by,
-
                     created_by,
 
                     created_at,
-
                     updated_at
-
                 )
 
-                VALUES (
-
+                VALUES
+                (
                     $1,
-
                     $2,
 
                     $3,
 
                     $4,
-
                     $5,
-
                     $6,
 
                     CURRENT_DATE,
 
                     $7,
-
                     $8,
 
                     CURRENT_TIMESTAMP,
-
                     CURRENT_TIMESTAMP
-
                 )
 
                 RETURNING *
-
                 `,
                 [
-
                     remittanceId,
 
                     rcd_id,
@@ -1723,15 +1368,11 @@ export async function POST(
                     payment_type,
 
                     cashAmount,
-
                     checkAmount,
-
                     totalAmount,
 
                     decoded.id,
-
                     decoded.id,
-
                 ]
             );
 
@@ -1754,50 +1395,39 @@ export async function POST(
             await client.query(
                 `
                 INSERT INTO
-                    rcd_remittance_denominations (
-
+                    rcd_remittance_denominations
+                (
                     id,
 
                     remittance_id,
 
                     denomination,
-
                     quantity,
-
                     amount,
 
                     created_at
-
                 )
 
-                VALUES (
-
+                VALUES
+                (
                     $1,
-
                     $2,
 
                     $3,
-
                     $4,
-
                     $5,
 
                     CURRENT_TIMESTAMP
-
                 )
                 `,
                 [
-
                     randomUUID(),
 
                     remittanceId,
 
                     item.denomination,
-
                     item.quantity,
-
                     item.amount,
-
                 ]
             );
 
@@ -1807,11 +1437,6 @@ export async function POST(
         /*
         =================================================
         UPDATE RCD
-        =================================================
-
-        The RCD contains the collection/deposit report,
-        while the remittance contains the breakdown.
-
         =================================================
         */
 
@@ -1833,27 +1458,18 @@ export async function POST(
             UPDATE rcd_transaction
 
             SET
-
-                total_remittances =
-                    $1,
-
-                balance =
-                    $2,
-
+                total_remittances = $1,
+                balance = $2,
                 updated_at =
                     CURRENT_TIMESTAMP
 
-            WHERE id =
-                $3
+            WHERE
+                id = $3
             `,
             [
-
                 totalAmount,
-
                 newBalance,
-
                 rcd_id,
-
             ]
         );
 
@@ -1871,16 +1487,7 @@ export async function POST(
 
         /*
         =================================================
-        RESPONSE
-        =================================================
-
-        IMPORTANT:
-
-        Denominations MUST be INSIDE remittance because
-        the frontend does:
-
-            response.data.remittance
-
+        RESPONSE DENOMINATIONS
         =================================================
         */
 
@@ -1906,6 +1513,12 @@ export async function POST(
             );
 
 
+        /*
+        =================================================
+        RESPONSE
+        =================================================
+        */
+
         return NextResponse.json(
             {
                 success: true,
@@ -1917,71 +1530,31 @@ export async function POST(
 
                     ...remittance,
 
-                    /*
-                    =====================================
-                    RCD REPORT NUMBER
-                    =====================================
-                    */
-
                     report_no:
                         rcd.report_no,
-
-
-                    /*
-                    =====================================
-                    NORMALIZED AMOUNTS
-                    =====================================
-                    */
 
                     cash_amount:
                         Number(
                             remittance.cash_amount
                         ),
 
-
                     check_amount:
                         Number(
                             remittance.check_amount
                         ),
-
 
                     total_amount:
                         Number(
                             remittance.total_amount
                         ),
 
-
-                    /*
-                    =====================================
-                    DENOMINATION TOTAL
-                    =====================================
-                    */
-
                     denomination_total:
                         denominationTotal,
-
-
-                    /*
-                    =====================================
-                    DENOMINATIONS
-                    =====================================
-
-                    Example:
-
-                    {
-                        "1000": 2,
-                        "500": 3,
-                        "100": 5
-                    }
-
-                    =====================================
-                    */
 
                     denominations:
                         denominationObject,
 
                 },
-
             },
             {
                 status: 201,
@@ -2019,7 +1592,7 @@ export async function POST(
 
         /*
         =================================================
-        DUPLICATE RCD PROTECTION
+        DUPLICATE
         =================================================
         */
 
@@ -2031,7 +1604,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "This RCD already has a remittance.",
                 },

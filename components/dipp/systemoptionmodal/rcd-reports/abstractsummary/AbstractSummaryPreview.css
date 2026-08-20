@@ -1,0 +1,540 @@
+/* ============================================================
+   ABSTRACT SUMMARY PREVIEW
+   PAPER: 8.5 x 13 INCH / FOLIO
+============================================================ */
+
+.abstract-summary-preview-wrapper {
+    width: 100%;
+    min-height: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    padding: 24px;
+
+    background: #cbd5e1;
+
+    overflow: auto;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   PAPER
+============================================================ */
+
+.abstract-summary-paper {
+    position: relative;
+
+    width: 8.5in;
+    height: 13in;
+
+    min-width: 8.5in;
+    max-width: 8.5in;
+
+    min-height: 13in;
+    max-height: 13in;
+
+    flex: 0 0 8.5in;
+
+    box-sizing: border-box;
+
+    background: #fff;
+
+    padding:
+        0.30in
+        0.30in
+        0.25in
+        0.30in;
+
+    color: #000;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 9px;
+
+    line-height: 1.15;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 5px 25px
+        rgba(0, 0, 0, 0.18);
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+/* ============================================================
+   GOVERNMENT HEADER
+============================================================ */
+
+.abstract-summary-government {
+    width: 100%;
+
+    text-align: center;
+
+    font-family:
+        "Times New Roman",
+        Times,
+        serif;
+
+    font-size: 15px;
+
+    line-height: 1.05;
+}
+
+.abstract-summary-municipality {
+    margin-top: 2px;
+
+    font-size: 18px;
+
+    font-weight: 700;
+}
+
+.abstract-summary-office {
+    font-size: 20px;
+
+    font-weight: 700;
+}
+
+.abstract-summary-header-line {
+    width: 100%;
+
+    margin-top: 5px;
+
+    border-bottom:
+        1.5px solid #000;
+}
+
+.abstract-summary-title {
+    margin-top: 10px;
+
+    margin-bottom: 10px;
+
+    text-align: center;
+
+    font-size: 15px;
+
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   INFORMATION
+============================================================ */
+
+.abstract-summary-information {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 12px;
+
+    margin-bottom: 8px;
+
+    box-sizing: border-box;
+}
+
+.abstract-summary-info-row {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 7px;
+
+    margin-bottom: 5px;
+}
+
+.abstract-summary-info-label {
+    font-size: 12px;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+.abstract-summary-info-value {
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+.abstract-summary-info-right {
+    justify-content: flex-end;
+}
+
+
+/* ============================================================
+   TABLE SECTION
+============================================================ */
+
+.abstract-summary-section {
+    width: 100%;
+
+    margin-top: 4px;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.abstract-summary-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    table-layout: fixed;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   TABLE HEADER
+============================================================ */
+
+.abstract-summary-table thead th {
+    border: 1px solid #000;
+
+    padding:
+        5px
+        6px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    line-height: 1.15;
+
+    vertical-align: middle;
+}
+
+
+/* ============================================================
+   TABLE COLUMNS
+============================================================ */
+
+/*
+    Account Number
+*/
+
+.abstract-summary-table th:nth-child(1),
+.abstract-summary-table td:nth-child(1) {
+    width: 25%;
+}
+
+
+/*
+    Account Description / Name
+*/
+
+.abstract-summary-table th:nth-child(2),
+.abstract-summary-table td:nth-child(2) {
+    width: 55%;
+}
+
+
+/*
+    Amount
+*/
+
+.abstract-summary-table th:nth-child(3),
+.abstract-summary-table td:nth-child(3) {
+    width: 20%;
+}
+
+
+/* ============================================================
+   TABLE BODY
+============================================================ */
+
+.abstract-summary-table tbody td {
+    border: none !important;
+
+    padding:
+        4px
+        6px;
+    padding-bottom: 20;
+
+    font-size: 12px;
+
+    line-height: 1.15;
+
+    vertical-align: middle;
+}
+
+
+/* Account number */
+
+.abstract-summary-table tbody td:nth-child(1) {
+    text-align: left;
+}
+
+
+/* Account name */
+
+.abstract-summary-table tbody td:nth-child(2) {
+    text-align: left;
+}
+
+
+/* Amount */
+
+.abstract-summary-table tbody td:nth-child(3) {
+    text-align: right;
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   EMPTY
+============================================================ */
+
+.abstract-summary-empty {
+    padding: 20px !important;
+
+    text-align: center !important;
+
+    color: #666;
+}
+
+
+/* ============================================================
+   TABLE FOOTER
+============================================================ */
+
+.abstract-summary-table tfoot td {
+    border: none !important;
+
+    padding:
+        5px
+        6px;
+
+    font-weight: 700;
+}
+
+
+/*
+    Top border above grand total
+*/
+
+.abstract-summary-table tfoot td {
+    border-top:
+        1px solid #000 !important;
+}
+
+
+/*
+    Grand total label
+*/
+
+.abstract-summary-total-label {
+    text-align: right !important;
+    font-size: 12px;
+}
+
+
+/*
+    Grand total amount
+*/
+
+.abstract-summary-total {
+    text-align: right !important;
+
+    font-size: 15px;
+}
+
+
+
+
+/* ============================================================
+   SIGNATORIES
+============================================================ */
+
+.abstract-summary-signatories {
+     width: 100%;
+
+    margin-top: 50px;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 80px;
+
+    box-sizing: border-box;
+}
+
+.abstract-summary-signature-label {
+    font-size: 12px;
+}
+
+.abstract-summary-signature-name {
+    margin-top: 30px;
+
+    padding-bottom: 4px;
+
+    border-bottom:
+        1px solid #000;
+
+    text-align: center;
+
+    font-size: 15px;
+
+    font-weight: 700;
+}
+
+.abstract-summary-signature-role {
+    margin-top: 4px;
+
+    text-align: center;
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+.abstract-summary-footer {
+    width: 100%;
+
+    margin-top: auto;
+
+    padding-top: 6px;
+
+    border-top:
+        1px solid #000;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    font-size: 8px;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+    @page {
+        size: 8.5in 13in;
+
+        margin: 0;
+    }
+
+
+    html,
+    body {
+        width: 8.5in !important;
+        height: 13in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #fff !important;
+
+        overflow: hidden !important;
+    }
+
+
+    body * {
+        visibility: hidden !important;
+    }
+
+
+    #abstract-summary-print-area,
+    #abstract-summary-print-area * {
+        visibility: visible !important;
+    }
+
+
+    .abstract-summary-preview-wrapper {
+        width: 8.5in !important;
+        height: 13in !important;
+
+        min-width: 8.5in !important;
+        min-height: 13in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        display: block !important;
+
+        background: #fff !important;
+
+        overflow: visible !important;
+    }
+
+
+    #abstract-summary-print-area {
+        position: absolute !important;
+
+        top: 0 !important;
+        left: 0 !important;
+
+        width: 8.5in !important;
+        height: 13in !important;
+
+        min-width: 8.5in !important;
+        min-height: 13in !important;
+
+        max-width: 8.5in !important;
+        max-height: 13in !important;
+
+        margin: 0 !important;
+
+        padding:
+            0.30in
+            0.30in
+            0.25in
+            0.30in !important;
+
+        box-sizing: border-box !important;
+
+        background: #fff !important;
+
+        box-shadow: none !important;
+
+        overflow: hidden !important;
+
+        display: flex !important;
+
+        flex-direction: column !important;
+    }
+
+
+    .abstract-summary-table {
+        width: 100% !important;
+    }
+
+
+    .abstract-summary-footer {
+        margin-top: auto !important;
+    }
+}
