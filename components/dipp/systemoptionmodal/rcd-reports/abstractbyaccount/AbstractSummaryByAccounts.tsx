@@ -2,13 +2,12 @@
 
 type Props = {
     items?: any[];
-
     formatAmount: (
         value: any
     ) => string;
 };
 
-export default function AbstractSummaryAccounts({
+export default function AbstractSummaryByAccounts({
     items = [],
     formatAmount,
 }: Props) {
@@ -18,70 +17,45 @@ export default function AbstractSummaryAccounts({
             ? items
             : [];
 
-    const grandTotal: number =
+    const grandTotal =
         rows.reduce(
             (
                 total: number,
                 item: any
-            ): number => {
-
-                return (
-                    total +
-                    Number(
-                        item?.amount ?? 0
-                    )
-                );
-
-            },
+            ) =>
+                total +
+                Number(
+                    item?.amount ?? 0
+                ),
             0
         );
 
     return (
+        <div className="abstract-by-summary-section">
 
-        <div className="
-            abstract-summary-section
-        ">
-
-            <table className="
-                abstract-summary-table
-            ">
+            <table className="abstract-by-summary-table">
 
                 <thead>
-
                     <tr>
+                        <th>ACCOUNT CODE</th>
 
-                        <th>
-                            Account Number
-                        </th>
+                        <th>PARTICULARS</th>
 
-                        <th>
-                            Account Description / Name
-                        </th>
-
-                        <th>
-                            Amount
-                        </th>
-
+                        <th>AMOUNT</th>
                     </tr>
-
                 </thead>
-
 
                 <tbody>
 
                     {rows.length === 0 ? (
 
                         <tr>
-
                             <td
                                 colSpan={3}
-                                className="
-                                    abstract-summary-empty
-                                "
+                                className="abstract-by-summary-empty"
                             >
                                 No account records found.
                             </td>
-
                         </tr>
 
                     ) : (
@@ -95,6 +69,7 @@ export default function AbstractSummaryAccounts({
                                 <tr
                                     key={
                                         item?.account_id ??
+                                        item?.account_code ??
                                         index
                                     }
                                 >
@@ -106,7 +81,6 @@ export default function AbstractSummaryAccounts({
                                         }
                                     </td>
 
-
                                     <td>
                                         {
                                             item?.account_name ??
@@ -114,18 +88,13 @@ export default function AbstractSummaryAccounts({
                                         }
                                     </td>
 
-
-                                    <td className="
-                                        abstract-summary-amount
-                                    ">
-
+                                    <td className="abstract-by-summary-amount">
                                         ₱
                                         {
                                             formatAmount(
                                                 item?.amount
                                             )
                                         }
-
                                     </td>
 
                                 </tr>
@@ -137,31 +106,24 @@ export default function AbstractSummaryAccounts({
 
                 </tbody>
 
-
                 <tfoot>
 
                     <tr>
 
                         <td
                             colSpan={2}
-                            className="
-                                abstract-summary-total-label
-                            "
+                            className="abstract-by-summary-total-label"
                         >
-                            GRAND TOTAL
+                            Grand Total:
                         </td>
 
-                        <td className="
-                            abstract-summary-total
-                        ">
-
+                        <td className="abstract-by-summary-total">
                             ₱
                             {
                                 formatAmount(
                                     grandTotal
                                 )
                             }
-
                         </td>
 
                     </tr>
@@ -171,6 +133,5 @@ export default function AbstractSummaryAccounts({
             </table>
 
         </div>
-
     );
 }

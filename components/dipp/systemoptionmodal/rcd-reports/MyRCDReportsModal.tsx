@@ -15,8 +15,11 @@ import axios from "axios";
 
 import RCDReport from "./rcdreport/RCDReport";
 import DailyReceiptByFundSource from "./dailyreceiptbyfundsource/DailyReceiptByFundSource";
-import AbstractSummary from "./abstractsummary/AbstractSummary";
-import AbstractByAccount from "./abstractbyaccount/AbstractByAccount";
+import AbstractSummary from "./abstract-summary/AbstractSummary";
+
+import AbstractSummaryBy
+    from "./abstractbyaccount/AbstractSummaryBy";
+
 
 
 type Props = {
@@ -1100,7 +1103,26 @@ export default function MyRCDReportsModal({
 
                 return (
                     <AbstractSummary
-                        report={selectedRCD}
+                        rcd={
+                            selectedRCD
+                        }
+                    />
+                );
+
+
+            case "abstract_account":
+
+                return (
+                    <AbstractSummaryBy
+                        report={
+                            selectedRCD
+                        }
+
+                        items={
+                            selectedRCD?.items ??
+                            []
+                        }
+
                         fundSource={{
                             id:
                                 selectedRCD?.fund_source_id,
@@ -1114,32 +1136,13 @@ export default function MyRCDReportsModal({
                             acronym:
                                 selectedRCD?.acronym,
                         }}
+
                         user={
                             selectedRCD?.user ??
                             null
                         }
                     />
                 );
-
-
-            /*
-            ====================================================
-            ABSTRACT BY ACCOUNT
-            ====================================================
-            */
-
-            case "abstract_account":
-
-                return (
-
-                    <AbstractByAccount
-                        rcd={
-                            selectedRCD
-                        }
-                    />
-
-                );
-
 
             default:
 

@@ -7,17 +7,25 @@ import {
 
 import "./AbstractSummaryPreview.css";
 
-import AbstractSummaryHeader from "./AbstractSummaryHeader";
-import AbstractSummaryAccounts from "./AbstractSummaryAccounts";
+import AbstractSummaryHeader
+    from "./AbstractSummaryHeader";
+
+import AbstractSummaryAccounts
+    from "./AbstractSummaryAccounts";
 
 
 type Props = {
+    rcd?: any;
     report?: any;
     items?: any[];
     fundSource?: any;
     user?: any;
 };
 
+
+/* ============================================================
+   DATE FORMAT
+============================================================ */
 
 function formatDate(
     value?: string | null
@@ -54,6 +62,10 @@ function formatDate(
 }
 
 
+/* ============================================================
+   AMOUNT FORMAT
+============================================================ */
+
 function formatAmount(
     value: any
 ): string {
@@ -69,6 +81,10 @@ function formatAmount(
     );
 }
 
+
+/* ============================================================
+   USER NAME
+============================================================ */
 
 function getFullName(
     user: any
@@ -98,16 +114,57 @@ function getFullName(
 }
 
 
+/* ============================================================
+   COMPONENT
+============================================================ */
+
 export default function AbstractSummary({
+    rcd,
     report,
     items = [],
     fundSource,
     user,
 }: Props) {
 
-    /* ============================================================
-       ACCOUNT SUMMARY DATA
-    ============================================================ */
+
+    /* ========================================================
+       INITIAL REPORT
+    ======================================================== */
+
+    const initialReport =
+        rcd ??
+        report ??
+        null;
+
+
+    /* ========================================================
+       REPORT FROM API
+    ======================================================== */
+
+    const [
+        selectedReport,
+        setSelectedReport,
+    ] = useState<any>(
+        initialReport
+    );
+
+
+    /* ========================================================
+       FUND SOURCE FROM API
+    ======================================================== */
+
+    const [
+        selectedFundSource,
+        setSelectedFundSource,
+    ] = useState<any>(
+        fundSource ??
+        null
+    );
+
+
+    /* ========================================================
+       COLLECTION ITEMS
+    ======================================================== */
 
     const [
         accountRows,
@@ -119,11 +176,19 @@ export default function AbstractSummary({
     );
 
 
+    /* ========================================================
+       LOADING
+    ======================================================== */
+
     const [
         loading,
         setLoading,
     ] = useState(false);
 
+
+    /* ========================================================
+       ERROR
+    ======================================================== */
 
     const [
         error,
@@ -134,22 +199,38 @@ export default function AbstractSummary({
 
 
     /* ============================================================
-       LOAD ACCOUNT SUMMARY FROM API
+       LOAD ABSTRACT SUMMARY
     ============================================================ */
 
     useEffect(() => {
 
-        if (!report?.id) {
+        const reportId =
+            initialReport?.id;
 
-            setAccountRows([]);
+
+        if (!reportId) {
+
+            setSelectedReport(
+                initialReport
+            );
+
+            setSelectedFundSource(
+                fundSource ??
+                null
+            );
+
+            setAccountRows(
+                Array.isArray(items)
+                    ? items
+                    : []
+            );
 
             return;
 
         }
 
 
-        let cancelled =
-            false;
+        let cancelled = false;
 
 
         async function loadAbstractSummary() {
@@ -161,14 +242,12 @@ export default function AbstractSummary({
                 setError(null);
 
 
+                /* ==================================================
+                   API
+                ================================================== */
+
                 const url =
-                    `/api/rcd/reports/${report.id}/abstract-summary`;
-
-
-                console.log(
-                    "ABSTRACT SUMMARY REQUEST:",
-                    url
-                );
+                    `/api/rcd/reports/${reportId}/abstractsummary`;
 
 
                 const response =
@@ -185,11 +264,9 @@ export default function AbstractSummary({
                     await response.json();
 
 
-                console.log(
-                    "ABSTRACT SUMMARY RESPONSE:",
-                    data
-                );
-
+                /* ==================================================
+                   ERROR
+                ================================================== */
 
                 if (!response.ok) {
 
@@ -201,12 +278,59 @@ export default function AbstractSummary({
                 }
 
 
-                if (
-                    cancelled
-                ) {
+                if (cancelled) {
                     return;
                 }
 
+
+                /* ==================================================
+                   RCD
+                ================================================== */
+
+                if (
+                    data?.rcd
+                ) {
+
+                    setSelectedReport(
+                        data.rcd
+                    );
+
+                }
+                else {
+
+                    setSelectedReport(
+                        initialReport
+                    );
+
+                }
+
+
+                /* ==================================================
+                   FUND SOURCE
+                ================================================== */
+
+                if (
+                    data?.fund_source
+                ) {
+
+                    setSelectedFundSource(
+                        data.fund_source
+                    );
+
+                }
+                else {
+
+                    setSelectedFundSource(
+                        fundSource ??
+                        null
+                    );
+
+                }
+
+
+                /* ==================================================
+                   ITEMS
+                ================================================== */
 
                 const rows =
                     Array.isArray(
@@ -216,18 +340,13 @@ export default function AbstractSummary({
                         : [];
 
 
-                console.log(
-                    "ABSTRACT SUMMARY ROWS:",
-                    rows
-                );
-
-
                 setAccountRows(
                     rows
                 );
 
 
-            } catch (
+            }
+            catch (
                 err: any
             ) {
 
@@ -237,24 +356,24 @@ export default function AbstractSummary({
                 );
 
 
-                if (
-                    !cancelled
-                ) {
+                if (!cancelled) {
 
                     setError(
                         err?.message ??
                         "Failed to load Abstract Summary."
                     );
 
-                    setAccountRows([]);
+
+                    setAccountRows(
+                        []
+                    );
 
                 }
 
-            } finally {
+            }
+            finally {
 
-                if (
-                    !cancelled
-                ) {
+                if (!cancelled) {
 
                     setLoading(
                         false
@@ -272,43 +391,47 @@ export default function AbstractSummary({
 
         return () => {
 
-            cancelled =
-                true;
+            cancelled = true;
 
         };
 
+
     }, [
-        report?.id,
+        initialReport?.id,
     ]);
 
 
     /* ============================================================
-       EMPTY REPORT
+       NO REPORT
     ============================================================ */
 
-    if (!report) {
+    if (!selectedReport) {
 
         return (
+
             <div className="
-                flex
-                min-h-[500px]
-                items-center
-                justify-center
-                text-sm
-                text-gray-400
+                abstract-summary-empty-state
             ">
+
                 Select a report from the list.
+
             </div>
+
         );
 
     }
 
+
+    /* ============================================================
+       RENDER
+    ============================================================ */
 
     return (
 
         <div className="
             abstract-summary-preview-wrapper
         ">
+
 
             <div
                 id="abstract-summary-print-area"
@@ -317,46 +440,45 @@ export default function AbstractSummary({
                 "
             >
 
+
                 {/* ==================================================
                     HEADER
                 ================================================== */}
 
                 <AbstractSummaryHeader
-                    report={report}
-                    fundSource={fundSource}
-                    user={user}
-                    formatDate={formatDate}
+                    report={
+                        selectedReport
+                    }
+
+                    fundSource={
+                        selectedFundSource
+                    }
+
+                    user={
+                        user
+                    }
                 />
 
 
                 {/* ==================================================
-                    ACCOUNT SUMMARY
+                    COLLECTION TABLE
                 ================================================== */}
 
                 {loading ? (
 
                     <div className="
-                        flex
-                        min-h-[250px]
-                        items-center
-                        justify-center
-                        text-sm
-                        text-gray-400
+                        abstract-summary-status
                     ">
 
-                        Loading account summary...
+                        Loading collections...
 
                     </div>
 
                 ) : error ? (
 
                     <div className="
-                        flex
-                        min-h-[250px]
-                        items-center
-                        justify-center
-                        text-sm
-                        text-red-500
+                        abstract-summary-status
+                        abstract-summary-error
                     ">
 
                         {error}
@@ -366,12 +488,15 @@ export default function AbstractSummary({
                 ) : (
 
                     <AbstractSummaryAccounts
+
                         items={
                             accountRows
                         }
+
                         formatAmount={
                             formatAmount
                         }
+
                     />
 
                 )}
@@ -385,14 +510,21 @@ export default function AbstractSummary({
                     abstract-summary-signatories
                 ">
 
-                    {/* LEFT */}
 
-                    <div>
+                    {/* ==================================================
+                        PREPARED BY
+                    ================================================== */}
+
+                    <div className="
+                        abstract-summary-signature
+                    ">
 
                         <div className="
                             abstract-summary-signature-label
                         ">
-                            Prepared by:
+
+                            Prepared By:
+
                         </div>
 
 
@@ -401,9 +533,8 @@ export default function AbstractSummary({
                         ">
 
                             {
-                                getFullName(
-                                    user
-                                )
+                                selectedReport?.rcd_by_name ??
+                                getFullName(user)
                             }
 
                         </div>
@@ -420,14 +551,20 @@ export default function AbstractSummary({
                     </div>
 
 
-                    {/* RIGHT */}
+                    {/* ==================================================
+                        NOTED BY
+                    ================================================== */}
 
-                    <div>
+                    <div className="
+                        abstract-summary-signature
+                    ">
 
                         <div className="
                             abstract-summary-signature-label
                         ">
-                            Noted by:
+
+                            Noted By:
+
                         </div>
 
 
@@ -435,7 +572,7 @@ export default function AbstractSummary({
                             abstract-summary-signature-name
                         ">
 
-                            IMLYN B. PARAPINA
+                            MARIA CRISTINA B. FORMACION
 
                         </div>
 
@@ -450,6 +587,7 @@ export default function AbstractSummary({
 
                     </div>
 
+
                 </div>
 
 
@@ -462,14 +600,16 @@ export default function AbstractSummary({
                 ">
 
                     <span>
-                        Abstract Summary
+
+                        Abstract of Collections
+
                     </span>
 
 
                     <span>
 
                         {
-                            report?.report_no ??
+                            selectedReport?.report_no ??
                             "—"
                         }
 
@@ -477,9 +617,11 @@ export default function AbstractSummary({
 
                 </div>
 
+
             </div>
 
         </div>
 
     );
+
 }
