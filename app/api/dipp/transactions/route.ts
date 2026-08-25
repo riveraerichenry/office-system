@@ -5,12 +5,15 @@ import { authorize } from "@/lib/authorize";
 import { pool } from "@/lib/db";
 import { MODULE_PATHS } from "@/lib/module-paths";
 
+
 export async function POST(
     req: NextRequest
 ) {
+
     let client: PoolClient | null = null;
 
     try {
+
         /*
         |--------------------------------------------------------------------------
         | Authorization
@@ -24,6 +27,7 @@ export async function POST(
                 "add"
             );
 
+
         /*
         |--------------------------------------------------------------------------
         | Request Body
@@ -32,6 +36,7 @@ export async function POST(
 
         const body =
             await req.json();
+
 
         const {
             booklet_registration_id,
@@ -43,6 +48,7 @@ export async function POST(
             ctc,
         } = body;
 
+
         /*
         |--------------------------------------------------------------------------
         | Validation
@@ -50,38 +56,53 @@ export async function POST(
         */
 
         if (!booklet_registration_id) {
+
             throw new Error(
                 "Booklet is required."
             );
+
         }
 
+
         if (!receipt_date) {
+
             throw new Error(
                 "Receipt date is required."
             );
+
         }
 
+
         if (!payor) {
+
             throw new Error(
                 "Payor is required."
             );
+
         }
 
+
         if (!payment_mode) {
+
             throw new Error(
                 "Payment mode is required."
             );
+
         }
+
 
         if (
             !items ||
             !Array.isArray(items) ||
             items.length === 0
         ) {
+
             throw new Error(
                 "Please add at least one transaction item."
             );
+
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -92,9 +113,11 @@ export async function POST(
         client =
             await pool.connect();
 
+
         await client.query(
             "BEGIN"
         );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -149,16 +172,21 @@ export async function POST(
                 ]
             );
 
+
         if (
             bookletResult.rows.length === 0
         ) {
+
             throw new Error(
                 "Booklet not found."
             );
+
         }
+
 
         const booklet =
             bookletResult.rows[0];
+
 
         /*
         |--------------------------------------------------------------------------
@@ -186,19 +214,25 @@ export async function POST(
                 ]
             );
 
+
         if (
             formResult.rows.length === 0
         ) {
+
             throw new Error(
                 "Accountable form not found."
             );
+
         }
+
 
         const form =
             formResult.rows[0];
 
+
         const formCode =
             form.form_code;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -211,10 +245,12 @@ export async function POST(
                 booklet.current_or
             );
 
+
         const endingOR =
             Number(
                 booklet.ending_or
             );
+
 
         if (
             !Number.isFinite(
@@ -224,19 +260,25 @@ export async function POST(
                 endingOR
             )
         ) {
+
             throw new Error(
                 "Invalid booklet OR range."
             );
+
         }
+
 
         if (
             currentOR >
             endingOR
         ) {
+
             throw new Error(
                 "This booklet has already been fully consumed."
             );
+
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -248,6 +290,7 @@ export async function POST(
             formCode === "CTC-I" ||
             formCode === "CTC-C";
 
+
         /*
         |--------------------------------------------------------------------------
         | Validate CTC
@@ -256,13 +299,17 @@ export async function POST(
 
         let grandTotal = 0;
 
+
         if (isCTC) {
 
             if (!ctc) {
+
                 throw new Error(
                     "CTC information is required."
                 );
+
             }
+
 
             /*
             |--------------------------------------------------------------------------
@@ -275,29 +322,31 @@ export async function POST(
                 ctc.ctc_type &&
                 ctc.ctc_type !== "CTC-I"
             ) {
+
                 throw new Error(
                     "The selected accountable form is CTC-I."
                 );
+
             }
+
 
             if (
                 formCode === "CTC-C" &&
                 ctc.ctc_type &&
                 ctc.ctc_type !== "CTC-C"
             ) {
+
                 throw new Error(
                     "The selected accountable form is CTC-C."
                 );
+
             }
+
 
             /*
             |--------------------------------------------------------------------------
             | CTC Total
             |--------------------------------------------------------------------------
-            |
-            | Keep compatibility with the existing working CTC
-            | modal, which may currently send grand_total.
-            |
             */
 
             grandTotal =
@@ -307,24 +356,30 @@ export async function POST(
                     0
                 );
 
+
             if (
                 !Number.isFinite(
                     grandTotal
                 ) ||
                 grandTotal <= 0
             ) {
+
                 throw new Error(
                     "Invalid CTC amount."
                 );
+
             }
 
-        } else {
+        }
 
-            /*
-            |--------------------------------------------------------------------------
-            | General Receipt
-            |--------------------------------------------------------------------------
-            */
+
+        /*
+        |--------------------------------------------------------------------------
+        | General Receipt
+        |--------------------------------------------------------------------------
+        */
+
+        else {
 
             for (
                 const item
@@ -334,15 +389,19 @@ export async function POST(
                 if (
                     !item.account_id
                 ) {
+
                     throw new Error(
                         "Please select an account."
                     );
+
                 }
+
 
                 const amount =
                     Number(
                         item.amount
                     );
+
 
                 if (
                     !Number.isFinite(
@@ -350,10 +409,13 @@ export async function POST(
                     ) ||
                     amount <= 0
                 ) {
+
                     throw new Error(
                         "Invalid transaction amount."
                     );
+
                 }
+
 
                 const account =
                     await client.query(
@@ -379,18 +441,205 @@ export async function POST(
                         ]
                     );
 
+
                 if (
                     account.rows.length === 0
                 ) {
+
                     throw new Error(
                         "Selected account is invalid."
                     );
+
                 }
+
 
                 grandTotal +=
                     amount;
+
             }
+
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determine Taxable Amount
+        |--------------------------------------------------------------------------
+        |
+        | CTC:
+        |     ctc.taxable_amount
+        |
+        | Normal receipts:
+        |     Sum item.taxable_amount
+        |
+        | If no taxable amount exists,
+        | the value remains 0.
+        |--------------------------------------------------------------------------
+        */
+
+        let taxableAmount = 0;
+
+
+        if (isCTC) {
+
+            taxableAmount =
+                Number(
+                    ctc?.taxable_amount ??
+                    0
+                );
+
+        }
+        else {
+
+            taxableAmount =
+                items.reduce(
+                    (
+                        total: number,
+                        item: any
+                    ) => {
+
+                        const value =
+                            Number(
+                                item?.taxable_amount ??
+                                0
+                            );
+
+
+                        if (
+                            !Number.isFinite(
+                                value
+                            )
+                        ) {
+
+                            return total;
+
+                        }
+
+
+                        return (
+                            total +
+                            value
+                        );
+
+                    },
+                    0
+                );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Taxable Amount
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !Number.isFinite(
+                taxableAmount
+            ) ||
+            taxableAmount < 0
+        ) {
+
+            taxableAmount = 0;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Build Remarks
+        |--------------------------------------------------------------------------
+        |
+        | Examples:
+        |
+        | Payment - AF56 - 28,044.31
+        |
+        | AF56 - 28,044.31
+        |
+        | AF56
+        |
+        |--------------------------------------------------------------------------
+        */
+
+        const remarksParts: string[] = [];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | User Remarks
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            remarks &&
+            String(
+                remarks
+            ).trim()
+        ) {
+
+            remarksParts.push(
+                String(
+                    remarks
+                ).trim()
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Accountable Form
+        |--------------------------------------------------------------------------
+        */
+
+        if (formCode) {
+
+            remarksParts.push(
+                String(
+                    formCode
+                ).trim()
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Taxable Amount
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            taxableAmount > 0
+        ) {
+
+            remarksParts.push(
+                taxableAmount.toLocaleString(
+                    "en-PH",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }
+                )
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Final Remarks
+        |--------------------------------------------------------------------------
+        */
+
+        const finalRemarks =
+            remarksParts.length > 0
+                ? remarksParts.join(
+                    " - "
+                )
+                : null;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -466,82 +715,119 @@ export async function POST(
                 [
 
                     /*
+                    |--------------------------------------------------------------------------
                     | OR Number
+                    |--------------------------------------------------------------------------
                     */
 
                     String(
                         currentOR
                     ),
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Receipt Date
+                    |--------------------------------------------------------------------------
                     */
 
                     receipt_date,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Booklet
+                    |--------------------------------------------------------------------------
                     */
 
                     booklet_registration_id,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | LOR Release
+                    |--------------------------------------------------------------------------
                     */
 
                     booklet.lor_release_id,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Accountable Form
+                    |--------------------------------------------------------------------------
                     */
 
                     booklet.accountable_form_id,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Collector
+                    |--------------------------------------------------------------------------
                     */
 
                     booklet.accountable_officer_id,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Payor
+                    |--------------------------------------------------------------------------
                     */
 
                     payor,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Payment Mode
+                    |--------------------------------------------------------------------------
                     */
 
                     payment_mode,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Remarks
+                    |--------------------------------------------------------------------------
                     */
 
-                    remarks ??
-                        null,
+                    finalRemarks,
+
 
                     /*
+                    |--------------------------------------------------------------------------
                     | Grand Total
+                    |--------------------------------------------------------------------------
                     */
 
                     grandTotal,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Status
+                    |--------------------------------------------------------------------------
                     */
 
                     "ISSUED",
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Encoder
+                    |--------------------------------------------------------------------------
                     */
 
                     user.id,
 
+
                     /*
+                    |--------------------------------------------------------------------------
                     | Transaction Type
+                    |--------------------------------------------------------------------------
                     */
 
                     isCTC
@@ -551,8 +837,10 @@ export async function POST(
                 ]
             );
 
+
         const transactionId =
             transaction.rows[0].id;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -616,9 +904,13 @@ export async function POST(
 
                     ]
                 );
+
             }
 
-        } else if (
+        }
+
+
+        else if (
             formCode === "CTC-I" ||
             formCode === "CTC-C"
         ) {
@@ -626,11 +918,6 @@ export async function POST(
             /*
             |--------------------------------------------------------------------------
             | CTC Detail
-            |--------------------------------------------------------------------------
-            |
-            | IMPORTANT:
-            | These column names match the actual
-            | dipp_ctc_items table.
             |--------------------------------------------------------------------------
             */
 
@@ -641,12 +928,14 @@ export async function POST(
                     0
                 );
 
+
             const totalAmount =
                 Number(
                     ctc.total_amount ??
                     ctc.grand_total ??
                     grandTotal
                 );
+
 
             await client.query(
                 `
@@ -768,21 +1057,9 @@ export async function POST(
                 `,
                 [
 
-                    /*
-                    | Transaction
-                    */
-
                     transactionId,
 
-                    /*
-                    | CTC Type
-                    */
-
                     formCode,
-
-                    /*
-                    | Individual / Common
-                    */
 
                     ctc.full_name ??
                         null,
@@ -820,10 +1097,6 @@ export async function POST(
                     ctc.occupation ??
                         null,
 
-                    /*
-                    | Corporation
-                    */
-
                     ctc.corporation_name ??
                         null,
 
@@ -833,19 +1106,11 @@ export async function POST(
                     ctc.representative ??
                         null,
 
-                    /*
-                    | Certificate
-                    */
-
                     ctc.place_issued ??
                         null,
 
                     ctc.issue_date ||
                         null,
-
-                    /*
-                    | Tax
-                    */
 
                     ctc.tax_mode ??
                         null,
@@ -882,7 +1147,10 @@ export async function POST(
                 ]
             );
 
-        } else {
+        }
+
+
+        else {
 
             /*
             |--------------------------------------------------------------------------
@@ -936,8 +1204,11 @@ export async function POST(
 
                     ]
                 );
+
             }
+
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -948,10 +1219,12 @@ export async function POST(
         const nextOR =
             currentOR + 1;
 
+
         const bookletStatus =
             nextOR > endingOR
                 ? "CONSUMED"
                 : "IN USE";
+
 
         /*
         |--------------------------------------------------------------------------
@@ -986,6 +1259,7 @@ export async function POST(
             ]
         );
 
+
         /*
         |--------------------------------------------------------------------------
         | Commit
@@ -995,6 +1269,7 @@ export async function POST(
         await client.query(
             "COMMIT"
         );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -1025,6 +1300,12 @@ export async function POST(
             grand_total:
                 grandTotal,
 
+            taxable_amount:
+                taxableAmount,
+
+            remarks:
+                finalRemarks,
+
             booklet_status:
                 bookletStatus,
 
@@ -1035,23 +1316,33 @@ export async function POST(
 
         });
 
-    } catch (err: any) {
+    }
+    catch (
+        err: any
+    ) {
 
         if (client) {
 
             try {
+
                 await client.query(
                     "ROLLBACK"
                 );
-            } catch (
+
+            }
+            catch (
                 rollbackError
             ) {
+
                 console.error(
                     "Rollback error:",
                     rollbackError
                 );
+
             }
+
         }
+
 
         console.error(
             "===================================="
@@ -1061,11 +1352,14 @@ export async function POST(
             "DIPP TRANSACTION API ERROR"
         );
 
-        console.error(err);
+        console.error(
+            err
+        );
 
         console.error(
             "===================================="
         );
+
 
         return NextResponse.json(
             {
@@ -1080,11 +1374,13 @@ export async function POST(
             }
         );
 
-    } finally {
+    }
+    finally {
 
         client?.release();
 
     }
+
 }
 
 
@@ -1106,15 +1402,18 @@ export async function GET(
             "view"
         );
 
+
         const bookletId =
             req.nextUrl.searchParams.get(
                 "booklet_registration_id"
             );
 
+
         const search =
             req.nextUrl.searchParams.get(
                 "search"
             ) || "";
+
 
         if (!bookletId) {
 
@@ -1129,11 +1428,14 @@ export async function GET(
                     status: 400,
                 }
             );
+
         }
+
 
         const params: any[] = [
             bookletId,
         ];
+
 
         let where = `
             WHERE
@@ -1145,6 +1447,7 @@ export async function GET(
                 dt.is_cancelled = FALSE
         `;
 
+
         if (
             search
         ) {
@@ -1152,6 +1455,7 @@ export async function GET(
             params.push(
                 `%${search}%`
             );
+
 
             where += `
                 AND (
@@ -1164,7 +1468,9 @@ export async function GET(
 
                 )
             `;
+
         }
+
 
         const result =
             await pool.query(
@@ -1211,6 +1517,7 @@ export async function GET(
                 params
             );
 
+
         return NextResponse.json({
 
             success: true,
@@ -1220,9 +1527,15 @@ export async function GET(
 
         });
 
-    } catch (err: any) {
+    }
+    catch (
+        err: any
+    ) {
 
-        console.error(err);
+        console.error(
+            err
+        );
+
 
         return NextResponse.json(
             {
@@ -1238,4 +1551,5 @@ export async function GET(
         );
 
     }
+
 }

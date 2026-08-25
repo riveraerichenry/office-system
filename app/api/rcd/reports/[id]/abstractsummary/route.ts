@@ -376,6 +376,8 @@ export async function GET(
 
                     dt.accountable_form_id,
 
+                    af.form_code,
+
                     dt.status,
 
                     dt.is_cancelled,
@@ -389,6 +391,10 @@ export async function GET(
                 INNER JOIN dipp_transactions dt
                     ON dt.id =
                        ri.dipp_transaction_id
+
+                LEFT JOIN accountable_forms af
+                    ON af.id =
+                       dt.accountable_form_id
 
                 WHERE
                     ri.rcd_transaction_id =
@@ -663,6 +669,91 @@ export async function GET(
 
         const nonRptRows:
             AbstractRow[] = [];
+
+
+        /*
+        ================================================================
+        ADD CTC ROW
+        ================================================================
+        */
+
+        function addCtcRow(
+            transaction: any,
+            account: {
+                id?: string;
+                account_code?: string;
+                account_name?: string;
+            } | null | undefined,
+            fallbackCode: string,
+            fallbackName: string,
+            amount: number,
+            remarks: string | null = null
+        ) {
+
+            const value =
+                money(
+                    amount
+                );
+
+
+            if (
+                Math.abs(value) <
+                0.005
+            ) {
+
+                return;
+
+            }
+
+
+            nonRptRows.push({
+
+                id:
+                    `${transaction.dipp_transaction_id}-ctc-${fallbackCode}-${nonRptRows.length}`,
+
+                no:
+                    0,
+
+                date:
+                    transaction.receipt_date ??
+                    null,
+
+                or_number:
+                    transaction.or_number
+                        ? String(
+                            transaction.or_number
+                        )
+                        : null,
+
+                payor:
+                    transaction.payor ??
+                    null,
+
+                account_id:
+                    account?.id ??
+                    null,
+
+                account_code:
+                    account?.account_code ??
+                    fallbackCode,
+
+                account_name:
+                    account?.account_name ??
+                    fallbackName,
+
+                particulars:
+                    account?.account_name ??
+                    fallbackName,
+
+                remarks:
+                    remarks,
+
+                amount:
+                    value,
+
+            });
+
+        }
 
 
         /*
@@ -1056,6 +1147,398 @@ export async function GET(
                 */
 
                 continue;
+
+            }
+
+
+            /*
+            ============================================================
+            CTC TRANSACTION
+            ============================================================
+            */
+
+            const formCode =
+                transaction.form_code
+                    ? String(
+                        transaction.form_code
+                    ).trim().toUpperCase()
+                    : "";
+
+
+            if (
+                formCode === "CTC-I" ||
+                formCode === "CTC-C"
+            ) {
+
+                const ctcResult =
+                    await pool.query(
+                        `
+                        SELECT
+
+                            id,
+                            transaction_id,
+                            ctc_type,
+                            full_name,
+                            tax_mode,
+                            taxable_amount,
+                            basic_tax,
+                            salary_tax,
+                            additional_tax,
+                            penalty,
+                            interest,
+                            total_amount
+
+                        FROM dipp_ctc_items
+
+                        WHERE
+                            transaction_id = $1
+
+                        ORDER BY
+                            id
+
+                        LIMIT 1
+                        `,
+                        [
+                            transactionId,
+                        ]
+                    );
+
+
+                /*
+                ------------------------------------------------------------
+                CTC DETAIL NOT FOUND
+                ------------------------------------------------------------
+                */
+
+                if (
+                    ctcResult.rows.length === 0
+                ) {
+
+                    /*
+                    CTC transaction exists, but its detail
+                    does not exist. Do not process it as
+                    a normal transaction item.
+                    */
+
+                    continue;
+
+                }
+
+
+                const ctc =
+                    ctcResult.rows[0];
+
+
+                /*
+                ============================================================
+                CTC-I
+                ============================================================
+                */
+
+                if (
+                    formCode === "CTC-I"
+                ) {
+
+                    const individualAccount =
+                        accountByCode.get(
+                            "4-01-01-050-1"
+                        );
+
+
+                    const barangayAccount =
+                        accountByCode.get(
+                            "4-01-01-050-2"
+                        );
+
+
+                    const penaltyAccount =
+                        accountByCode.get(
+                            "4-01-01-050-4"
+                        );
+
+
+                    const basicTax =
+                        toNumber(
+                            ctc.basic_tax
+                        );
+
+
+                    const salaryTax =
+                        toNumber(
+                            ctc.salary_tax
+                        );
+
+
+                    const additionalTax =
+                        toNumber(
+                            ctc.additional_tax
+                        );
+
+
+                    /*
+                    --------------------------------------------------------
+                    TOTAL CTC INDIVIDUAL TAX
+                    --------------------------------------------------------
+                    */
+
+                    const individualTax =
+                        money(
+                            basicTax +
+                            salaryTax +
+                            additionalTax
+                        );
+
+
+                    /*
+                    --------------------------------------------------------
+                    50% MUNICIPAL SHARE
+                    --------------------------------------------------------
+                    */
+
+                    const municipalShare =
+                        money(
+                            individualTax / 2
+                        );
+
+
+                    /*
+                    --------------------------------------------------------
+                    50% BARANGAY SHARE
+                    --------------------------------------------------------
+                    */
+
+                    const barangayShare =
+                        money(
+                            individualTax / 2
+                        );
+
+
+                    /*
+                    ========================================================
+                    CTC INDIVIDUAL
+                    ========================================================
+                    */
+
+                    addCtcRow(
+
+                        transaction,
+
+                        individualAccount,
+
+                        "4-01-01-050-1",
+
+                        "*CTC-Individual",
+
+                        municipalShare,
+
+                        transaction.remarks ??
+                            null
+
+                    );
+
+
+                    /*
+                    ========================================================
+                    CTC INDIVIDUAL BARANGAY 50%
+                    ========================================================
+                    */
+
+                    addCtcRow(
+
+                        transaction,
+
+                        barangayAccount,
+
+                        "4-01-01-050-2",
+
+                        "CTC-Individual (Bgy.- 50%)",
+
+                        barangayShare,
+
+                        transaction.remarks ??
+                            null
+
+                    );
+
+
+                    /*
+                    ========================================================
+                    CTC INDIVIDUAL FINES & PENALTIES
+                    ========================================================
+                    */
+
+                    const penalty =
+                        toNumber(
+                            ctc.penalty
+                        );
+
+
+                    const interest =
+                        toNumber(
+                            ctc.interest
+                        );
+
+
+                    const totalPenalty =
+                        money(
+                            penalty +
+                            interest
+                        );
+
+
+                    addCtcRow(
+
+                        transaction,
+
+                        penaltyAccount,
+
+                        "4-01-01-050-4",
+
+                        "*CTC-Individual Fines & Penalties",
+
+                        totalPenalty,
+
+                        transaction.remarks ??
+                            null
+
+                    );
+
+
+                    /*
+                    --------------------------------------------------------
+                    CTC-I DONE
+                    --------------------------------------------------------
+                    */
+
+                    continue;
+
+                }
+
+
+                /*
+                ============================================================
+                CTC-C
+                ============================================================
+                */
+
+                if (
+                    formCode === "CTC-C"
+                ) {
+
+                    const corporationAccount =
+                        accountByCode.get(
+                            "4-01-01-050-3"
+                        );
+
+
+                    const penaltyAccount =
+                        accountByCode.get(
+                            "4-01-01-050-5"
+                        );
+
+
+                    const basicTax =
+                        toNumber(
+                            ctc.basic_tax
+                        );
+
+
+                    const salaryTax =
+                        toNumber(
+                            ctc.salary_tax
+                        );
+
+
+                    const additionalTax =
+                        toNumber(
+                            ctc.additional_tax
+                        );
+
+
+                    const corporationTax =
+                        money(
+                            basicTax +
+                            salaryTax +
+                            additionalTax
+                        );
+
+
+                    /*
+                    ========================================================
+                    CTC CORPORATION
+                    ========================================================
+                    */
+
+                    addCtcRow(
+
+                        transaction,
+
+                        corporationAccount,
+
+                        "4-01-01-050-3",
+
+                        "*CTC-Corporation",
+
+                        corporationTax,
+
+                        transaction.remarks ??
+                            null
+
+                    );
+
+
+                    /*
+                    ========================================================
+                    CTC CORPORATION FINES & PENALTIES
+                    ========================================================
+                    */
+
+                    const penalty =
+                        toNumber(
+                            ctc.penalty
+                        );
+
+
+                    const interest =
+                        toNumber(
+                            ctc.interest
+                        );
+
+
+                    const corporationPenalty =
+                        money(
+                            penalty +
+                            interest
+                        );
+
+
+                    addCtcRow(
+
+                        transaction,
+
+                        penaltyAccount,
+
+                        "4-01-01-050-5",
+
+                        "*CTC-Corporation Fines & Penalties",
+
+                        corporationPenalty,
+
+                        transaction.remarks ??
+                            null
+
+                    );
+
+
+                    /*
+                    --------------------------------------------------------
+                    CTC-C DONE
+                    --------------------------------------------------------
+                    */
+
+                    continue;
+
+                }
 
             }
 

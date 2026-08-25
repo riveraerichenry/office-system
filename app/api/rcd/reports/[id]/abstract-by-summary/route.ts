@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
+
+/*
+|--------------------------------------------------------------------------
+| TYPES
+|--------------------------------------------------------------------------
+*/
+
 type AccountRow = {
     account_id: string | null;
     account_code: string;
     account_name: string;
     amount: number;
 };
+
 
 type RptAccountDefinition = {
     code: string;
@@ -91,6 +99,42 @@ const RPT_ACCOUNTS = {
 
 /*
 |--------------------------------------------------------------------------
+| CTC ACCOUNT DEFINITIONS
+|--------------------------------------------------------------------------
+*/
+
+const CTC_ACCOUNTS = {
+
+    INDIVIDUAL: {
+        code: "4-01-01-050-1",
+        name: "*CTC-Individual",
+    },
+
+    INDIVIDUAL_BARANGAY: {
+        code: "4-01-01-050-2",
+        name: "CTC-Individual (Bgy.- 50%)",
+    },
+
+    CORPORATION: {
+        code: "4-01-01-050-3",
+        name: "*CTC-Corporation",
+    },
+
+    INDIVIDUAL_PENALTY: {
+        code: "4-01-01-050-4",
+        name: "*CTC-Individual Fines & Penalties",
+    },
+
+    CORPORATION_PENALTY: {
+        code: "4-01-01-050-5",
+        name: "*CTC-Corporation Fines & Penalties",
+    },
+
+};
+
+
+/*
+|--------------------------------------------------------------------------
 | HELPERS
 |--------------------------------------------------------------------------
 */
@@ -105,7 +149,6 @@ function toNumber(
     return Number.isFinite(number)
         ? number
         : 0;
-
 }
 
 
@@ -116,7 +159,6 @@ function money(
     return Number(
         value.toFixed(2)
     );
-
 }
 
 
@@ -151,7 +193,6 @@ function classifyYear(
     }
 
     return "CURRENT";
-
 }
 
 
@@ -180,7 +221,8 @@ export async function GET(
 
         const {
             id: rcdId,
-        } = await context.params;
+        } =
+            await context.params;
 
 
         if (
@@ -190,6 +232,7 @@ export async function GET(
             return NextResponse.json(
                 {
                     success: false,
+
                     error:
                         "RCD ID is required.",
                 },
@@ -250,6 +293,7 @@ export async function GET(
             return NextResponse.json(
                 {
                     success: false,
+
                     error:
                         "RCD was not found.",
                 },
@@ -331,7 +375,9 @@ export async function GET(
 
                     dt.is_cancelled,
 
-                    dt.is_remitted
+                    dt.is_remitted,
+
+                    dt.remarks
 
                 FROM rcd_items ri
 
@@ -530,6 +576,12 @@ export async function GET(
             >();
 
 
+        /*
+        =========================================================
+        ADD SUMMARY
+        =========================================================
+        */
+
         function addSummary(
             accountId:
                 string | null,
@@ -630,9 +682,17 @@ export async function GET(
                 transaction.dipp_transaction_id;
 
 
+            const formCode =
+                transaction.form_code
+                    ? String(
+                        transaction.form_code
+                    ).trim()
+                    : "";
+
+
             /*
             =====================================================
-            CHECK WHETHER THIS TRANSACTION HAS RPT ITEMS
+            CHECK RPT
             =====================================================
             */
 
@@ -676,9 +736,13 @@ export async function GET(
                         $1
 
                     ORDER BY
+
                         start_year,
+
                         start_quarter,
+
                         end_year,
+
                         end_quarter
                     `,
                     [
@@ -694,14 +758,9 @@ export async function GET(
             */
 
             if (
-                rptResult.rows.length > 0
+                rptResult.rows.length >
+                0
             ) {
-
-                /*
-                -------------------------------------------------
-                Process every RPT item.
-                -------------------------------------------------
-                */
 
                 for (
                     const rpt
@@ -713,15 +772,18 @@ export async function GET(
                             rpt.basic
                         );
 
+
                     const sef =
                         toNumber(
                             rpt.sef
                         );
 
+
                     const penalty =
                         toNumber(
                             rpt.penalty
                         );
+
 
                     const discount =
                         toNumber(
@@ -892,15 +954,9 @@ export async function GET(
                     =================================================
                     */
 
-                    /*
-                    -------------------------------------------------
-                    The current RPT item stores combined penalty.
-                    Split it between BASIC and SEF.
-                    -------------------------------------------------
-                    */
-
                     const basicPenalty =
                         penalty / 2;
+
 
                     const sefPenalty =
                         penalty / 2;
@@ -995,15 +1051,9 @@ export async function GET(
                     =================================================
                     */
 
-                    /*
-                    -------------------------------------------------
-                    Current dipp_rpt_items stores combined discount.
-                    Split it between BASIC and SEF.
-                    -------------------------------------------------
-                    */
-
                     const basicDiscount =
                         discount / 2;
+
 
                     const sefDiscount =
                         discount / 2;
@@ -1074,8 +1124,7 @@ export async function GET(
                 /*
                 -------------------------------------------------
                 IMPORTANT:
-                Do NOT also read dipp_transaction_items for
-                this transaction.
+                Do NOT also read transaction_items.
                 -------------------------------------------------
                 */
 
@@ -1086,7 +1135,449 @@ export async function GET(
 
             /*
             =====================================================
-            NON-RPT TRANSACTION
+            CTC-I / CTC-C
+            =====================================================
+            */
+
+            if (
+                formCode === "CTC-I" ||
+                formCode === "CTC-C"
+            ) {
+
+                const ctcResult =
+                    await pool.query(
+                        `
+                        SELECT
+
+                            id,
+
+                            transaction_id,
+
+                            ctc_type,
+
+                            full_name,
+
+                            tax_mode,
+
+                            taxable_amount,
+
+                            basic_tax,
+
+                            salary_tax,
+
+                            additional_tax,
+
+                            penalty,
+
+                            interest,
+
+                            total_amount
+
+                        FROM dipp_ctc_items
+
+                        WHERE
+                            transaction_id =
+                            $1
+
+                        ORDER BY
+                            id
+
+                        LIMIT 1
+                        `,
+                        [
+                            transactionId,
+                        ]
+                    );
+
+
+                /*
+                -------------------------------------------------
+                No CTC detail.
+                -------------------------------------------------
+                */
+
+                if (
+                    ctcResult.rows.length === 0
+                ) {
+
+                    continue;
+
+                }
+
+
+                const ctc =
+                    ctcResult.rows[0];
+
+
+                /*
+                =================================================
+                CTC-I
+                =================================================
+                */
+
+                if (
+                    formCode === "CTC-I"
+                ) {
+
+                    /*
+                    -------------------------------------------------
+                    Get actual accounts.
+                    -------------------------------------------------
+                    */
+
+                    const individualAccount =
+                        accountByCode.get(
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL
+                                .code
+                        );
+
+
+                    const barangayAccount =
+                        accountByCode.get(
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_BARANGAY
+                                .code
+                        );
+
+
+                    const penaltyAccount =
+                        accountByCode.get(
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_PENALTY
+                                .code
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Tax components
+                    -------------------------------------------------
+                    */
+
+                    const basicTax =
+                        toNumber(
+                            ctc.basic_tax
+                        );
+
+
+                    const salaryTax =
+                        toNumber(
+                            ctc.salary_tax
+                        );
+
+
+                    const additionalTax =
+                        toNumber(
+                            ctc.additional_tax
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Total CTC Individual tax
+                    -------------------------------------------------
+                    */
+
+                    const individualTax =
+                        money(
+                            basicTax +
+                            salaryTax +
+                            additionalTax
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Municipality 50%
+                    -------------------------------------------------
+                    */
+
+                    const municipalShare =
+                        money(
+                            individualTax / 2
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Barangay 50%
+                    -------------------------------------------------
+                    */
+
+                    const barangayShare =
+                        money(
+                            individualTax / 2
+                        );
+
+
+                    /*
+                    =================================================
+                    4-01-01-050-1
+                    *CTC-Individual
+                    =================================================
+                    */
+
+                    addSummary(
+
+                        individualAccount?.id ??
+                            null,
+
+                        individualAccount
+                            ?.account_code ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL
+                                .code,
+
+                        individualAccount
+                            ?.account_name ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL
+                                .name,
+
+                        municipalShare
+
+                    );
+
+
+                    /*
+                    =================================================
+                    4-01-01-050-2
+                    CTC-Individual (Bgy.- 50%)
+                    =================================================
+                    */
+
+                    addSummary(
+
+                        barangayAccount?.id ??
+                            null,
+
+                        barangayAccount
+                            ?.account_code ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_BARANGAY
+                                .code,
+
+                        barangayAccount
+                            ?.account_name ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_BARANGAY
+                                .name,
+
+                        barangayShare
+
+                    );
+
+
+                    /*
+                    =================================================
+                    4-01-01-050-4
+                    *CTC-Individual Fines & Penalties
+                    =================================================
+                    */
+
+                    const penalty =
+                        toNumber(
+                            ctc.penalty
+                        );
+
+
+                    const interest =
+                        toNumber(
+                            ctc.interest
+                        );
+
+
+                    const totalPenalty =
+                        money(
+                            penalty +
+                            interest
+                        );
+
+
+                    addSummary(
+
+                        penaltyAccount?.id ??
+                            null,
+
+                        penaltyAccount
+                            ?.account_code ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_PENALTY
+                                .code,
+
+                        penaltyAccount
+                            ?.account_name ??
+                            CTC_ACCOUNTS
+                                .INDIVIDUAL_PENALTY
+                                .name,
+
+                        totalPenalty
+
+                    );
+
+
+                    continue;
+
+                }
+
+
+                /*
+                =================================================
+                CTC-C
+                =================================================
+                */
+
+                if (
+                    formCode === "CTC-C"
+                ) {
+
+                    const corporationAccount =
+                        accountByCode.get(
+                            CTC_ACCOUNTS
+                                .CORPORATION
+                                .code
+                        );
+
+
+                    const penaltyAccount =
+                        accountByCode.get(
+                            CTC_ACCOUNTS
+                                .CORPORATION_PENALTY
+                                .code
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Tax
+                    -------------------------------------------------
+                    */
+
+                    const basicTax =
+                        toNumber(
+                            ctc.basic_tax
+                        );
+
+
+                    const salaryTax =
+                        toNumber(
+                            ctc.salary_tax
+                        );
+
+
+                    const additionalTax =
+                        toNumber(
+                            ctc.additional_tax
+                        );
+
+
+                    const corporationTax =
+                        money(
+                            basicTax +
+                            salaryTax +
+                            additionalTax
+                        );
+
+
+                    /*
+                    -------------------------------------------------
+                    Penalty
+                    -------------------------------------------------
+                    */
+
+                    const penalty =
+                        toNumber(
+                            ctc.penalty
+                        );
+
+
+                    const interest =
+                        toNumber(
+                            ctc.interest
+                        );
+
+
+                    const corporationPenalty =
+                        money(
+                            penalty +
+                            interest
+                        );
+
+
+                    /*
+                    =================================================
+                    4-01-01-050-3
+                    *CTC-Corporation
+                    =================================================
+                    */
+
+                    addSummary(
+
+                        corporationAccount?.id ??
+                            null,
+
+                        corporationAccount
+                            ?.account_code ??
+                            CTC_ACCOUNTS
+                                .CORPORATION
+                                .code,
+
+                        corporationAccount
+                            ?.account_name ??
+                            CTC_ACCOUNTS
+                                .CORPORATION
+                                .name,
+
+                        corporationTax
+
+                    );
+
+
+                    /*
+                    =================================================
+                    4-01-01-050-5
+                    *CTC-Corporation Fines & Penalties
+                    =================================================
+                    */
+
+                    addSummary(
+
+                        penaltyAccount?.id ??
+                            null,
+
+                        penaltyAccount
+                            ?.account_code ??
+                            CTC_ACCOUNTS
+                                .CORPORATION_PENALTY
+                                .code,
+
+                        penaltyAccount
+                            ?.account_name ??
+                            CTC_ACCOUNTS
+                                .CORPORATION_PENALTY
+                                .name,
+
+                        corporationPenalty
+
+                    );
+
+
+                    continue;
+
+                }
+
+            }
+
+
+            /*
+            =====================================================
+            NON-RPT / NON-CTC TRANSACTION
+            =====================================================
+
+            AF51
+            AF56
+            Other accountable forms
             =====================================================
             */
 
@@ -1126,7 +1617,7 @@ export async function GET(
 
             /*
             -----------------------------------------------------
-            Add actual accounts used by this transaction.
+            Add actual accounts used.
             -----------------------------------------------------
             */
 
@@ -1272,7 +1763,8 @@ export async function GET(
 
         });
 
-    } catch (
+    }
+    catch (
         error: any
     ) {
 
@@ -1284,13 +1776,11 @@ export async function GET(
 
         return NextResponse.json(
             {
-
                 success: false,
 
                 error:
                     error?.message ??
                     "Failed to load Abstract Summary.",
-
             },
             {
                 status: 500,
