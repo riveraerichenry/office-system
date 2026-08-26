@@ -1,0 +1,213 @@
+@page {
+    size: Letter portrait;
+    margin: 0;
+}
+
+
+/* ============================================================
+   PAGE
+============================================================ */
+
+html,
+body {
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff;
+
+    font-family:
+        Arial,
+        sans-serif;
+}
+
+
+/* ============================================================
+   AF58 PRINT CANVAS
+============================================================ */
+
+.af58-print {
+    position: relative;
+
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    color: #000000;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.af58-print-header {
+    position: absolute;
+
+    left: 0;
+    top: 0;
+
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0;
+    padding: 0;
+}
+
+
+/* ============================================================
+   PAYOR
+============================================================ */
+
+.af58-header-payor {
+    position: absolute;
+
+    left: 66px;
+    top: 310px;
+
+    width: 340px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   MUNICIPALITY
+============================================================ */
+
+.af58-header-municipality {
+    position: absolute;
+
+    left: 66px;
+    top: 340px;
+
+    width: 340px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   PROVINCE
+============================================================ */
+
+.af58-header-province {
+    position: absolute;
+
+    left: 66px;
+    top: 370px;
+
+    width: 340px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+    @page {
+        size: Letter portrait;
+        margin: 0;
+    }
+
+
+    html,
+    body {
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        overflow: hidden !important;
+    }
+
+
+    .af58-print {
+
+        position: relative;
+
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        overflow: hidden !important;
+
+        background: #ffffff !important;
+
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        box-sizing: border-box !important;
+    }
+
+
+    .af58-print * {
+
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        -webkit-print-color-adjust: exact !important;
+
+        print-color-adjust: exact !important;
+    }
+
+}
+
+

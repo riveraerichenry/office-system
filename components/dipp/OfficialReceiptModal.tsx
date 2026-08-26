@@ -87,22 +87,33 @@ export default function OfficialReceiptDetailsModal({
 
 
   const handlePrint = () => {
-  if (!header?.id) {
-    Swal.fire({
-      icon: "error",
-      title: "Unable to Print",
-      text: "Transaction ID is missing.",
-    });
 
-    return;
-  }
+    if (!header?.id) {
 
-  window.open(
-    `/print/dipp/receipt/${header.id}`,
-    "_blank",
-    "width=420,height=850"
-  );
+        Swal.fire({
+            icon: "error",
+            title: "Unable to Print",
+            text: "Transaction ID is missing.",
+        });
+
+        return;
+    }
+
+
+    const printUrl =
+        header.form_code === "AF58"
+            ? `/print/dipp/af58/${header.id}`
+            : `/print/dipp/receipt/${header.id}`;
+
+
+    window.open(
+        printUrl,
+        "_blank",
+        "width=420,height=850"
+    );
+
 };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">

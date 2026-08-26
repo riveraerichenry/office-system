@@ -10,14 +10,28 @@ import axios from "axios";
 import Swal from "sweetalert2";
 
 import {
-    CalendarDays,
     X,
 } from "lucide-react";
 
-import BookletHeader from "../general/BookletHeader";
-import PayorSection from "./PayorSection";
+
+import BookletHeader
+    from "../general/BookletHeader";
+
+import PayorSection
+    from "./PayorSection";
+
+import PermitSection
+    from "./PermitSection";
+
+import DeceasedSection
+    from "./DeceasedSection";
+
+import CertificateSection
+    from "./CertificateSection";
+
 
 type Props = {
+
     open: boolean;
 
     booklet: any;
@@ -25,189 +39,225 @@ type Props = {
     onClose: () => void;
 
     onSuccess: () => void;
+
 };
 
+
+function today() {
+
+    return new Date()
+        .toISOString()
+        .substring(0, 10);
+
+}
+
+
 export default function AF58ReceiptModal({
+
     open,
+
     booklet,
+
     onClose,
+
     onSuccess,
+
 }: Props) {
 
+
     /* ================================================================
-       STATE
-    ================================================================= */
+       SAVING
+    ================================================================ */
 
     const [
         saving,
         setSaving,
     ] = useState(false);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Receipt
-    |--------------------------------------------------------------------------
-    */
 
-    const [
-        receiptDate,
-        setReceiptDate,
-    ] = useState(
-        new Date()
-            .toISOString()
-            .substring(0, 10)
-    );
+    /* ================================================================
+       PAYOR
+    ================================================================ */
 
     const [
         payor,
         setPayor,
     ] = useState("");
 
+
     const [
         paymentMode,
         setPaymentMode,
     ] = useState("Cash");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Burial Permit
-    |--------------------------------------------------------------------------
-    */
+
+    /* ================================================================
+       RECEIPT / PERMIT
+    ================================================================ */
+
+    const [
+        receiptDate,
+        setReceiptDate,
+    ] = useState(
+        today()
+    );
+
 
     const [
         cityMunicipality,
         setCityMunicipality,
-    ] = useState("TAYTAY");
+    ] = useState(
+        "TAYTAY"
+    );
+
 
     const [
         province,
         setProvince,
-    ] = useState("PALAWAN");
+    ] = useState(
+        "PALAWAN"
+    );
+
 
     const [
         permitAction,
         setPermitAction,
     ] = useState("");
 
+
     const [
         remainsOf,
         setRemainsOf,
     ] = useState("");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Deceased
-    |--------------------------------------------------------------------------
-    */
+
+    /* ================================================================
+       DECEASED
+    ================================================================ */
 
     const [
         deceasedName,
         setDeceasedName,
     ] = useState("");
 
+
     const [
         nationality,
         setNationality,
-    ] = useState("FILIPINO");
+    ] = useState(
+        "FILIPINO"
+    );
+
 
     const [
         age,
         setAge,
     ] = useState("");
 
+
     const [
         sex,
         setSex,
     ] = useState("");
+
 
     const [
         dateOfDeath,
         setDateOfDeath,
     ] = useState("");
 
+
     const [
         causeOfDeath,
         setCauseOfDeath,
     ] = useState("");
+
 
     const [
         cemeteryName,
         setCemeteryName,
     ] = useState("");
 
+
     const [
         infectiousStatus,
         setInfectiousStatus,
     ] = useState("");
+
 
     const [
         embalmedStatus,
         setEmbalmedStatus,
     ] = useState("");
 
+
     const [
         dispositionOfRemains,
         setDispositionOfRemains,
     ] = useState("");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Fee
-    |--------------------------------------------------------------------------
-    */
+
+    /* ================================================================
+       FEE
+    ================================================================ */
 
     const [
         feeAmount,
         setFeeAmount,
     ] = useState("");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Certification
-    |--------------------------------------------------------------------------
-    */
+
+    /* ================================================================
+       CERTIFICATION
+    ================================================================ */
 
     const [
         certificationCity,
         setCertificationCity,
-    ] = useState("TAYTAY");
+    ] = useState(
+        "TAYTAY"
+    );
+
 
     const [
         certificationProvince,
         setCertificationProvince,
-    ] = useState("PALAWAN");
+    ] = useState(
+        "PALAWAN"
+    );
+
 
     const [
         certificationDate,
         setCertificationDate,
     ] = useState(
-        new Date()
-            .toISOString()
-            .substring(0, 10)
+        today()
     );
+
 
     /* ================================================================
        RESET WHEN MODAL OPENS
-    ================================================================= */
+    ================================================================ */
 
     useEffect(() => {
 
         if (!open) {
+
             return;
+
         }
 
-        setSaving(false);
 
-        setReceiptDate(
-            new Date()
-                .toISOString()
-                .substring(0, 10)
-        );
+        setSaving(false);
 
         setPayor("");
 
         setPaymentMode(
             "Cash"
+        );
+
+        setReceiptDate(
+            today()
         );
 
         setCityMunicipality(
@@ -255,105 +305,136 @@ export default function AF58ReceiptModal({
         );
 
         setCertificationDate(
-            new Date()
-                .toISOString()
-                .substring(0, 10)
+            today()
         );
 
     }, [open]);
 
+
     /* ================================================================
        PROCESS AF58
-    ================================================================= */
+    ================================================================ */
 
     async function processAF58() {
+
+
+        /* ------------------------------------------------------------
+           BOOKLET
+        ------------------------------------------------------------ */
 
         if (!booklet) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "No Booklet Selected",
+
+                title:
+                    "No Booklet Selected",
+
                 text:
                     "Please select an active AF58 booklet.",
+
             });
 
             return;
+
         }
 
+
         /* ------------------------------------------------------------
-           Payor
+           PAYOR
         ------------------------------------------------------------ */
 
-        if (
-            !payor.trim()
-        ) {
+        if (!payor.trim()) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "Required Field",
+
+                title:
+                    "Required Field",
+
                 text:
                     "Please enter the payor name.",
+
             });
 
             return;
+
         }
 
+
         /* ------------------------------------------------------------
-           Receipt Date
+           RECEIPT DATE
         ------------------------------------------------------------ */
 
-        if (
-            !receiptDate
-        ) {
+        if (!receiptDate) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "Required Field",
+
+                title:
+                    "Required Field",
+
                 text:
                     "Please select the receipt date.",
+
             });
 
             return;
+
         }
 
+
         /* ------------------------------------------------------------
-           Permit Action
+           PERMIT ACTION
         ------------------------------------------------------------ */
 
-        if (
-            !permitAction
-        ) {
+        if (!permitAction) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "Required Field",
+
+                title:
+                    "Required Field",
+
                 text:
                     "Please select the permit action.",
+
             });
 
             return;
+
         }
 
+
         /* ------------------------------------------------------------
-           Deceased Name
+           DECEASED NAME
         ------------------------------------------------------------ */
 
-        if (
-            !deceasedName.trim()
-        ) {
+        if (!deceasedName.trim()) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "Required Field",
+
+                title:
+                    "Required Field",
+
                 text:
                     "Please enter the name of the deceased.",
+
             });
 
             return;
+
         }
 
+
         /* ------------------------------------------------------------
-           Fee
+           FEE
         ------------------------------------------------------------ */
 
         const amount =
@@ -361,22 +442,28 @@ export default function AF58ReceiptModal({
                 feeAmount || 0
             );
 
+
         if (
-            !Number.isFinite(
-                amount
-            ) ||
+            !Number.isFinite(amount) ||
             amount < 0
         ) {
 
             await Swal.fire({
+
                 icon: "warning",
-                title: "Invalid Fee",
+
+                title:
+                    "Invalid Fee",
+
                 text:
                     "Please enter a valid fee amount.",
+
             });
 
             return;
+
         }
+
 
         /* ============================================================
            SAVE
@@ -386,25 +473,33 @@ export default function AF58ReceiptModal({
 
             setSaving(true);
 
+
             const response =
                 await axios.post(
+
                     "/api/dipp/af58-transactions",
+
                     {
 
                         booklet_registration_id:
                             booklet.booklet_registration_id,
 
+
                         receipt_date:
                             receiptDate,
+
 
                         payor:
                             payor.trim(),
 
+
                         payment_mode:
                             paymentMode,
 
+
                         remarks:
                             null,
+
 
                         af58: {
 
@@ -412,67 +507,84 @@ export default function AF58ReceiptModal({
                                 cityMunicipality.trim() ||
                                 null,
 
+
                             province:
                                 province.trim() ||
                                 null,
+
 
                             permit_action:
                                 permitAction ||
                                 null,
 
+
                             remains_of:
                                 remainsOf.trim() ||
                                 null,
 
+
                             deceased_name:
                                 deceasedName.trim(),
+
 
                             nationality:
                                 nationality.trim() ||
                                 null,
 
+
                             age:
                                 age.trim() ||
                                 null,
+
 
                             sex:
                                 sex ||
                                 null,
 
+
                             date_of_death:
                                 dateOfDeath ||
                                 null,
+
 
                             cause_of_death:
                                 causeOfDeath.trim() ||
                                 null,
 
+
                             cemetery_name:
                                 cemeteryName.trim() ||
                                 null,
+
 
                             infectious_status:
                                 infectiousStatus ||
                                 null,
 
+
                             embalmed_status:
                                 embalmedStatus ||
                                 null,
+
 
                             disposition_of_remains:
                                 dispositionOfRemains.trim() ||
                                 null,
 
+
                             fee_amount:
                                 amount,
+
 
                             certification_city_municipality:
                                 certificationCity.trim() ||
                                 null,
 
+
                             certification_province:
                                 certificationProvince.trim() ||
                                 null,
+
 
                             certification_date:
                                 certificationDate ||
@@ -481,7 +593,32 @@ export default function AF58ReceiptModal({
                         },
 
                     }
+
                 );
+
+
+            /* ========================================================
+               TRANSACTION ID
+            ======================================================== */
+
+            const transactionId =
+                response
+                    ?.data
+                    ?.transaction_id;
+
+
+            if (!transactionId) {
+
+                throw new Error(
+                    "The transaction was saved, but no transaction ID was returned."
+                );
+
+            }
+
+
+            /* ========================================================
+               SUCCESS MESSAGE
+            ======================================================== */
 
             await Swal.fire({
 
@@ -491,27 +628,53 @@ export default function AF58ReceiptModal({
                     "AF58 Successfully Issued",
 
                 text:
-                    `O.R. No. ${response.data.or_number}`,
+                    `O.R. No. ${response.data.or_number} successfully issued.`,
 
-                timer: 1500,
+                timer:
+                    1500,
 
                 showConfirmButton:
                     false,
 
             });
 
+
+            /* ========================================================
+               OPEN AF58 PRINT PAGE
+            ======================================================== */
+
+            window.open(
+
+                `/print/dipp/af58/${transactionId}`,
+
+                "_blank",
+
+                "width=420,height=850"
+
+            );
+
+
+            /* ========================================================
+               REFRESH DIPP LIST
+            ======================================================== */
+
             await onSuccess();
+
+
+            /* ========================================================
+               CLOSE MODAL
+            ======================================================== */
 
             onClose();
 
-        } catch (
-            error: any
-        ) {
+        }
+        catch (error: any) {
 
             console.error(
                 "AF58 ERROR:",
                 error
             );
+
 
             await Swal.fire({
 
@@ -524,12 +687,14 @@ export default function AF58ReceiptModal({
                     error
                         ?.response
                         ?.data
-                        ?.message ||
+                        ?.message ??
+                    error?.message ??
                     "An unexpected error occurred.",
 
             });
 
-        } finally {
+        }
+        finally {
 
             setSaving(false);
 
@@ -537,9 +702,20 @@ export default function AF58ReceiptModal({
 
     }
 
+
     /* ================================================================
-       DO NOT RENDER
-    ================================================================= */
+       TOTAL
+    ================================================================ */
+
+    const totalAmount =
+        Number(
+            feeAmount || 0
+        );
+
+
+    /* ================================================================
+       CLOSED
+    ================================================================ */
 
     if (
         !open ||
@@ -550,23 +726,16 @@ export default function AF58ReceiptModal({
 
     }
 
-    /* ================================================================
-       TOTAL
-    ================================================================= */
-
-    const totalAmount =
-        Number(
-            feeAmount || 0
-        );
 
     /* ================================================================
-       RENDER
-    ================================================================= */
+       UI
+    ================================================================ */
 
     return (
 
         <div
             className="
+                af58-screen-modal
                 fixed
                 inset-0
                 z-50
@@ -593,10 +762,14 @@ export default function AF58ReceiptModal({
             >
 
                 {/* ==================================================
-                    BOOKLET HEADER
+                    HEADER
                 ================================================== */}
 
-                <div className="relative">
+                <div
+                    className="
+                        relative
+                    "
+                >
 
                     <BookletHeader
                         booklet={
@@ -604,14 +777,19 @@ export default function AF58ReceiptModal({
                         }
                     />
 
+
                     <button
+
                         type="button"
+
                         disabled={
                             saving
                         }
+
                         onClick={
                             onClose
                         }
+
                         className="
                             absolute
                             right-5
@@ -634,6 +812,7 @@ export default function AF58ReceiptModal({
 
                 </div>
 
+
                 {/* ==================================================
                     BODY
                 ================================================== */}
@@ -653,8 +832,9 @@ export default function AF58ReceiptModal({
                         "
                     >
 
+
                         {/* ==================================================
-                            PAYOR INFORMATION
+                            PAYOR
                         ================================================== */}
 
                         <PayorSection
@@ -681,1144 +861,201 @@ export default function AF58ReceiptModal({
 
                         />
 
-                        {/* ==================================================
-                            DATE ISSUED
-                        ================================================== */}
-
-                        <section
-                            className="
-                                rounded-xl
-                                border
-                                bg-white
-                                shadow-sm
-                            "
-                        >
-
-                            <div
-                                className="
-                                    border-b
-                                    bg-slate-50
-                                    px-5
-                                    py-3
-                                "
-                            >
-
-                                <h3
-                                    className="
-                                        font-semibold
-                                        text-slate-800
-                                    "
-                                >
-
-                                    Certificate Information
-
-                                </h3>
-
-                            </div>
-
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-3
-                                    gap-5
-                                    p-5
-                                "
-                            >
-
-                                {/* Date Issued */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Date Issued
-
-                                    </label>
-
-                                    <div
-                                        className="
-                                            relative
-                                        "
-                                    >
-
-                                        <div
-                                            className="
-                                                flex
-                                                items-center
-                                                justify-between
-                                                rounded-lg
-                                                border
-                                                border-slate-300
-                                                bg-white
-                                                px-3
-                                                py-2.5
-                                            "
-                                        >
-
-                                            <span
-                                                className="
-                                                    font-medium
-                                                    text-slate-700
-                                                "
-                                            >
-
-                                                {new Date(
-                                                    `${receiptDate}T00:00:00`
-                                                ).toLocaleDateString(
-                                                    "en-PH",
-                                                    {
-                                                        year:
-                                                            "numeric",
-                                                        month:
-                                                            "long",
-                                                        day:
-                                                            "numeric",
-                                                    }
-                                                )}
-
-                                            </span>
-
-                                            <CalendarDays
-                                                size={
-                                                    18
-                                                }
-                                                className="
-                                                    text-slate-500
-                                                "
-                                            />
-
-                                        </div>
-
-                                        <input
-                                            type="date"
-                                            value={
-                                                receiptDate
-                                            }
-                                            disabled={
-                                                saving
-                                            }
-                                            onChange={(
-                                                e
-                                            ) =>
-                                                setReceiptDate(
-                                                    e.target.value
-                                                )
-                                            }
-                                            className="
-                                                absolute
-                                                inset-0
-                                                h-full
-                                                w-full
-                                                cursor-pointer
-                                                opacity-0
-                                            "
-                                        />
-
-                                    </div>
-
-                                </div>
-
-                                {/* City */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        City / Municipality
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            cityMunicipality
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCityMunicipality(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            uppercase
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Province */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Province
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            province
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setProvince(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            uppercase
-                                        "
-                                    />
-
-                                </div>
-
-                                <div
-                                    className="
-                                        grid
-                                        grid-cols-2
-                                        gap-5
-                                    "
-                                >
-
-                                    {/* Permit Action */}
-
-                                    <div>
-
-                                        <label
-                                            className="
-                                                mb-1
-                                                block
-                                                text-xs
-                                                font-semibold
-                                                uppercase
-                                                tracking-wide
-                                                text-slate-500
-                                            "
-                                        >
-
-                                            Permission
-
-                                        </label>
-
-                                        <select
-                                            value={
-                                                permitAction
-                                            }
-                                            disabled={
-                                                saving
-                                            }
-                                            onChange={(
-                                                e
-                                            ) =>
-                                                setPermitAction(
-                                                    e.target.value
-                                                )
-                                            }
-                                            className="
-                                                w-full
-                                                rounded-lg
-                                                border
-                                                border-slate-300
-                                                bg-white
-                                                px-3
-                                                py-2.5
-                                            "
-                                        >
-
-                                            <option value="">
-                                                Select
-                                            </option>
-
-                                            <option value="INTER">
-                                                Inter
-                                            </option>
-
-                                            <option value="DIAMETER">
-                                                Diameter
-                                            </option>
-
-                                            <option value="REMOVE">
-                                                Remove
-                                            </option>
-
-                                        </select>
-
-                                    </div>
-
-                                    {/* Remains Of */}
-
-                                    
-
-                                </div>
-
-                            </div>
-
-                        </section>
-
-                     
 
                         {/* ==================================================
-                            DECEASED INFORMATION
+                            PERMIT
                         ================================================== */}
 
-                        <section
-                            className="
-                                rounded-xl
-                                border
-                                bg-white
-                                shadow-sm
-                            "
-                        >
+                        <PermitSection
 
-                            <div
-                                className="
-                                    border-b
-                                    bg-slate-50
-                                    px-5
-                                    py-3
-                                "
-                            >
+                            receiptDate={
+                                receiptDate
+                            }
 
-                                <h3
-                                    className="
-                                        font-semibold
-                                        text-slate-800
-                                    "
-                                >
+                            cityMunicipality={
+                                cityMunicipality
+                            }
 
-                                    Information of the Deceased
+                            province={
+                                province
+                            }
 
-                                </h3>
+                            permitAction={
+                                permitAction
+                            }
 
-                            </div>
+                            remainsOf={
+                                remainsOf
+                            }
 
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-3
-                                    gap-5
-                                    p-5
-                                "
-                            >
+                            saving={
+                                saving
+                            }
 
-                                {/* Name */}
+                            onReceiptDateChange={
+                                setReceiptDate
+                            }
 
-                                <div
-                                    className="
-                                        col-span-2
-                                    "
-                                >
+                            onCityMunicipalityChange={
+                                setCityMunicipality
+                            }
 
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
+                            onProvinceChange={
+                                setProvince
+                            }
 
-                                        Name
+                            onPermitActionChange={
+                                setPermitAction
+                            }
 
-                                    </label>
+                            onRemainsOfChange={
+                                setRemainsOf
+                            }
 
-                                    <input
-                                        value={
-                                            deceasedName
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setDeceasedName(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
+                        />
 
-                                </div>
-
-                                {/* Nationality */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Nationality
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            nationality
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setNationality(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            uppercase
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Age */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Age
-
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={
-                                            age
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setAge(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Sex */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Sex
-
-                                    </label>
-
-                                    <select
-                                        value={
-                                            sex
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setSex(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            bg-white
-                                            px-3
-                                            py-2.5
-                                        "
-                                    >
-
-                                        <option value="">
-                                            Select
-                                        </option>
-
-                                        <option value="MALE">
-                                            Male
-                                        </option>
-
-                                        <option value="FEMALE">
-                                            Female
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                                {/* Date of Death */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Date of Death
-
-                                    </label>
-
-                                    <input
-                                        type="date"
-                                        value={
-                                            dateOfDeath
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setDateOfDeath(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Cause of Death */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Cause of Death
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            causeOfDeath
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCauseOfDeath(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Cemetery */}
-
-                                <div
-                                    className="
-                                        col-span-2
-                                    "
-                                >
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Name of Cemetery
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            cemeteryName
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCemeteryName(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
-
-                                </div>
-
-                                {/* Infectious */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Infectious / Non-infectious
-
-                                    </label>
-
-                                    <select
-                                        value={
-                                            infectiousStatus
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setInfectiousStatus(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            bg-white
-                                            px-3
-                                            py-2.5
-                                        "
-                                    >
-
-                                        <option value="">
-                                            Select
-                                        </option>
-
-                                        <option value="INFECTIOUS">
-                                            Infectious
-                                        </option>
-
-                                        <option value="NON-INFECTIOUS">
-                                            Non-infectious
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                                {/* Embalmed */}
-
-                                <div>
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Body
-
-                                    </label>
-
-                                    <select
-                                        value={
-                                            embalmedStatus
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setEmbalmedStatus(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            bg-white
-                                            px-3
-                                            py-2.5
-                                        "
-                                    >
-
-                                        <option value="">
-                                            Select
-                                        </option>
-
-                                        <option value="EMBALMED">
-                                            Embalmed
-                                        </option>
-
-                                        <option value="NOT EMBALMED">
-                                            Not Embalmed
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                                {/* Disposition */}
-
-                                <div
-                                    className="
-                                        col-span-3
-                                    "
-                                >
-
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
-
-                                        Disposition of Remains
-
-                                    </label>
-
-                                    <input
-                                        value={
-                                            dispositionOfRemains
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setDispositionOfRemains(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
-
-                                </div>
-
-                            </div>
-
-                        </section>
 
                         {/* ==================================================
-                            FEE AND CERTIFICATION
+                            DECEASED
                         ================================================== */}
 
-                        <section
-                            className="
-                                rounded-xl
-                                border
-                                bg-white
-                                shadow-sm
-                            "
-                        >
+                        <DeceasedSection
 
-                            <div
-                                className="
-                                    border-b
-                                    bg-slate-50
-                                    px-5
-                                    py-3
-                                "
-                            >
+                            deceasedName={
+                                deceasedName
+                            }
 
-                                <h3
-                                    className="
-                                        font-semibold
-                                        text-slate-800
-                                    "
-                                >
+                            nationality={
+                                nationality
+                            }
 
-                                    Fee and Certification
+                            age={
+                                age
+                            }
 
-                                </h3>
+                            sex={
+                                sex
+                            }
 
-                            </div>
+                            dateOfDeath={
+                                dateOfDeath
+                            }
 
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-4
-                                    gap-5
-                                    p-5
-                                "
-                            >
+                            causeOfDeath={
+                                causeOfDeath
+                            }
 
-                                {/* Fee */}
+                            cemeteryName={
+                                cemeteryName
+                            }
 
-                                <div>
+                            infectiousStatus={
+                                infectiousStatus
+                            }
 
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
+                            embalmedStatus={
+                                embalmedStatus
+                            }
 
-                                        Fee per City/Municipal Ordinance
+                            dispositionOfRemains={
+                                dispositionOfRemains
+                            }
 
-                                    </label>
+                            saving={
+                                saving
+                            }
 
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={
-                                            feeAmount
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setFeeAmount(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            text-right
-                                            font-semibold
-                                        "
-                                    />
+                            onDeceasedNameChange={
+                                setDeceasedName
+                            }
 
-                                </div>
+                            onNationalityChange={
+                                setNationality
+                            }
 
-                                {/* Certification City */}
+                            onAgeChange={
+                                setAge
+                            }
 
-                                <div>
+                            onSexChange={
+                                setSex
+                            }
 
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
+                            onDateOfDeathChange={
+                                setDateOfDeath
+                            }
 
-                                        City / Municipality
+                            onCauseOfDeathChange={
+                                setCauseOfDeath
+                            }
 
-                                    </label>
+                            onCemeteryNameChange={
+                                setCemeteryName
+                            }
 
-                                    <input
-                                        value={
-                                            certificationCity
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCertificationCity(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            uppercase
-                                        "
-                                    />
+                            onInfectiousStatusChange={
+                                setInfectiousStatus
+                            }
 
-                                </div>
+                            onEmbalmedStatusChange={
+                                setEmbalmedStatus
+                            }
 
-                                {/* Certification Province */}
+                            onDispositionChange={
+                                setDispositionOfRemains
+                            }
 
-                                <div>
+                        />
 
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
 
-                                        Province
+                        {/* ==================================================
+                            FEE / CERTIFICATION
+                        ================================================== */}
 
-                                    </label>
+                        <CertificateSection
 
-                                    <input
-                                        value={
-                                            certificationProvince
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCertificationProvince(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                            uppercase
-                                        "
-                                    />
+                            feeAmount={
+                                feeAmount
+                            }
 
-                                </div>
+                            certificationCity={
+                                certificationCity
+                            }
 
-                                {/* Certification Date */}
+                            certificationProvince={
+                                certificationProvince
+                            }
 
-                                <div>
+                            certificationDate={
+                                certificationDate
+                            }
 
-                                    <label
-                                        className="
-                                            mb-1
-                                            block
-                                            text-xs
-                                            font-semibold
-                                            uppercase
-                                            tracking-wide
-                                            text-slate-500
-                                        "
-                                    >
+                            saving={
+                                saving
+                            }
 
-                                        Certification Date
+                            onFeeAmountChange={
+                                setFeeAmount
+                            }
 
-                                    </label>
+                            onCertificationCityChange={
+                                setCertificationCity
+                            }
 
-                                    <input
-                                        type="date"
-                                        value={
-                                            certificationDate
-                                        }
-                                        disabled={
-                                            saving
-                                        }
-                                        onChange={(
-                                            e
-                                        ) =>
-                                            setCertificationDate(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-slate-300
-                                            px-3
-                                            py-2.5
-                                        "
-                                    />
+                            onCertificationProvinceChange={
+                                setCertificationProvince
+                            }
 
-                                </div>
+                            onCertificationDateChange={
+                                setCertificationDate
+                            }
 
-                            </div>
-
-                        </section>
+                        />
 
                     </div>
 
                 </div>
+
 
                 {/* ==================================================
                     FOOTER
@@ -1836,16 +1073,22 @@ export default function AF58ReceiptModal({
                     "
                 >
 
-                    {/* CLOSE */}
+                    {/* ==================================================
+                        CLOSE
+                    ================================================== */}
 
                     <button
+
                         type="button"
+
                         disabled={
                             saving
                         }
+
                         onClick={
                             onClose
                         }
+
                         className="
                             rounded-lg
                             border
@@ -1864,7 +1107,10 @@ export default function AF58ReceiptModal({
 
                     </button>
 
-                    {/* TOTAL + PROCESS */}
+
+                    {/* ==================================================
+                        TOTAL + PROCESS
+                    ================================================== */}
 
                     <div
                         className="
@@ -1894,6 +1140,7 @@ export default function AF58ReceiptModal({
 
                             </p>
 
+
                             <p
                                 className="
                                     text-2xl
@@ -1918,14 +1165,19 @@ export default function AF58ReceiptModal({
 
                         </div>
 
+
                         <button
+
                             type="button"
+
                             disabled={
                                 saving
                             }
+
                             onClick={
                                 processAF58
                             }
+
                             className="
                                 rounded-lg
                                 bg-blue-600
@@ -1942,7 +1194,8 @@ export default function AF58ReceiptModal({
 
                             {saving
                                 ? "Processing..."
-                                : "Process AF58"}
+                                : "Process AF58"
+                            }
 
                         </button>
 
@@ -1955,4 +1208,5 @@ export default function AF58ReceiptModal({
         </div>
 
     );
+
 }

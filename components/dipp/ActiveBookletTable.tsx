@@ -114,31 +114,16 @@ export default function ActiveBookletTable({
 
       <div className="border-b bg-slate-50 p-4">
 
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
 
-          <div>
-
-            <h2 className="text-lg font-semibold text-slate-800">
-
-              My Active Booklets
-
-            </h2>
-
-            <p className="text-sm text-slate-500">
-
-              Ready for Daily Issuance
-
-            </p>
-
-          </div>
-
+        
           <span className="rounded-lg bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
 
             {filtered.length}
 
           </span>
 
-        </div>
+        </div> */}
 
         <div className="relative mt-4">
 
@@ -316,7 +301,7 @@ export default function ActiveBookletTable({
 
                 <div className="mt-4">
 
-                  <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
+                  {/* <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
 
                     <span>
 
@@ -330,7 +315,7 @@ export default function ActiveBookletTable({
 
                     </span>
 
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center gap-2">
 
