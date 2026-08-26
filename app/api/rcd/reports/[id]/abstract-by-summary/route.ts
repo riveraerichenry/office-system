@@ -1133,6 +1133,200 @@ export async function GET(
             }
 
 
+
+
+
+            /*
+============================================================
+AF58 - BURIAL PERMIT
+============================================================
+*/
+
+if (
+    formCode === "AF58"
+) {
+
+    /*
+    ------------------------------------------------------------
+    GET AF58 DETAIL
+    ------------------------------------------------------------
+    */
+
+    const af58Result =
+        await pool.query(
+            `
+            SELECT
+
+                af58.id,
+
+                af58.transaction_id,
+
+                af58.fee_amount,
+
+                af58.account_id,
+
+                a.account_code,
+
+                a.account_name
+
+            FROM dipp_af58_items af58
+
+            LEFT JOIN accounts a
+                ON a.id = af58.account_id
+
+            WHERE
+                af58.transaction_id = $1
+
+            ORDER BY
+                af58.id
+            `,
+            [
+                transactionId,
+            ]
+        );
+
+
+    /*
+    ------------------------------------------------------------
+    IF NO AF58 DETAIL
+    ------------------------------------------------------------
+    */
+
+    if (
+        af58Result.rows.length === 0
+    ) {
+
+        console.warn(
+            "AF58 DETAIL NOT FOUND:",
+            {
+                transactionId,
+                or_number:
+                    transaction.or_number,
+                formCode,
+            }
+        );
+
+        continue;
+    }
+
+
+    /*
+    ------------------------------------------------------------
+    BURIAL PERMIT ACCOUNT FALLBACK
+    ------------------------------------------------------------
+    */
+
+    const burialPermitAccount =
+        accountByCode.get(
+            "4-02-01-010-8"
+        );
+
+
+        /*
+        ------------------------------------------------------------
+        PROCESS AF58 ITEMS
+        ------------------------------------------------------------
+        */
+
+        for (
+            const af58
+            of af58Result.rows
+        ) {
+
+            const amount =
+                money(
+                    toNumber(
+                        af58.fee_amount
+                    )
+                );
+
+
+            /*
+            --------------------------------------------------------
+            IGNORE ZERO AMOUNTS
+            --------------------------------------------------------
+            */
+
+            if (
+                Math.abs(
+                    amount
+                ) < 0.005
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+            --------------------------------------------------------
+            USE ACCOUNT STORED IN AF58 ITEM
+            --------------------------------------------------------
+
+            If account_id is available and exists in accounts,
+            use that account.
+
+            Otherwise use the required Burial Permit account.
+            --------------------------------------------------------
+            */
+
+            const account =
+                af58.account_code
+                    ? {
+
+                        id:
+                            af58.account_id,
+
+                        account_code:
+                            af58.account_code,
+
+                        account_name:
+                            af58.account_name,
+
+                    }
+                    :
+                    burialPermitAccount;
+
+
+            /*
+            --------------------------------------------------------
+            ADD AF58 TO SUMMARY
+            --------------------------------------------------------
+            */
+
+            addSummary(
+
+                account?.id ??
+                    null,
+
+                account?.account_code ??
+                    "4-02-01-010-8",
+
+                account?.account_name ??
+                    "*Burial Permit Fees",
+
+                amount
+
+            );
+
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        AF58 COMPLETE
+        ------------------------------------------------------------
+
+        Do not continue to normal dipp_transaction_items.
+        ------------------------------------------------------------
+        */
+
+        continue;
+
+    }
+
+
+
             /*
             =====================================================
             CTC-I / CTC-C

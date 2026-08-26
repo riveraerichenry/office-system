@@ -1165,6 +1165,391 @@ export async function GET(
                     : "";
 
 
+          /*
+============================================================
+AF58 TRANSACTION
+============================================================
+*/
+
+if (
+    formCode === "AF58"
+) {
+
+    /*
+    ------------------------------------------------------------
+    GET AF58 DETAILS
+    ------------------------------------------------------------
+    */
+
+    const af58Result =
+        await pool.query(
+            `
+            SELECT
+                *
+            FROM dipp_af58_items
+            WHERE
+                transaction_id = $1
+            ORDER BY
+                id
+            `,
+            [
+                transactionId,
+            ]
+        );
+
+
+    /*
+    ------------------------------------------------------------
+    AF58 DETAIL NOT FOUND
+    ------------------------------------------------------------
+    */
+
+    if (
+        af58Result.rows.length === 0
+    ) {
+
+        console.warn(
+            "AF58 transaction has no dipp_af58_items:",
+            transactionId
+        );
+
+        continue;
+    }
+
+
+    /*
+    ------------------------------------------------------------
+    BURIAL PERMIT ACCOUNT
+    ------------------------------------------------------------
+    */
+
+    const burialPermitAccount =
+        accountByCode.get(
+            "4-02-01-010-8"
+        );
+
+
+    /*
+    ------------------------------------------------------------
+    TOTAL AF58 AMOUNT
+    ------------------------------------------------------------
+    */
+
+    let af58Amount = 0;
+
+
+    for (
+        const item
+        of af58Result.rows
+    ) {
+
+        af58Amount +=
+            toNumber(
+                item.amount
+            );
+
+    }
+
+
+    af58Amount =
+        money(
+            af58Amount
+        );
+
+
+    /*
+    ------------------------------------------------------------
+    AF58 REMARKS
+    ------------------------------------------------------------
+    */
+
+    const af58Remarks =
+        af58Result.rows
+            .map(
+                (
+                    item: any
+                ) => {
+
+                    if (
+                        item.remarks ===
+                        null ||
+                        item.remarks ===
+                        undefined
+                    ) {
+
+                        return "";
+
+                    }
+
+                    return String(
+                        item.remarks
+                    ).trim();
+
+                }
+            )
+            .filter(
+                Boolean
+            )
+            .join(
+                " - "
+            );
+
+
+        /*
+============================================================
+AF58 TRANSACTION
+============================================================
+*/
+
+if (
+    formCode === "AF58"
+) {
+
+    /*
+    ------------------------------------------------------------
+    GET AF58 DETAIL
+    ------------------------------------------------------------
+    */
+
+    const af58Result =
+        await pool.query(
+            `
+            SELECT
+
+                af58.id,
+
+                af58.transaction_id,
+
+                af58.fee_amount,
+
+                af58.account_id,
+
+                a.account_code,
+
+                a.account_name
+
+            FROM dipp_af58_items af58
+
+            LEFT JOIN accounts a
+                ON a.id = af58.account_id
+
+            WHERE
+                af58.transaction_id = $1
+
+            ORDER BY
+                af58.id
+            `,
+            [
+                transactionId,
+            ]
+        );
+
+
+    /*
+    ------------------------------------------------------------
+    AF58 DETAIL NOT FOUND
+    ------------------------------------------------------------
+    */
+
+    if (
+        af58Result.rows.length === 0
+    ) {
+
+        console.warn(
+            "AF58 DETAIL NOT FOUND:",
+            {
+                transactionId,
+                or_number:
+                    transaction.or_number,
+                formCode,
+            }
+        );
+
+        continue;
+    }
+
+
+        /*
+        ------------------------------------------------------------
+        PROCESS AF58 ITEMS
+        ------------------------------------------------------------
+        */
+
+        for (
+            const item
+            of af58Result.rows
+        ) {
+
+            const feeAmount =
+                money(
+                    toNumber(
+                        item.fee_amount
+                    )
+                );
+
+
+            /*
+            --------------------------------------------------------
+            SKIP ZERO AMOUNT
+            --------------------------------------------------------
+            */
+
+            if (
+                Math.abs(
+                    feeAmount
+                ) < 0.005
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+            --------------------------------------------------------
+            ACCOUNT
+            --------------------------------------------------------
+            */
+
+            const account =
+                item.account_code
+                    ? {
+                        id:
+                            item.account_id,
+
+                        account_code:
+                            item.account_code,
+
+                        account_name:
+                            item.account_name,
+                    }
+                    : accountByCode.get(
+                        "4-02-01-010-8"
+                    );
+
+
+            /*
+            --------------------------------------------------------
+            ADD AF58 ROW
+            --------------------------------------------------------
+            */
+
+            nonRptRows.push({
+
+                id:
+                    `${transactionId}-AF58-${item.id}`,
+
+                no:
+                    0,
+
+                /*
+                ----------------------------------------------------
+                TRANSACTION INFORMATION
+                ----------------------------------------------------
+                */
+
+                date:
+                    transaction.receipt_date ??
+                    null,
+
+                or_number:
+                    transaction.or_number
+                        ? String(
+                            transaction.or_number
+                        )
+                        : null,
+
+                payor:
+                    transaction.payor ??
+                    null,
+
+                /*
+                ----------------------------------------------------
+                ACCOUNT
+                ----------------------------------------------------
+                */
+
+                account_id:
+                    account?.id ??
+                    null,
+
+                account_code:
+                    account?.account_code ??
+                    "4-02-01-010-8",
+
+                account_name:
+                    account?.account_name ??
+                    "*Burial Permit Fees",
+
+                particulars:
+                    account?.account_name ??
+                    "*Burial Permit Fees",
+
+                /*
+                ----------------------------------------------------
+                REMARKS
+                ----------------------------------------------------
+
+                AF58 doesn't have a remarks column.
+                So use the transaction remarks if available.
+                ----------------------------------------------------
+                */
+
+                remarks:
+                    transaction.remarks ??
+                    null,
+
+                /*
+                ----------------------------------------------------
+                AMOUNT
+                ----------------------------------------------------
+                */
+
+                amount:
+                    feeAmount,
+
+            });
+
+        }
+
+
+        /*
+        ------------------------------------------------------------
+        AF58 COMPLETE
+        ------------------------------------------------------------
+
+        Do NOT process AF58 again through the normal
+        dipp_transaction_items logic.
+        ------------------------------------------------------------
+        */
+
+        continue;
+    }
+
+
+        /*
+        ------------------------------------------------------------
+        IMPORTANT
+        ------------------------------------------------------------
+
+        AF58 has already been processed.
+
+        Do not allow it to continue into the normal
+        dipp_transaction_items processing.
+        ------------------------------------------------------------
+        */
+
+        continue;
+
+    }
+
+
+            /*
+            ============================================================
+            CTC TRANSACTION
+            ============================================================
+            */
+
             if (
                 formCode === "CTC-I" ||
                 formCode === "CTC-C"
