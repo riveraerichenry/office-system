@@ -2,11 +2,18 @@
 
 type Props = {
     payor: string;
+
     paymentMode: string;
+
     saving: boolean;
 
-    onPayorChange: (value: string) => void;
-    onPaymentModeChange: (value: string) => void;
+    onPayorChange: (
+        value: string
+    ) => void;
+
+    onPaymentModeChange: (
+        value: string
+    ) => void;
 };
 
 const PAYMENT_MODES = [
@@ -22,29 +29,40 @@ export default function PayorSection({
     onPayorChange,
     onPaymentModeChange,
 }: Props) {
-    return (
-        <section className="rounded-xl border bg-white shadow-sm">
 
-            <div className="border-b bg-slate-50 px-5 py-3">
-                <h3 className="font-semibold text-slate-800">
+    return (
+
+        <div className="mt-5 rounded-xl border">
+
+            <div className="border-b bg-slate-50 px-4 py-3">
+
+                <h3 className="font-semibold">
+
                     Payor Information
+
                 </h3>
+
             </div>
 
             <div className="grid grid-cols-2 gap-6 p-5">
 
-                {/* PAYOR */}
+                {/* Payor */}
 
                 <div>
+
                     <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+
                         Payor
+
                     </label>
 
                     <input
                         value={payor}
                         disabled={saving}
                         onChange={(e) =>
-                            onPayorChange(e.target.value)
+                            onPayorChange(
+                                e.target.value
+                            )
                         }
                         placeholder="Enter payor name..."
                         className="
@@ -62,50 +80,67 @@ export default function PayorSection({
                             disabled:bg-slate-100
                         "
                     />
+
                 </div>
 
-                {/* PAYMENT MODE */}
+                {/* Payment Mode */}
 
                 <div>
+
                     <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+
                         Payment Mode
+
                     </label>
 
                     <div className="mt-2 flex overflow-hidden rounded-lg border border-slate-300">
 
-                        {PAYMENT_MODES.map((mode) => (
-                            <button
-                                key={mode}
-                                type="button"
-                                disabled={saving}
-                                onClick={() =>
-                                    onPaymentModeChange(mode)
-                                }
-                                className={`
-                                    flex-1
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    font-medium
-                                    transition
+                        {PAYMENT_MODES.map(
+                            (mode) => (
 
-                                    ${
-                                        paymentMode === mode
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-white text-slate-700 hover:bg-slate-100"
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    disabled={saving}
+                                    onClick={() =>
+                                        onPaymentModeChange(
+                                            mode
+                                        )
                                     }
+                                    className={`
+                                        flex-1
+                                        px-4
+                                        py-3
+                                        text-sm
+                                        font-medium
+                                        transition
 
-                                    disabled:bg-slate-100
-                                `}
-                            >
-                                {mode}
-                            </button>
-                        ))}
+                                        ${
+                                            paymentMode ===
+                                            mode
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-white text-slate-700 hover:bg-slate-100"
+                                        }
+
+                                        disabled:bg-slate-100
+                                    `}
+                                >
+
+                                    {mode}
+
+                                </button>
+
+                            )
+                        )}
 
                     </div>
+
                 </div>
 
             </div>
-        </section>
+
+        </div>
+
     );
+
 }

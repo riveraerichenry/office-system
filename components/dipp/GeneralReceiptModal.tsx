@@ -43,6 +43,10 @@ export default function GeneralReceiptModal({
     const [accountOptions, setAccountOptions] =
         useState<any[]>([]);
 
+
+    const [gender, setGender] =
+    useState("");
+
     const [receiptDate, setReceiptDate] =
         useState(
 
@@ -384,21 +388,17 @@ export default function GeneralReceiptModal({
 
                         payor={payor}
 
+                        gender={gender}
+
                         paymentMode={paymentMode}
 
                         saving={saving}
 
-                        onPayorChange={
+                        onPayorChange={setPayor}
 
-                            setPayor
+                        onGenderChange={setGender}
 
-                        }
-
-                        onPaymentModeChange={
-
-                            setPaymentMode
-
-                        }
+                        onPaymentModeChange={setPaymentMode}
 
                     />
 
