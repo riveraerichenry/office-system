@@ -30,31 +30,31 @@ export default function ReceiptItems({
                    NATURE OF COLLECTION
                 ===================================================== */
 
-                "--receipt-nature-x": "10px",
-                "--receipt-nature-y": "380px",
+                "--receipt-nature-x": "50px",
+                "--receipt-nature-y": "300px",
 
 
                 /* =====================================================
                    ACCOUNT CODE
                 ===================================================== */
 
-                "--receipt-account-code-x": "220px",
-                "--receipt-account-code-y": "380px",
+                "--receipt-account-code-x": "200px",
+                "--receipt-account-code-y": "300px",
 
 
                 /* =====================================================
                    ITEM AMOUNT
                 ===================================================== */
 
-                "--receipt-item-amount-x": "260px",
-                "--receipt-item-amount-y": "380px",
+                "--receipt-item-amount-x": "270px",
+                "--receipt-item-amount-y": "300px",
 
 
                 /* =====================================================
                    ROW SPACING
                 ===================================================== */
 
-                "--receipt-item-spacing": "24px",
+                "--receipt-item-spacing": "20px",
 
             } as React.CSSProperties}
         >

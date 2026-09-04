@@ -35,17 +35,17 @@ export default function ReceiptHeader({
                  * the physical receipt.
                  */
 
-                "--receipt-date-x": "205px",
-                "--receipt-date-y": "240px",
+                "--receipt-date-x": "245px",
+                "--receipt-date-y": "175px",
 
-                "--receipt-agency-x": "66px",
-                "--receipt-agency-y": "270px",
+                "--receipt-agency-x": "96px",
+                "--receipt-agency-y": "205px",
 
-                "--receipt-fund-x": "280px",
-                "--receipt-fund-y": "280px",
+                "--receipt-fund-x": "310px",
+                "--receipt-fund-y": "205px",
 
-                "--receipt-payor-x": "66px",
-                "--receipt-payor-y": "310px",
+                "--receipt-payor-x": "96px",
+                "--receipt-payor-y": "225px",
 
             } as React.CSSProperties}
         >

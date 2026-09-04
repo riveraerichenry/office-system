@@ -268,48 +268,48 @@ export default function ReceiptFooter({
                    REMARKS
                 ===================================================== */
 
-                "--receipt-remarks-x": "18px",
-                "--receipt-remarks-y": "570px",
+                "--receipt-remarks-x": "50px",
+                "--receipt-remarks-y": "460px",
 
 
                 /* =====================================================
                    TOTAL
                 ===================================================== */
 
-                "--receipt-total-x": "200px",
-                "--receipt-total-y": "575px",
+                "--receipt-total-x": "230px",
+                "--receipt-total-y": "460px",
 
 
                 /* =====================================================
                    AMOUNT IN WORDS
                 ===================================================== */
 
-                "--receipt-words-x": "18px",
-                "--receipt-words-y": "630px",
+                "--receipt-words-x": "50px",
+                "--receipt-words-y": "505px",
 
 
                 /* =====================================================
                    COLLECTOR
                 ===================================================== */
 
-                "--receipt-collector-x": "10px",
-                "--receipt-collector-y": "760px",
+                "--receipt-collector-x": "30px",
+                "--receipt-collector-y": "630px",
 
 
                 /* =====================================================
                    COLLECTOR FIRST NAME
                 ===================================================== */
 
-                "--receipt-collector-first-name-x": "10px",
-                "--receipt-collector-first-name-y": "810px",
+                "--receipt-collector-first-name-x": "50px",
+                "--receipt-collector-first-name-y": "680px",
 
 
                 /* =====================================================
                    TRANSACTION DATE AND TIME
                 ===================================================== */
 
-                "--receipt-transaction-datetime-x": "10px",
-                "--receipt-transaction-datetime-y": "825px",
+                "--receipt-transaction-datetime-x": "30px",
+                "--receipt-transaction-datetime-y": "690px",
 
 
                 /* =====================================================
@@ -317,7 +317,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-treasurer-x": "200px",
-                "--receipt-treasurer-y": "760px",
+                "--receipt-treasurer-y": "630px",
 
             } as React.CSSProperties}
         >
