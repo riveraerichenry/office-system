@@ -86,6 +86,12 @@ export default function AF58ReceiptModal({
 
 
     const [
+        gender,
+        setGender,
+    ] = useState("");
+
+
+    const [
         paymentMode,
         setPaymentMode,
     ] = useState("Cash");
@@ -252,21 +258,27 @@ export default function AF58ReceiptModal({
 
         setPayor("");
 
+        setGender("");
+
         setPaymentMode(
             "Cash"
         );
+
 
         setReceiptDate(
             today()
         );
 
+
         setCityMunicipality(
             "TAYTAY"
         );
 
+
         setProvince(
             "PALAWAN"
         );
+
 
         setPermitAction("");
 
@@ -274,9 +286,11 @@ export default function AF58ReceiptModal({
 
         setDeceasedName("");
 
+
         setNationality(
             "FILIPINO"
         );
+
 
         setAge("");
 
@@ -296,17 +310,21 @@ export default function AF58ReceiptModal({
 
         setFeeAmount("");
 
+
         setCertificationCity(
             "TAYTAY"
         );
+
 
         setCertificationProvince(
             "PALAWAN"
         );
 
+
         setCertificationDate(
             today()
         );
+
 
     }, [open]);
 
@@ -491,6 +509,10 @@ export default function AF58ReceiptModal({
 
                         payor:
                             payor.trim(),
+
+
+                        gender:
+                            gender || null,
 
 
                         payment_mode:
@@ -761,6 +783,7 @@ export default function AF58ReceiptModal({
                 "
             >
 
+
                 {/* ==================================================
                     HEADER
                 ================================================== */}
@@ -843,6 +866,10 @@ export default function AF58ReceiptModal({
                                 payor
                             }
 
+                            gender={
+                                gender
+                            }
+
                             paymentMode={
                                 paymentMode
                             }
@@ -853,6 +880,10 @@ export default function AF58ReceiptModal({
 
                             onPayorChange={
                                 setPayor
+                            }
+
+                            onGenderChange={
+                                setGender
                             }
 
                             onPaymentModeChange={
@@ -1073,6 +1104,7 @@ export default function AF58ReceiptModal({
                     "
                 >
 
+
                     {/* ==================================================
                         CLOSE
                     ================================================== */}
@@ -1150,6 +1182,7 @@ export default function AF58ReceiptModal({
                             >
 
                                 ₱
+
                                 {totalAmount.toLocaleString(
                                     "en-PH",
                                     {

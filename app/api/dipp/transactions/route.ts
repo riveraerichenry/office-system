@@ -42,6 +42,7 @@ export async function POST(
             booklet_registration_id,
             receipt_date,
             payor,
+            gender,
             payment_mode,
             remarks,
             items,
@@ -80,6 +81,16 @@ export async function POST(
             );
 
         }
+
+        if (!gender) {
+
+            throw new Error(
+                "Gender is required."
+            );
+
+        }
+
+
 
 
         if (!payment_mode) {
@@ -666,6 +677,8 @@ export async function POST(
 
                     payor,
 
+                    gender,
+
                     payment_mode,
 
                     remarks,
@@ -706,7 +719,9 @@ export async function POST(
 
                     $12,
 
-                    $13
+                    $13,
+
+                    $14
 
                 )
 
@@ -777,6 +792,16 @@ export async function POST(
                     */
 
                     payor,
+
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Gender
+                    |--------------------------------------------------------------------------
+                    */
+
+                    gender,
 
 
                     /*
@@ -1485,6 +1510,8 @@ export async function GET(
 
                     dt.payor,
 
+                    dt.gender,
+                    
                     dt.payment_mode,
 
                     dt.grand_total,

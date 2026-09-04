@@ -3,11 +3,17 @@
 type Props = {
     payor: string;
 
+    gender: string;
+
     paymentMode: string;
 
     saving: boolean;
 
     onPayorChange: (
+        value: string
+    ) => void;
+
+    onGenderChange: (
         value: string
     ) => void;
 
@@ -22,11 +28,18 @@ const PAYMENT_MODES = [
     "Cash + Check",
 ];
 
+const GENDERS = [
+    "Male",
+    "Female",
+];
+
 export default function PayorSection({
     payor,
+    gender,
     paymentMode,
     saving,
     onPayorChange,
+    onGenderChange,
     onPaymentModeChange,
 }: Props) {
 
@@ -44,11 +57,19 @@ export default function PayorSection({
 
             </div>
 
-            <div className="grid grid-cols-2 gap-6 p-5">
 
-                {/* Payor */}
+            {/* =====================================================
+                PAYOR | GENDER | PAYMENT MODE
+            ===================================================== */}
 
-                <div>
+            <div className="grid grid-cols-12 gap-4 p-5">
+
+
+                {/* =================================================
+                    PAYOR
+                ================================================= */}
+
+                <div className="col-span-5">
 
                     <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
 
@@ -83,9 +104,75 @@ export default function PayorSection({
 
                 </div>
 
-                {/* Payment Mode */}
 
-                <div>
+                {/* =================================================
+                    GENDER
+                ================================================= */}
+
+                <div className="col-span-2">
+
+                    <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+
+                        Gender
+
+                    </label>
+
+                    <select
+                        value={gender}
+                        disabled={saving}
+                        onChange={(e) =>
+                            onGenderChange(
+                                e.target.value
+                            )
+                        }
+                        className="
+                            mt-2
+                            w-full
+                            rounded-lg
+                            border
+                            border-slate-300
+                            bg-white
+                            px-4
+                            py-3
+                            focus:border-blue-500
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-blue-200
+                            disabled:bg-slate-100
+                        "
+                    >
+
+                        <option value="">
+
+                            Select
+
+                        </option>
+
+                        {GENDERS.map(
+                            (genderOption) => (
+
+                                <option
+                                    key={genderOption}
+                                    value={genderOption}
+                                >
+
+                                    {genderOption}
+
+                                </option>
+
+                            )
+                        )}
+
+                    </select>
+
+                </div>
+
+
+                {/* =================================================
+                    PAYMENT MODE
+                ================================================= */}
+
+                <div className="col-span-5">
 
                     <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
 
@@ -93,7 +180,16 @@ export default function PayorSection({
 
                     </label>
 
-                    <div className="mt-2 flex overflow-hidden rounded-lg border border-slate-300">
+                    <div
+                        className="
+                            mt-2
+                            flex
+                            overflow-hidden
+                            rounded-lg
+                            border
+                            border-slate-300
+                        "
+                    >
 
                         {PAYMENT_MODES.map(
                             (mode) => (
@@ -109,15 +205,15 @@ export default function PayorSection({
                                     }
                                     className={`
                                         flex-1
-                                        px-4
+                                        whitespace-nowrap
+                                        px-3
                                         py-3
                                         text-sm
                                         font-medium
                                         transition
 
                                         ${
-                                            paymentMode ===
-                                            mode
+                                            paymentMode === mode
                                                 ? "bg-blue-600 text-white"
                                                 : "bg-white text-slate-700 hover:bg-slate-100"
                                         }
@@ -136,6 +232,7 @@ export default function PayorSection({
                     </div>
 
                 </div>
+
 
             </div>
 

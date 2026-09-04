@@ -7,270 +7,61 @@ type Props = {
 
 
 /* ================================================================
-   FORMAT DATE
+   HELPERS
 ================================================================ */
 
-function formatDate(value: any) {
+function formatDate(
+    value: any
+) {
 
     if (!value) {
         return "";
     }
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "";
-    }
-
-    return date.toLocaleDateString("en-PH", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-    });
-}
-
-
-/* ================================================================
-   AMOUNT
-================================================================ */
-
-function formatAmount(value: any) {
-
-    const amount = Number(value ?? 0);
-
-    return amount.toLocaleString("en-PH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
-
-
-/* ================================================================
-   NUMBER TO WORDS
-================================================================ */
-
-function numberToWords(
-    amount: number
-): string {
-
-    const ones = [
-        "",
-        "ONE",
-        "TWO",
-        "THREE",
-        "FOUR",
-        "FIVE",
-        "SIX",
-        "SEVEN",
-        "EIGHT",
-        "NINE",
-        "TEN",
-        "ELEVEN",
-        "TWELVE",
-        "THIRTEEN",
-        "FOURTEEN",
-        "FIFTEEN",
-        "SIXTEEN",
-        "SEVENTEEN",
-        "EIGHTEEN",
-        "NINETEEN",
-    ];
-
-    const tens = [
-        "",
-        "",
-        "TWENTY",
-        "THIRTY",
-        "FORTY",
-        "FIFTY",
-        "SIXTY",
-        "SEVENTY",
-        "EIGHTY",
-        "NINETY",
-    ];
-
-
-    function convertHundreds(
-        value: number
-    ): string {
-
-        let result = "";
-
-        if (value >= 100) {
-
-            result +=
-                ones[
-                    Math.floor(
-                        value / 100
-                    )
-                ] +
-                " HUNDRED";
-
-            value %= 100;
-
-            if (value > 0) {
-                result += " ";
-            }
-        }
-
-
-        if (value >= 20) {
-
-            result +=
-                tens[
-                    Math.floor(
-                        value / 10
-                    )
-                ];
-
-            value %= 10;
-
-            if (value > 0) {
-
-                result +=
-                    " " +
-                    ones[value];
-
-            }
-
-        }
-        else if (value > 0) {
-
-            result += ones[value];
-
-        }
-
-        return result;
-    }
-
+    const date =
+        new Date(value);
 
     if (
-        !Number.isFinite(amount) ||
-        amount < 0
+        Number.isNaN(
+            date.getTime()
+        )
     ) {
         return "";
     }
 
-
-    const pesos =
-        Math.floor(amount);
-
-    const centavos =
-        Math.round(
-            (amount - pesos) * 100
-        );
-
-
-    let result = "";
-
-
-    if (pesos === 0) {
-
-        result = "ZERO PESOS";
-
-    }
-    else {
-
-        let remaining = pesos;
-
-
-        const millions =
-            Math.floor(
-                remaining / 1000000
-            );
-
-        if (millions > 0) {
-
-            result +=
-                convertHundreds(
-                    millions
-                ) +
-                " MILLION";
-
-            remaining %= 1000000;
-
-            if (remaining > 0) {
-                result += " ";
-            }
+    return date.toLocaleDateString(
+        "en-PH",
+        {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
         }
-
-
-        const thousands =
-            Math.floor(
-                remaining / 1000
-            );
-
-        if (thousands > 0) {
-
-            result +=
-                convertHundreds(
-                    thousands
-                ) +
-                " THOUSAND";
-
-            remaining %= 1000;
-
-            if (remaining > 0) {
-                result += " ";
-            }
-        }
-
-
-        if (remaining > 0) {
-
-            result +=
-                convertHundreds(
-                    remaining
-                );
-
-        }
-
-
-        result +=
-            " PESOS";
-    }
-
-
-    if (centavos > 0) {
-
-        result +=
-            " AND " +
-            String(
-                centavos
-            ).padStart(
-                2,
-                "0"
-            ) +
-            " CENTAVOS";
-
-    }
-    else {
-
-        result +=
-            " ONLY";
-
-    }
-
-
-    return result;
+    );
 }
 
 
-/* ================================================================
-   COMPONENT
-================================================================ */
+function formatAmount(
+    value: any
+) {
+
+    const amount =
+        Number(value ?? 0);
+
+    return amount.toLocaleString(
+        "en-PH",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }
+    );
+}
+
 
 export default function AF58PrintFooter({
     transaction,
     af58,
 }: Props) {
 
-
-    /*
-    ================================================================
-    DATABASE VALUES
-    ================================================================
-    */
 
     const amount =
         Number(
@@ -289,14 +80,6 @@ export default function AF58PrintFooter({
         "";
 
 
-    /*
-    ================================================================
-    DATE
-
-    Use receipt date from transaction.
-    ================================================================
-    */
-
     const receiptDate =
         transaction?.receipt_date ??
         transaction?.created_at ??
@@ -304,36 +87,11 @@ export default function AF58PrintFooter({
         new Date();
 
 
-    /*
-    ================================================================
-    LOGGED USER
-
-    encoded_by is the user who encoded/logged
-    the transaction.
-
-    Fallbacks are included in case the header
-    uses a different field.
-    ================================================================
-    */
-
     const loggedUser =
         transaction?.encoded_by ??
         transaction?.collector ??
         "";
 
-
-    /*
-    ================================================================
-    YEAR
-
-    20 is fixed.
-    The last two digits vary.
-
-    Example:
-    2026 -> 26
-    2027 -> 27
-    ================================================================
-    */
 
     const year =
         new Date(
@@ -341,86 +99,71 @@ export default function AF58PrintFooter({
         ).getFullYear();
 
 
-    const yearSuffix =
-        String(year).slice(-2);
-
-
     const displayYear =
-        `20${yearSuffix}`;
-
-
-    /*
-    ================================================================
-    AMOUNT IN WORDS
-    ================================================================
-    */
-
-    const amountWords =
-        numberToWords(
-            amount
-        );
+        String(year);
 
 
     return (
-
         <div
             className="af58-print-footer"
-
             style={{
 
                 /*
-                ========================================================
-                FOOTER POSITIONING
-                ========================================================
-
-                Change these values to calibrate
-                the physical receipt.
-                ========================================================
-                */
-
-                "--af58-amount-x":
-                    "36px",
-
-                "--af58-amount-y":
-                    "690px",
+                 * =====================================================
+                 * FOOTER POSITION CALIBRATION
+                 * =====================================================
+                 *
+                 * Change ONLY these values when calibrating
+                 * the physical AF58 receipt.
+                 */
 
 
-                "--af58-city-x":
-                    "36px",
+                /* =====================================================
+                   AMOUNT
+                ===================================================== */
 
-                "--af58-city-y":
-                    "710px",
-
-
-                "--af58-province-x":
-                    "230px",
-
-                "--af58-province-y":
-                    "710px",
+                "--af58-amount-x": "36px",
+                "--af58-amount-y": "623px",
 
 
-                "--af58-date-x":
-                    "50px",
+                /* =====================================================
+                   CITY / MUNICIPALITY
+                ===================================================== */
 
-                "--af58-date-y":
-                    "730px",
-
-
-                "--af58-year-x":
-                    "250px",
-
-                "--af58-year-y":
-                    "730px",
+                "--af58-city-x": "36px",
+                "--af58-city-y": "655px",
 
 
-               
+                /* =====================================================
+                   PROVINCE
+                ===================================================== */
+
+                "--af58-province-x": "230px",
+                "--af58-province-y": "655px",
 
 
-                "--af58-user-x":
-                    "200px",
+                /* =====================================================
+                   DATE
+                ===================================================== */
 
-                "--af58-user-y":
-                    "830px",
+                "--af58-date-x": "230px",
+                "--af58-date-y": "625px",
+
+
+                /* =====================================================
+                   YEAR
+                ===================================================== */
+
+                "--af58-year-x": "260px",
+                "--af58-year-y": "678px",
+
+
+                /* =====================================================
+                   LOGGED USER
+                ===================================================== */
+
+                "--af58-user-x": "200px",
+                "--af58-user-y": "770px",
 
             } as React.CSSProperties}
         >
@@ -430,199 +173,247 @@ export default function AF58PrintFooter({
                 AMOUNT
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-amount-x)",
-
-                    top:
-                        "var(--af58-amount-y)",
-
-                    width: "340px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 700,
-
-                    whiteSpace: "nowrap",
-                }}
+            <div
+                className="af58-footer-amount"
             >
-
                 ₱ {formatAmount(amount)}
-
-            </span>
+            </div>
 
 
             {/* =====================================================
-                CITY / MUNICIPALITY
+                CITY
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-city-x)",
-
-                    top:
-                        "var(--af58-city-y)",
-
-                    width: "160px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 600,
-
-                    textTransform: "uppercase",
-
-                    whiteSpace: "nowrap",
-
-                    overflow: "hidden",
-                }}
+            <div
+                className="af58-footer-city"
             >
-
                 {cityMunicipality}
-
-            </span>
+            </div>
 
 
             {/* =====================================================
                 PROVINCE
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-province-x)",
-
-                    top:
-                        "var(--af58-province-y)",
-
-                    width: "160px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 600,
-
-                    textTransform: "uppercase",
-
-                    whiteSpace: "nowrap",
-
-                    overflow: "hidden",
-                }}
+            <div
+                className="af58-footer-province"
             >
-
                 {province}
-
-            </span>
+            </div>
 
 
             {/* =====================================================
                 DATE
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-date-x)",
-
-                    top:
-                        "var(--af58-date-y)",
-
-                    width: "150px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 600,
-
-                    whiteSpace: "nowrap",
-                }}
+            <div
+                className="af58-footer-date"
             >
-
-                {formatDate(
-                    receiptDate
-                )}
-
-            </span>
+                {formatDate(receiptDate)}
+            </div>
 
 
             {/* =====================================================
                 YEAR
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-year-x)",
-
-                    top:
-                        "var(--af58-year-y)",
-
-                    width: "80px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 600,
-
-                    whiteSpace: "nowrap",
-                }}
+            <div
+                className="af58-footer-year"
             >
-
                 {displayYear}
-
-            </span>
-
-
-            {/* =====================================================
-                AMOUNT IN WORDS
-            ===================================================== */}
-
-          
+            </div>
 
 
             {/* =====================================================
                 LOGGED USER
             ===================================================== */}
 
-            <span
-                style={{
-                    position: "absolute",
-
-                    left:
-                        "var(--af58-user-x)",
-
-                    top:
-                        "var(--af58-user-y)",
-
-                    width: "180px",
-
-                    fontSize: "12px",
-
-                    fontWeight: 700,
-
-                    textTransform: "uppercase",
-
-                    whiteSpace: "nowrap",
-
-                    overflow: "hidden",
-                }}
+            <div
+                className="af58-footer-user"
             >
-
                 {loggedUser}
+            </div>
 
-            </span>
 
+            <style jsx>{`
+
+                .af58-footer-amount,
+                .af58-footer-city,
+                .af58-footer-province,
+                .af58-footer-date,
+                .af58-footer-year,
+                .af58-footer-user {
+
+                    position: absolute;
+
+                    color: #000;
+
+                }
+
+
+                /* =====================================================
+                   AMOUNT
+                ===================================================== */
+
+                .af58-footer-amount {
+
+                    left: var(
+                        --af58-amount-x
+                    );
+
+                    top: var(
+                        --af58-amount-y
+                    );
+
+                    width: 340px;
+
+                    font-size: 12px;
+
+                    font-weight: 700;
+
+                    white-space: nowrap;
+
+                }
+
+
+                /* =====================================================
+                   CITY
+                ===================================================== */
+
+                .af58-footer-city {
+
+                    left: var(
+                        --af58-city-x
+                    );
+
+                    top: var(
+                        --af58-city-y
+                    );
+
+                    width: 160px;
+
+                    font-size: 12px;
+
+                    font-weight: 600;
+
+                    text-transform: uppercase;
+
+                    white-space: nowrap;
+
+                    overflow: hidden;
+
+                }
+
+
+                /* =====================================================
+                   PROVINCE
+                ===================================================== */
+
+                .af58-footer-province {
+
+                    left: var(
+                        --af58-province-x
+                    );
+
+                    top: var(
+                        --af58-province-y
+                    );
+
+                    width: 160px;
+
+                    font-size: 12px;
+
+                    font-weight: 600;
+
+                    text-transform: uppercase;
+
+                    white-space: nowrap;
+
+                    overflow: hidden;
+
+                }
+
+
+                /* =====================================================
+                   DATE
+                ===================================================== */
+
+                .af58-footer-date {
+
+                    left: var(
+                        --af58-date-x
+                    );
+
+                    top: var(
+                        --af58-date-y
+                    );
+
+                    width: 150px;
+
+                    font-size: 12px;
+
+                    font-weight: 600;
+
+                    white-space: nowrap;
+
+                }
+
+
+                /* =====================================================
+                   YEAR
+                ===================================================== */
+
+                .af58-footer-year {
+
+                    left: var(
+                        --af58-year-x
+                    );
+
+                    top: var(
+                        --af58-year-y
+                    );
+
+                    width: 80px;
+
+                    font-size: 12px;
+
+                    font-weight: 600;
+
+                    white-space: nowrap;
+
+                }
+
+
+                /* =====================================================
+                   LOGGED USER
+                ===================================================== */
+
+                .af58-footer-user {
+
+                    left: var(
+                        --af58-user-x
+                    );
+
+                    top: var(
+                        --af58-user-y
+                    );
+
+                    width: 180px;
+
+                    font-size: 12px;
+
+                    font-weight: 700;
+
+                    text-transform: uppercase;
+
+                    white-space: nowrap;
+
+                    overflow: hidden;
+
+                }
+
+            `}</style>
 
         </div>
-
     );
-
 }

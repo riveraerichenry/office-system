@@ -12,6 +12,7 @@ import {
     MODULE_PATHS,
 } from "@/lib/module-paths";
 
+
 export async function POST(
     req: NextRequest
 ) {
@@ -33,6 +34,7 @@ export async function POST(
                 "view"
             );
 
+
         /*
         |--------------------------------------------------------------------------
         | Request Body
@@ -42,14 +44,17 @@ export async function POST(
         const body =
             await req.json();
 
+
         const {
             booklet_registration_id,
             receipt_date,
             payor,
+            gender,
             payment_mode,
             remarks,
             af58,
         } = body;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -74,6 +79,7 @@ export async function POST(
 
         }
 
+
         if (!receipt_date) {
 
             return NextResponse.json(
@@ -88,6 +94,7 @@ export async function POST(
             );
 
         }
+
 
         if (
             !payor ||
@@ -107,6 +114,7 @@ export async function POST(
 
         }
 
+
         if (!af58) {
 
             return NextResponse.json(
@@ -121,6 +129,7 @@ export async function POST(
             );
 
         }
+
 
         if (
             !af58.deceased_name ||
@@ -142,6 +151,7 @@ export async function POST(
 
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | Fee
@@ -152,6 +162,7 @@ export async function POST(
             Number(
                 af58.fee_amount || 0
             );
+
 
         if (
             !Number.isFinite(
@@ -173,6 +184,7 @@ export async function POST(
 
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | Database Transaction
@@ -182,9 +194,11 @@ export async function POST(
         client =
             await pool.connect();
 
+
         await client.query(
             "BEGIN"
         );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -199,6 +213,7 @@ export async function POST(
         const bookletResult =
             await client.query(
                 `
+
                 SELECT
 
                     sbr.id
@@ -254,12 +269,14 @@ export async function POST(
                     lr.status = 'ACTIVE'
 
                 FOR UPDATE
+
                 `,
                 [
                     booklet_registration_id,
                     user.id,
                 ]
             );
+
 
         if (
             bookletResult.rows.length === 0
@@ -271,8 +288,10 @@ export async function POST(
 
         }
 
+
         const booklet =
             bookletResult.rows[0];
+
 
         /*
         |--------------------------------------------------------------------------
@@ -287,6 +306,7 @@ export async function POST(
                 .trim()
                 .toUpperCase();
 
+
         if (
             formCode !== "AF58"
         ) {
@@ -296,6 +316,7 @@ export async function POST(
             );
 
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -308,10 +329,12 @@ export async function POST(
                 booklet.current_or
             );
 
+
         const endingOR =
             Number(
                 booklet.ending_or
             );
+
 
         if (
             !Number.isFinite(
@@ -325,6 +348,7 @@ export async function POST(
 
         }
 
+
         if (
             currentOR > endingOR
         ) {
@@ -335,6 +359,7 @@ export async function POST(
 
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | Grand Total
@@ -343,6 +368,7 @@ export async function POST(
 
         const grandTotal =
             feeAmount;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -353,6 +379,7 @@ export async function POST(
         const transactionResult =
             await client.query(
                 `
+
                 INSERT INTO dipp_transactions (
 
                     or_number,
@@ -368,6 +395,8 @@ export async function POST(
                     collector_id,
 
                     payor,
+
+                    gender,
 
                     payment_mode,
 
@@ -405,15 +434,18 @@ export async function POST(
 
                     $10,
 
+                    $11,
+
                     'ISSUED',
 
-                    $11,
+                    $12,
 
                     'AF58'
 
                 )
 
                 RETURNING id
+
                 `,
                 [
 
@@ -435,6 +467,9 @@ export async function POST(
                         payor
                     ).trim(),
 
+                    gender ||
+                        null,
+
                     payment_mode ||
                         "Cash",
 
@@ -448,10 +483,12 @@ export async function POST(
                 ]
             );
 
+
         const transactionId =
             transactionResult
                 .rows[0]
                 .id;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -461,6 +498,7 @@ export async function POST(
 
         await client.query(
             `
+
             INSERT INTO dipp_af58_items (
 
                 transaction_id,
@@ -548,6 +586,7 @@ export async function POST(
                 $20
 
             )
+
             `,
             [
 
@@ -613,6 +652,7 @@ export async function POST(
             ]
         );
 
+
         /*
         |--------------------------------------------------------------------------
         | Advance Booklet
@@ -622,13 +662,16 @@ export async function POST(
         const nextOR =
             currentOR + 1;
 
+
         const bookletStatus =
             nextOR > endingOR
                 ? "CONSUMED"
                 : "IN USE";
 
+
         await client.query(
             `
+
             UPDATE smi_booklet_registration
 
             SET
@@ -640,6 +683,7 @@ export async function POST(
                 updated_at = NOW()
 
             WHERE id = $3
+
             `,
             [
 
@@ -654,6 +698,7 @@ export async function POST(
             ]
         );
 
+
         /*
         |--------------------------------------------------------------------------
         | Commit
@@ -663,6 +708,7 @@ export async function POST(
         await client.query(
             "COMMIT"
         );
+
 
         return NextResponse.json({
 
@@ -692,7 +738,8 @@ export async function POST(
 
         });
 
-    } catch (err: any) {
+    }
+    catch (err: any) {
 
         if (client) {
 
@@ -701,6 +748,7 @@ export async function POST(
             );
 
         }
+
 
         console.error(
             "===================================="
@@ -716,6 +764,7 @@ export async function POST(
             "===================================="
         );
 
+
         return NextResponse.json(
             {
                 success: false,
@@ -729,7 +778,8 @@ export async function POST(
             }
         );
 
-    } finally {
+    }
+    finally {
 
         client?.release();
 

@@ -31,7 +31,16 @@ export default function ReceiptItems({
                 ===================================================== */
 
                 "--receipt-nature-x": "50px",
+
                 "--receipt-nature-y": "300px",
+
+                /*
+                 * Maximum width of Nature of Collection.
+                 *
+                 * Increase or decrease this value depending
+                 * on the available space before Account Code.
+                 */
+                "--receipt-nature-width": "140px",
 
 
                 /* =====================================================
@@ -39,6 +48,7 @@ export default function ReceiptItems({
                 ===================================================== */
 
                 "--receipt-account-code-x": "200px",
+
                 "--receipt-account-code-y": "300px",
 
 
@@ -47,6 +57,7 @@ export default function ReceiptItems({
                 ===================================================== */
 
                 "--receipt-item-amount-x": "270px",
+
                 "--receipt-item-amount-y": "300px",
 
 
@@ -54,7 +65,14 @@ export default function ReceiptItems({
                    ROW SPACING
                 ===================================================== */
 
-                "--receipt-item-spacing": "20px",
+                /*
+                 * Space between each item row.
+                 *
+                 * Since Nature of Collection can now use
+                 * up to 2 lines, use a larger spacing
+                 * to prevent overlapping.
+                 */
+                "--receipt-item-spacing": "25px",
 
             } as React.CSSProperties}
         >
@@ -129,6 +147,23 @@ export default function ReceiptItems({
             <style jsx>{`
 
                 /* =====================================================
+                   ITEMS CONTAINER
+                ===================================================== */
+
+                .receipt-items {
+
+                    position: absolute;
+
+                    left: 0;
+
+                    top: 0;
+
+                    width: 100%;
+
+                }
+
+
+                /* =====================================================
                    ITEM ROW
                 ===================================================== */
 
@@ -136,9 +171,11 @@ export default function ReceiptItems({
 
                     position: absolute;
 
-                    width: 348px;
+                    left: 0;
 
-                    display: flex;
+                    top: 0;
+
+                    width: 100%;
 
                     font-size: 11px;
 
@@ -164,11 +201,30 @@ export default function ReceiptItems({
                     left:
                         var(--receipt-nature-x);
 
-                    width: 185px;
+                    width:
+                        var(--receipt-nature-width);
 
-                    padding-right: 8px;
+                    max-width:
+                        var(--receipt-nature-width);
+
+                    white-space: normal;
+
+                    overflow-wrap: break-word;
 
                     word-break: break-word;
+
+                    /*
+                     * Maximum of 2 lines
+                     */
+                    display: -webkit-box;
+
+                    -webkit-box-orient: vertical;
+
+                    -webkit-line-clamp: 2;
+
+                    overflow: hidden;
+
+                    line-height: 11px;
 
                 }
 
@@ -196,6 +252,8 @@ export default function ReceiptItems({
 
                     text-align: center;
 
+                    white-space: nowrap;
+
                 }
 
 
@@ -221,6 +279,8 @@ export default function ReceiptItems({
                     width: 75px;
 
                     text-align: right;
+
+                    white-space: nowrap;
 
                 }
 
