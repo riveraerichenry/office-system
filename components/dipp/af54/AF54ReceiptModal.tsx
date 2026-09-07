@@ -69,6 +69,11 @@ export default function AF54ReceiptModal({
     ] = useState("");
 
     const [
+        gender,
+        setGender,
+    ] = useState("");
+
+    const [
         paymentMode,
         setPaymentMode,
     ] = useState("Cash");
@@ -188,6 +193,8 @@ export default function AF54ReceiptModal({
         );
 
         setPayor("");
+
+        setGender("");
 
         setPaymentMode(
             "Cash"
@@ -650,6 +657,10 @@ export default function AF54ReceiptModal({
                                 payor
                             }
 
+                            gender={
+                                gender
+                            }
+
                             paymentMode={
                                 paymentMode
                             }
@@ -660,6 +671,10 @@ export default function AF54ReceiptModal({
 
                             onPayorChange={
                                 setPayor
+                            }
+
+                            onGenderChange={
+                                setGender
                             }
 
                             onPaymentModeChange={

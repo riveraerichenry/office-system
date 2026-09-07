@@ -9,8 +9,6 @@ import { useParams } from "next/navigation";
 
 import axios from "axios";
 
-import Receipt from "@/components/dipp/receipt/Receipt";
-
 import A51Print from "@/components/dipp/receipt/A51Print";
 
 import "@/components/dipp/receipt/a51-print.css";
