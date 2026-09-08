@@ -86,6 +86,44 @@ export default function AF56ReceiptModal({
 
 
     /* ================================================================
+       RESET FORM
+    ================================================================ */
+
+    function resetForm() {
+
+        setSearch("");
+
+        setLoading(false);
+
+        setResults([]);
+
+        setSelected(null);
+
+        setPayor("");
+
+        setPaymentMode("Cash");
+
+        setRemarks("");
+
+        setUnrevisedOpen(false);
+
+    }
+
+
+    /* ================================================================
+       HANDLE CLOSE
+    ================================================================ */
+
+    function handleClose() {
+
+        resetForm();
+
+        onClose();
+
+    }
+
+
+    /* ================================================================
        SEARCH BILLING
     ================================================================ */
 
@@ -447,6 +485,13 @@ export default function AF56ReceiptModal({
 
 
                 /* ========================================================
+                   RESET FORM
+                ======================================================== */
+
+                resetForm();
+
+
+                /* ========================================================
                    REFRESH
                 ======================================================== */
 
@@ -744,7 +789,7 @@ export default function AF56ReceiptModal({
                                 type="button"
 
                                 onClick={
-                                    onClose
+                                    handleClose
                                 }
 
                                 disabled={

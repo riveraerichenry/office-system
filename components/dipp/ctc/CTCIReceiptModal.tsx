@@ -325,204 +325,335 @@ export default function CTCIReceiptModal({
 
     async function processCTCI() {
 
-        try {
+    try {
 
-            if (
-                !name.trim()
-            ) {
+        /* =====================================================
+           VALIDATION
+        ===================================================== */
 
-                await Swal.fire({
-                    icon: "warning",
-                    title: "Required Field",
-                    text:
-                        "Please enter the individual's name.",
-                });
-
-                return;
-            }
-
-            if (
-                !address.trim()
-            ) {
-
-                await Swal.fire({
-                    icon: "warning",
-                    title: "Required Field",
-                    text:
-                        "Please enter the address.",
-                });
-
-                return;
-            }
-
-            if (
-                !issueDate
-            ) {
-
-                await Swal.fire({
-                    icon: "warning",
-                    title: "Required Field",
-                    text:
-                        "Please select the date issued.",
-                });
-
-                return;
-            }
-
-            setSaving(true);
-
-            const res =
-                await axios.post(
-                    "/api/dipp/transactions",
-                    {
-                        booklet_registration_id:
-                            booklet.booklet_registration_id,
-
-                        receipt_date:
-                            issueDate,
-
-                        payor:
-                            name,
-
-                        payment_mode:
-                            "Cash",
-
-                        remarks:
-                            null,
-
-                        items: [
-                            {
-                                account_id:
-                                    null,
-
-                                amount:
-                                    total,
-
-                                remarks:
-                                    null,
-                            },
-                        ],
-
-                        ctc: {
-                        ctc_type: "CTC-I",
-
-                        full_name: name.trim(),
-
-                        address: address || null,
-
-                        tin: tin || null,
-
-                        cr_number: crNumber || null,
-
-                        citizenship: citizenship || null,
-
-                        sex: sex || null,
-
-                        height: height || null,
-
-                        weight: weight || null,
-
-                        place_of_birth:
-                            placeOfBirth || null,
-
-                        birth_date:
-                            birthDate || null,
-
-                        civil_status:
-                            civilStatus || null,
-
-                        occupation:
-                            occupation || null,
-
-                        corporation_name: null,
-
-                        sec_registration: null,
-
-                        representative: null,
-
-                        place_issued:
-                            placeIssued || null,
-
-                        issue_date:
-                            issueDate || null,
-
-                        tax_mode:
-                            mode,
-
-                        taxable_amount:
-                            Number(grossIncome),
-
-                        basic_tax:
-                            Number(basicTax),
-
-                        salary_tax:
-                            Number(incomeTax),
-
-                        additional_tax:
-                            Number(otherIncome),
-
-                        penalty:
-                            Number(penalty),
-
-                        interest:
-                            Number(interest),
-
-                        total_amount:
-                            Number(total),
-                    }
-                    }
-                );
-
-            await Swal.fire({
-                icon: "success",
-                title:
-                    "CTC-I Successfully Issued",
-                text:
-                    `CTC No. ${res.data.or_number}`,
-                timer: 1500,
-                showConfirmButton: false,
-            });
-
-            if (
-                res.data.transaction_id
-            ) {
-
-                window.open(
-                    `/print/dipp/ctc/${res.data.transaction_id}`,
-                    "_blank"
-                );
-
-            }
-
-            await onSuccess();
-
-            onClose();
-
-        } catch (
-            err: any
+        if (
+            !booklet
         ) {
 
-            console.error(
-                "CTC-I ERROR:",
-                err
-            );
-
             await Swal.fire({
-                icon: "error",
-                title:
-                    "Unable to Process",
+                icon: "warning",
+                title: "No Booklet Selected",
                 text:
-                    err.response?.data?.message ||
-                    "Unexpected error.",
+                    "Please select an active CTC-I booklet.",
             });
 
-        } finally {
-
-            setSaving(false);
+            return;
 
         }
 
+
+        if (
+            !name.trim()
+        ) {
+
+            await Swal.fire({
+                icon: "warning",
+                title: "Required Field",
+                text:
+                    "Please enter the individual's name.",
+            });
+
+            return;
+
+        }
+
+
+        if (
+            !address.trim()
+        ) {
+
+            await Swal.fire({
+                icon: "warning",
+                title: "Required Field",
+                text:
+                    "Please select the barangay/address.",
+            });
+
+            return;
+
+        }
+
+
+        if (
+            !issueDate
+        ) {
+
+            await Swal.fire({
+                icon: "warning",
+                title: "Required Field",
+                text:
+                    "Please select the date issued.",
+            });
+
+            return;
+
+        }
+
+
+        if (
+            !Number.isFinite(
+                Number(total)
+            ) ||
+            Number(total) <= 0
+        ) {
+
+            await Swal.fire({
+                icon: "warning",
+                title: "Invalid Amount",
+                text:
+                    "The CTC-I total amount must be greater than zero.",
+            });
+
+            return;
+
+        }
+
+
+        /* =====================================================
+           SAVE
+        ===================================================== */
+
+        setSaving(true);
+
+
+        const res =
+            await axios.post(
+
+                "/api/dipp/ctci",
+
+                {
+
+                    /* =================================================
+                       BOOKLET
+                    ================================================= */
+
+                    booklet_registration_id:
+                        booklet.booklet_registration_id,
+
+
+                    /* =================================================
+                       RECEIPT
+                    ================================================= */
+
+                    receipt_date:
+                        issueDate,
+
+                    payor:
+                        name.trim(),
+
+                    payment_mode:
+                        "Cash",
+
+                    remarks:
+                        null,
+
+
+                    /* =================================================
+                       INDIVIDUAL INFORMATION
+                    ================================================= */
+
+                    full_name:
+                        name.trim(),
+
+                    address:
+                        address.trim(),
+
+                    tin:
+                        tin.trim() ||
+                        null,
+
+                    cr_number:
+                        crNumber.trim() ||
+                        null,
+
+                    citizenship:
+                        citizenship.trim() ||
+                        null,
+
+                    sex:
+                        sex ||
+                        null,
+
+                    height:
+                        height.trim() ||
+                        null,
+
+                    weight:
+                        weight.trim() ||
+                        null,
+
+                    place_of_birth:
+                        placeOfBirth.trim() ||
+                        null,
+
+                    birth_date:
+                        birthDate ||
+                        null,
+
+                    civil_status:
+                        civilStatus ||
+                        null,
+
+                    occupation:
+                        occupation.trim() ||
+                        null,
+
+
+                    /* =================================================
+                       CERTIFICATE INFORMATION
+                    ================================================= */
+
+                    place_issued:
+                        placeIssued.trim() ||
+                        null,
+
+                    issue_date:
+                        issueDate,
+
+                    tax_mode:
+                        mode,
+
+
+                    /* =================================================
+                       TAX COMPUTATION
+                    ================================================= */
+
+                    taxable_amount:
+                        Number(
+                            grossIncome
+                        ),
+
+                    basic_tax:
+                        Number(
+                            basicTax
+                        ),
+
+                    salary_tax:
+                        Number(
+                            incomeTax
+                        ),
+
+                    additional_tax:
+                        Number(
+                            otherIncome
+                        ),
+
+                    penalty:
+                        Number(
+                            penalty
+                        ),
+
+                    interest:
+                        Number(
+                            interest
+                        ),
+
+                    total_amount:
+                        Number(
+                            total
+                        ),
+
+                }
+
+            );
+
+
+        /* =====================================================
+           SUCCESS
+        ===================================================== */
+
+        await Swal.fire({
+            icon: "success",
+            title:
+                "CTC-I Successfully Issued",
+            text:
+                `CTC No. ${res.data.or_number}`,
+            timer:
+                1500,
+            showConfirmButton:
+                false,
+        });
+
+
+        /* =====================================================
+           PRINT
+        ===================================================== */
+
+        if (
+            res.data.transaction_id
+        ) {
+
+            window.open(
+
+                `/print/dipp/ctci/${res.data.transaction_id}`,
+
+                "_blank"
+
+            );
+
+        }
+
+
+        /* =====================================================
+           REFRESH
+        ===================================================== */
+
+        await onSuccess();
+
+
+        onClose();
+
     }
+    catch (
+        err: any
+    ) {
+
+        console.error(
+            "CTC-I ERROR:",
+            err
+        );
+
+
+        console.error(
+            "CTC-I RESPONSE:",
+            err?.response?.data
+        );
+
+
+        await Swal.fire({
+
+            icon:
+                "error",
+
+            title:
+                "Unable to Process",
+
+            text:
+
+                err
+                    ?.response
+                    ?.data
+                    ?.message ||
+
+                "Unexpected error.",
+
+        });
+
+    }
+    finally {
+
+        setSaving(
+            false
+        );
+
+    }
+
+}
 
     /*
     |--------------------------------------------------------------------------

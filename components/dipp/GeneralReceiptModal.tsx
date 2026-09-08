@@ -137,6 +137,48 @@ export default function GeneralReceiptModal({
 
     }
 
+    function resetForm() {
+
+        setReceiptDate(
+
+            new Date()
+
+                .toISOString()
+
+                .substring(0, 10)
+
+        );
+
+        setPayor("");
+
+        setGender("");
+
+        setPaymentMode("Cash");
+
+        setItems([
+
+            {
+
+                account_id: "",
+
+                amount: "",
+
+                remarks: "",
+
+            },
+
+        ]);
+
+    }
+
+    function handleClose() {
+
+        resetForm();
+
+        onClose();
+
+    }
+
     function addItem() {
 
         setItems([
@@ -317,6 +359,8 @@ export default function GeneralReceiptModal({
 
             );
 
+            resetForm();
+
             await onSuccess();
 
             onClose();
@@ -447,7 +491,7 @@ export default function GeneralReceiptModal({
 
                     total={total}
 
-                    onCancel={onClose}
+                    onCancel={handleClose}
 
                     onProcess={processCollection}
 

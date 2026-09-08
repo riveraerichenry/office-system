@@ -1,0 +1,1073 @@
+@page {
+    size: Letter portrait;
+    margin: 0;
+}
+
+
+/* ============================================================
+   PAGE
+============================================================ */
+
+html,
+body {
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff;
+
+    font-family:
+        Arial,
+        sans-serif;
+}
+
+
+/* ============================================================
+   CTC PRINT CANVAS
+============================================================ */
+
+.ctc-print-page {
+
+    position: relative;
+
+    width: 8.5in;
+    height: 11in;
+
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    color: #000000;
+
+    font-family:
+        var(
+            --ctc-font-family,
+            Arial,
+            sans-serif
+        );
+
+    box-sizing: border-box;
+
+}
+
+
+/* ============================================================
+   YEAR
+============================================================ */
+
+.ctc-year {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-year-x
+        );
+
+    top:
+        var(
+            --ctc-year-y
+        );
+
+    width: 45px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-year-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-year-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   PLACE OF ISSUE
+============================================================ */
+
+.ctc-place-issued {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-place-issued-x
+        );
+
+    top:
+        var(
+            --ctc-place-issued-y
+        );
+
+    width: 200px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-place-issued-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-place-issued-font-weight
+        );
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   DATE ISSUED
+============================================================ */
+
+.ctc-date-issued {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-date-issued-x
+        );
+
+    top:
+        var(
+            --ctc-date-issued-y
+        );
+
+    width: 180px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-date-issued-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-date-issued-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   FULL NAME
+============================================================ */
+
+.ctc-name {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-name-x
+        );
+
+    top:
+        var(
+            --ctc-name-y
+        );
+
+    width: 500px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-name-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-name-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   ADDRESS
+============================================================ */
+
+.ctc-address {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-address-x
+        );
+
+    top:
+        var(
+            --ctc-address-y
+        );
+
+    width: 250px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-address-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-address-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   CITIZENSHIP
+============================================================ */
+
+.ctc-citizenship {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-citizenship-x
+        );
+
+    top:
+        var(
+            --ctc-citizenship-y
+        );
+
+    width: 150px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-citizenship-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-citizenship-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   CIVIL STATUS
+============================================================ */
+
+.ctc-civil-status {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-civil-status-x
+        );
+
+    top:
+        var(
+            --ctc-civil-status-y
+        );
+
+    width: 85px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-civil-status-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-civil-status-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   BIRTH DATE
+============================================================ */
+
+.ctc-birth-date {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-birth-date-x
+        );
+
+    top:
+        var(
+            --ctc-birth-date-y
+        );
+
+    width: 95px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-birth-date-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-birth-date-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   PLACE OF BIRTH
+============================================================ */
+
+.ctc-place-birth {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-place-birth-x
+        );
+
+    top:
+        var(
+            --ctc-place-birth-y
+        );
+
+    width: 130px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-place-birth-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-place-birth-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   SEX
+============================================================ */
+
+.ctc-sex {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-sex-x
+        );
+
+    top:
+        var(
+            --ctc-sex-y
+        );
+
+    width: 45px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-sex-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-sex-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   HEIGHT
+============================================================ */
+
+.ctc-height {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-height-x
+        );
+
+    top:
+        var(
+            --ctc-height-y
+        );
+
+    width: 55px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-height-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-height-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   WEIGHT
+============================================================ */
+
+.ctc-weight {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-weight-x
+        );
+
+    top:
+        var(
+            --ctc-weight-y
+        );
+
+    width: 55px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-weight-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-weight-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   OCCUPATION
+============================================================ */
+
+.ctc-occupation {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-occupation-x
+        );
+
+    top:
+        var(
+            --ctc-occupation-y
+        );
+
+    width: 145px;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-occupation-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-occupation-font-weight
+        );
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+}
+
+
+/* ============================================================
+   CR NUMBER
+============================================================ */
+
+.ctc-cr-number {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-cr-number-x
+        );
+
+    top:
+        var(
+            --ctc-cr-number-y
+        );
+
+    width: 100px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-cr-number-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-cr-number-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   BASIC TAX
+============================================================ */
+
+.ctc-basic-tax {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-basic-tax-x
+        );
+
+    top:
+        var(
+            --ctc-basic-tax-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-basic-tax-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-basic-tax-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   ADDITIONAL TAX
+============================================================ */
+
+.ctc-additional-tax {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-additional-tax-x
+        );
+
+    top:
+        var(
+            --ctc-additional-tax-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-additional-tax-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-additional-tax-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   TAXABLE AMOUNT
+============================================================ */
+
+.ctc-taxable-amount {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-taxable-amount-x
+        );
+
+    top:
+        var(
+            --ctc-taxable-amount-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-taxable-amount-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-taxable-amount-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   SALARY TAX
+============================================================ */
+
+.ctc-salary-tax {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-salary-tax-x
+        );
+
+    top:
+        var(
+            --ctc-salary-tax-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-salary-tax-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-salary-tax-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   TOTAL
+============================================================ */
+
+.ctc-total {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-total-x
+        );
+
+    top:
+        var(
+            --ctc-total-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-total-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-total-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   INTEREST
+============================================================ */
+
+.ctc-interest {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-interest-x
+        );
+
+    top:
+        var(
+            --ctc-interest-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-interest-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-interest-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   TOTAL AMOUNT PAID
+============================================================ */
+
+.ctc-total-paid {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-total-paid-x
+        );
+
+    top:
+        var(
+            --ctc-total-paid-y
+        );
+
+    width: 120px;
+
+    text-align: right;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-total-paid-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-total-paid-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   MUNICIPAL TREASURER
+============================================================ */
+
+.ctc-treasurer {
+
+    position: absolute;
+
+    left:
+        var(
+            --ctc-treasurer-x
+        );
+
+    top:
+        var(
+            --ctc-treasurer-y
+        );
+
+    width: 200px;
+
+    text-align: center;
+
+    font-family:
+        var(
+            --ctc-font-family
+        );
+
+    font-size:
+        var(
+            --ctc-treasurer-font-size
+        );
+
+    font-weight:
+        var(
+            --ctc-treasurer-font-weight
+        );
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+    @page {
+        size: Letter portrait;
+        margin: 0;
+    }
+
+
+    html,
+    body {
+
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        overflow: hidden !important;
+
+    }
+
+
+    .ctc-print-page {
+
+        position: relative;
+
+        width: 8.5in !important;
+        height: 11in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        overflow: hidden !important;
+
+        background: #ffffff !important;
+
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        box-sizing: border-box !important;
+
+    }
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT put font-size or font-weight here.
+     *
+     * Individual fields get their font controls
+     * from the CSS variables in CTCPrint.tsx.
+     */
+
+    .ctc-print-page * {
+
+        color: #000000 !important;
+
+        transform: none !important;
+
+        zoom: 1 !important;
+
+        -webkit-print-color-adjust: exact !important;
+
+        print-color-adjust: exact !important;
+
+    }
+
+}
