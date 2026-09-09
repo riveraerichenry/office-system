@@ -11,309 +11,286 @@ import TransactionItems from "./general/TransactionItems";
 import Footer from "./general/Footer";
 
 type Props = {
+open: boolean;
 
-    open: boolean;
+booklet: any;
 
-    booklet: any;
+onClose: () => void;
 
-    onClose: () => void;
-
-    onSuccess: () => void;
+onSuccess: () => void;
 
 };
 
 export default function GeneralReceiptModal({
-
-    open,
-
-    booklet,
-
-    onClose,
-
-    onSuccess,
-
+open,
+booklet,
+onClose,
+onSuccess,
 }: Props) {
+const [saving, setSaving] =
+useState(false);
 
-    const [saving, setSaving] =
-        useState(false);
+const [loadingAccounts, setLoadingAccounts] =
+    useState(false);
 
-    const [loadingAccounts, setLoadingAccounts] =
-        useState(false);
+const [accountOptions, setAccountOptions] =
+    useState<any[]>([]);
 
-    const [accountOptions, setAccountOptions] =
-        useState<any[]>([]);
+const [receiptDate, setReceiptDate] =
+    useState(
+        new Date()
+            .toISOString()
+            .substring(0, 10)
+    );
 
-    const [receiptDate, setReceiptDate] =
-        useState(
+const [payor, setPayor] =
+    useState("");
 
-            new Date()
+const [gender, setGender] =
+    useState("");
 
-                .toISOString()
+const [paymentMode, setPaymentMode] =
+    useState("Cash");
 
-                .substring(0, 10)
+/*
+|--------------------------------------------------------------------------
+| Customer Payment
+|--------------------------------------------------------------------------
+*/
 
-        );
+const [payment, setPayment] =
+    useState<number | "">("");
 
-    const [payor, setPayor] =
-        useState("");
-
-    const [gender, setGender] =
-        useState("");
-
-    const [paymentMode, setPaymentMode] =
-        useState("Cash");
-
-    const [items, setItems] =
-        useState([
-
-            {
-
-                account_id: "",
-
-                amount: "",
-
-                remarks: "",
-
-            },
-
-        ]);
-
-    useEffect(() => {
-
-        if (
-
-            !open ||
-
-            !booklet
-
-        )
-
-            return;
-
-        loadAccounts();
-
-    }, [
-
-        open,
-
-        booklet,
-
+const [items, setItems] =
+    useState([
+        {
+            account_id: "",
+            amount: "",
+            remarks: "",
+        },
     ]);
 
-    async function loadAccounts() {
+useEffect(() => {
+    if (
+        !open ||
+        !booklet
+    ) {
+        return;
+    }
 
-        try {
+    loadAccounts();
+}, [
+    open,
+    booklet,
+]);
 
-            setLoadingAccounts(true);
+async function loadAccounts() {
+    try {
+        setLoadingAccounts(true);
 
-            const res =
-                await axios.get(
-                    "/api/accounts"
-                );
-
-            setAccountOptions(
-
-                res.data.data.map(
-
-                    (x: any) => ({
-
-                        value: x.id,
-
-                        label:
-
-                            `${x.account_code} - ${x.account_name}`,
-
-                    })
-
-                )
-
+        const res =
+            await axios.get(
+                "/api/accounts"
             );
 
-        } finally {
+        setAccountOptions(
+            res.data.data.map(
+                (x: any) => ({
+                    value: x.id,
 
-            setLoadingAccounts(false);
-
-        }
-
-    }
-
-    function resetForm() {
-
-        setReceiptDate(
-
-            new Date()
-
-                .toISOString()
-
-                .substring(0, 10)
-
-        );
-
-        setPayor("");
-
-        setGender("");
-
-        setPaymentMode("Cash");
-
-        setItems([
-
-            {
-
-                account_id: "",
-
-                amount: "",
-
-                remarks: "",
-
-            },
-
-        ]);
-
-    }
-
-    function handleClose() {
-
-        resetForm();
-
-        onClose();
-
-    }
-
-    function addItem() {
-
-        setItems([
-
-            ...items,
-
-            {
-
-                account_id: "",
-
-                amount: "",
-
-                remarks: "",
-
-            },
-
-        ]);
-
-    }
-
-    function removeItem(
-
-        index: number
-
-    ) {
-
-        setItems(
-
-            items.filter(
-
-                (
-
-                    _,
-
-                    i
-
-                ) =>
-
-                    i !== index
-
+                    label:
+                        `${x.account_code} - ${x.account_name}`,
+                })
             )
-
         );
-
+    } finally {
+        setLoadingAccounts(false);
     }
+}
 
-    function updateItem(
+function resetForm() {
+    setReceiptDate(
+        new Date()
+            .toISOString()
+            .substring(0, 10)
+    );
 
-        index: number,
+    setPayor("");
 
-        field: any,
+    setGender("");
 
-        value: any
+    setPaymentMode("Cash");
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reset Payment
+    |--------------------------------------------------------------------------
+    */
+
+    setPayment("");
+
+    setItems([
+        {
+            account_id: "",
+            amount: "",
+            remarks: "",
+        },
+    ]);
+}
+
+function handleClose() {
+    resetForm();
+
+    onClose();
+}
+
+function addItem() {
+    setItems([
+        ...items,
+        {
+            account_id: "",
+            amount: "",
+            remarks: "",
+        },
+    ]);
+}
+
+function removeItem(
+    index: number
+) {
+    setItems(
+        items.filter(
+            (
+                _,
+                i
+            ) =>
+                i !== index
+        )
+    );
+}
+
+function updateItem(
+    index: number,
+    field: any,
+    value: any
+) {
+    const copy =
+        [...items];
+
+    copy[index] = {
+        ...copy[index],
+        [field]: value,
+    };
+
+    setItems(copy);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Grand Total
+|--------------------------------------------------------------------------
+*/
+
+const total =
+    useMemo(
+        () =>
+            items.reduce(
+                (
+                    sum,
+                    item
+                ) =>
+                    sum +
+                    Number(
+                        item.amount || 0
+                    ),
+                0
+            ),
+        [items]
+    );
+
+/*
+|--------------------------------------------------------------------------
+| Payment Number
+|--------------------------------------------------------------------------
+*/
+
+const paymentNumber =
+    typeof payment === "number"
+        ? payment
+        : 0;
+
+/*
+|--------------------------------------------------------------------------
+| Change
+|--------------------------------------------------------------------------
+*/
+
+const change =
+    paymentNumber >= total
+        ? paymentNumber - total
+        : 0;
+
+/*
+|--------------------------------------------------------------------------
+| Validation
+|--------------------------------------------------------------------------
+*/
+
+const canSave =
+    payor.trim() !== ""
+
+    &&
+
+    gender.trim() !== ""
+
+    &&
+
+    items.length > 0
+
+    &&
+
+    items.every(
+        x =>
+            x.account_id
+
+            &&
+
+            Number(
+                x.amount
+            ) > 0
+    );
+
+async function processCollection() {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Payment
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        payment === "" ||
+        paymentNumber < total
     ) {
+        Swal.fire({
+            icon:
+                "warning",
 
-        const copy =
-            [...items];
+            title:
+                "Insufficient Payment",
 
-        copy[index] = {
+            text:
+                "Payment must be equal to or greater than the total amount.",
+        });
 
-            ...copy[index],
-
-            [field]: value,
-
-        };
-
-        setItems(copy);
-
+        return;
     }
 
-    const total =
-        useMemo(
+    try {
+        setSaving(true);
 
-            () =>
-
-                items.reduce(
-
-                    (
-
-                        sum,
-
-                        item
-
-                    ) =>
-
-                        sum +
-
-                        Number(
-
-                            item.amount || 0
-
-                        ),
-
-                    0
-
-                ),
-
-            [items]
-
-        );
-
-    const canSave =
-
-        payor.trim() !== ""
-
-        &&
-
-        gender.trim() !== ""
-
-        &&
-
-        items.every(
-
-            x =>
-
-                x.account_id
-
-                &&
-
-                Number(
-
-                    x.amount
-
-                ) > 0
-
-        );
-
-    async function processCollection() {
-
-        try {
-
-            setSaving(true);
-
-            const res = await axios.post(
+        const res =
+            await axios.post(
                 "/api/dipp/transactions",
                 {
                     booklet_registration_id:
@@ -329,178 +306,207 @@ export default function GeneralReceiptModal({
                     payment_mode:
                         paymentMode,
 
-                    remarks: null,
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Customer Payment
+                    |--------------------------------------------------------------------------
+                    */
+
+                    payment:
+                        paymentNumber,
+
+                    remarks:
+                        null,
 
                     items,
                 }
             );
 
-            Swal.fire({
+        Swal.fire({
+            icon:
+                "success",
 
-                icon: "success",
+            title:
+                "Collection Processed",
 
-                title: "Collection Processed",
+            text:
+                `O.R. No. ${res.data.or_number} successfully issued.`,
 
-                text: `O.R. No. ${res.data.or_number} successfully issued.`,
+            timer:
+                1500,
 
-                timer: 1500,
+            showConfirmButton:
+                false,
+        });
 
-                showConfirmButton: false,
+        window.open(
+            `/print/dipp/receipt/${res.data.transaction_id}`,
 
-            });
+            "_blank",
 
-            window.open(
+            "width=420,height=850"
+        );
 
-                `/print/dipp/receipt/${res.data.transaction_id}`,
+        resetForm();
 
-                "_blank",
+        await onSuccess();
 
-                "width=420,height=850"
-
-            );
-
-            resetForm();
-
-            await onSuccess();
-
-            onClose();
-
-        }
-
-        catch (err: any) {
-
-            Swal.fire({
-
-                icon: "error",
-
-                title: "Unable to Process",
-
-                text:
-
-                    err.response?.data?.message ||
-
-                    "Unexpected error.",
-
-            });
-
-        }
-
-        finally {
-
-            setSaving(false);
-
-        }
-
+        onClose();
     }
 
-    if (
+    catch (
+        err: any
+    ) {
+        Swal.fire({
+            icon:
+                "error",
 
-        !open ||
+            title:
+                "Unable to Process",
 
-        !booklet
+            text:
+                err.response?.data?.message
 
-    )
+                ||
 
-        return null;
+                "Unexpected error.",
+        });
+    }
 
-    return (
+    finally {
+        setSaving(false);
+    }
+}
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
+if (
+    !open ||
+    !booklet
+) {
+    return null;
+}
 
-            <div className="flex h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
 
-                <BookletHeader
+        <div className="flex h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
+            <BookletHeader
+                booklet={booklet}
+            />
+
+            <div className="flex-1 space-y-5 overflow-y-auto p-6">
+
+                <BookletInformation
                     booklet={booklet}
 
+                    receiptDate={
+                        receiptDate
+                    }
+
+                    saving={
+                        saving
+                    }
+
+                    onReceiptDateChange={
+                        setReceiptDate
+                    }
                 />
 
-                <div className="flex-1 space-y-5 overflow-y-auto p-6">
+                <PayorSection
+                    payor={
+                        payor
+                    }
 
-                    <BookletInformation
+                    gender={
+                        gender
+                    }
 
-                        booklet={booklet}
+                    paymentMode={
+                        paymentMode
+                    }
 
-                        receiptDate={receiptDate}
+                    saving={
+                        saving
+                    }
 
-                        saving={saving}
+                    onPayorChange={
+                        setPayor
+                    }
 
-                        onReceiptDateChange={
+                    onGenderChange={
+                        setGender
+                    }
 
-                            setReceiptDate
+                    onPaymentModeChange={
+                        setPaymentMode
+                    }
+                />
 
-                        }
+                <TransactionItems
+                    items={
+                        items
+                    }
 
-                    />
+                    accountOptions={
+                        accountOptions
+                    }
 
-                    <PayorSection
+                    loadingAccounts={
+                        loadingAccounts
+                    }
 
-                        payor={payor}
+                    saving={
+                        saving
+                    }
 
-                        gender={gender}
+                    onAdd={
+                        addItem
+                    }
 
-                        paymentMode={paymentMode}
+                    onRemove={
+                        removeItem
+                    }
 
-                        saving={saving}
-
-                        onPayorChange={
-
-                            setPayor
-
-                        }
-
-                        onGenderChange={
-
-                            setGender
-
-                        }
-
-                        onPaymentModeChange={
-
-                            setPaymentMode
-
-                        }
-
-                    />
-
-                    <TransactionItems
-
-                        items={items}
-
-                        accountOptions={accountOptions}
-
-                        loadingAccounts={loadingAccounts}
-
-                        saving={saving}
-
-                        onAdd={addItem}
-
-                        onRemove={removeItem}
-
-                        onUpdate={updateItem}
-
-                    />
-
-                </div>
-
-                <Footer
-
-                    saving={saving}
-
-                    canSave={canSave}
-
-                    total={total}
-
-                    onCancel={handleClose}
-
-                    onProcess={processCollection}
-
+                    onUpdate={
+                        updateItem
+                    }
                 />
 
             </div>
 
+            <Footer
+                saving={
+                    saving
+                }
+
+                canSave={
+                    canSave
+                }
+
+                total={
+                    total
+                }
+
+                payment={
+                    payment
+                }
+
+                onPaymentChange={
+                    setPayment
+                }
+
+                onCancel={
+                    handleClose
+                }
+
+                onProcess={
+                    processCollection
+                }
+            />
+
         </div>
 
-    );
+    </div>
+);
 
 }
