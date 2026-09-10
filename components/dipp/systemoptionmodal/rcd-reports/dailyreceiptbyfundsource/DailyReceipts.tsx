@@ -8,33 +8,12 @@ type Props = {
         value: any
     ) => string;
 
-    /*
-       Starting number for this page.
-
-       Page 1:
-       startIndex = 0
-       Entry = 1, 2, 3...
-
-       Page 2:
-       startIndex = 24
-       Entry = 25, 26, 27...
-    */
     startIndex?: number;
 
-    /*
-       Only the final page displays
-       Number of Receipts + GRAND TOTAL.
-    */
     showGrandTotal?: boolean;
 
-    /*
-       Total receipts across ALL pages.
-    */
     totalReceiptCount?: number;
 
-    /*
-       Grand total across ALL pages.
-    */
     grandTotalOverride?: number;
 };
 
@@ -60,12 +39,7 @@ export default function DailyReceipts({
 
 
     /* ============================================================
-       GRAND TOTAL
-
-       Normally calculated from the supplied rows.
-
-       On the final page, the parent sends the
-       grand total from ALL pages.
+       PAGE GRAND TOTAL
     ============================================================ */
 
     const pageGrandTotal =
@@ -95,9 +69,6 @@ export default function DailyReceipts({
 
     /* ============================================================
        RECEIPT COUNT
-
-       On the final page use the total number
-       of receipts across all pages.
     ============================================================ */
 
     const receiptCount =
@@ -126,21 +97,28 @@ export default function DailyReceipts({
                         <th className="
                             daily-receipt-entry-column
                         ">
+
                             Entry #
+
                         </th>
+
 
                         <th>
                             Description
                         </th>
 
+
                         <th>
                             Payor
                         </th>
 
+
                         <th className="
                             daily-receipt-amount-column
                         ">
+
                             Amount
+
                         </th>
 
                     </tr>
@@ -150,100 +128,119 @@ export default function DailyReceipts({
 
                 <tbody>
 
-                    {rows.length === 0 ? (
+                    {
+                        rows.length === 0 ? (
 
-                        <tr>
+                            <tr>
 
-                            <td
-                                colSpan={4}
-                                className="
-                                    daily-receipt-empty
-                                "
-                            >
-                                No receipt records found.
-                            </td>
-
-                        </tr>
-
-                    ) : (
-
-                        rows.map(
-                            (
-                                item,
-                                index
-                            ) => (
-
-                                <tr
-                                    key={
-                                        item?.id ??
-                                        index
-                                    }
+                                <td
+                                    colSpan={4}
+                                    className="
+                                        daily-receipt-empty
+                                    "
                                 >
 
-                                    <td className="
-                                        daily-receipt-entry-column
-                                    ">
+                                    No receipt records found.
 
-                                        {
-                                            startIndex +
-                                            index +
-                                            1
+                                </td>
+
+                            </tr>
+
+                        ) : (
+
+                            rows.map(
+                                (
+                                    item,
+                                    index
+                                ) => (
+
+                                    <tr
+                                        key={
+                                            item?.id ??
+                                            index
                                         }
+                                    >
 
-                                    </td>
+                                        {/* ========================================
+                                            ENTRY NUMBER
+                                        ======================================== */}
 
+                                        <td className="
+                                            daily-receipt-entry-column
+                                        ">
 
-                                    <td>
+                                            {
+                                                startIndex +
+                                                index +
+                                                1
+                                            }
 
-                                        {
-                                            item?.series_or_number ??
-                                            item?.or_number ??
-                                            item?.receipt_no ??
-                                            item?.description ??
-                                            "—"
-                                        }
-
-                                    </td>
-
-
-                                    <td>
-
-                                        {
-                                            item?.payor ??
-                                            item?.payor_name ??
-                                            "—"
-                                        }
-
-                                    </td>
+                                        </td>
 
 
-                                    <td className="
-                                        daily-receipt-amount-column
-                                    ">
+                                        {/* ========================================
+                                            DESCRIPTION
+                                        ======================================== */}
 
-                                        ₱
-                                        {
-                                            formatAmount(
-                                                item?.amount
-                                            )
-                                        }
+                                        <td>
 
-                                    </td>
+                                            {
+                                                item?.series_or_number ??
+                                                item?.or_number ??
+                                                item?.receipt_no ??
+                                                item?.description ??
+                                                "—"
+                                            }
 
-                                </tr>
+                                        </td>
 
+
+                                        {/* ========================================
+                                            PAYOR
+                                        ======================================== */}
+
+                                        <td>
+
+                                            {
+                                                item?.payor ??
+                                                item?.payor_name ??
+                                                "—"
+                                            }
+
+                                        </td>
+
+
+                                        {/* ========================================
+                                            AMOUNT
+                                        ======================================== */}
+
+                                        <td className="
+                                            daily-receipt-amount-column
+                                        ">
+
+                                            ₱
+                                            {
+                                                formatAmount(
+                                                    item?.amount
+                                                )
+                                            }
+
+                                        </td>
+
+                                    </tr>
+
+                                )
                             )
-                        )
 
-                    )}
+                        )
+                    }
 
                 </tbody>
 
 
                 {/* ==================================================
                     GRAND TOTAL
-
-                    ONLY RENDERED ON FINAL PAGE
+                    FINAL PAGE ONLY
                 ================================================== */}
 
                 {

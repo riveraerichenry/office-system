@@ -108,6 +108,348 @@ function getFullName(
 
 
 /* ============================================================
+   PRINT REPORT
+============================================================ */
+
+function printDailyReceipt() {
+    const reportElement = document.querySelector(
+        ".daily-receipt-preview-wrapper"
+    ) as HTMLElement | null;
+
+    if (!reportElement) {
+        console.error("Daily receipt preview not found.");
+        return;
+    }
+
+    const printWindow = window.open(
+        "",
+        "_blank",
+        "width=1200,height=900"
+    );
+
+    if (!printWindow) {
+        alert(
+            "Please allow pop-ups for this site so the report can be printed."
+        );
+        return;
+    }
+
+    /*
+     * ------------------------------------------------------------
+     * GET ALL STYLES FROM CURRENT PAGE
+     * Convert stylesheet URLs to absolute URLs so they work
+     * inside about:blank.
+     * ------------------------------------------------------------
+     */
+
+    const styles: string[] = [];
+
+    document
+        .querySelectorAll('link[rel="stylesheet"]')
+        .forEach((link) => {
+            const href = link.getAttribute("href");
+
+            if (!href) return;
+
+            const absoluteHref = new URL(
+                href,
+                window.location.href
+            ).href;
+
+            styles.push(
+                `<link rel="stylesheet" href="${absoluteHref}" />`
+            );
+        });
+
+    document
+        .querySelectorAll("style")
+        .forEach((style) => {
+            styles.push(style.outerHTML);
+        });
+
+    /*
+     * ------------------------------------------------------------
+     * CLONE REPORT
+     * ------------------------------------------------------------
+     */
+
+    const clonedReport =
+        reportElement.cloneNode(true) as HTMLElement;
+
+    /*
+     * Remove print button from printed report
+     */
+    clonedReport
+        .querySelector(".daily-receipt-floating-print")
+        ?.remove();
+
+    /*
+     * Remove any interactive elements that shouldn't print
+     */
+    clonedReport
+        .querySelectorAll("button")
+        .forEach((button) => {
+            button.remove();
+        });
+
+    /*
+     * ------------------------------------------------------------
+     * CREATE PRINT DOCUMENT
+     * ------------------------------------------------------------
+     */
+
+    printWindow.document.open();
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+            <head>
+
+                <meta charset="UTF-8" />
+
+                <title>
+                    Daily Receipt by Fund Source
+                </title>
+
+                ${styles.join("\n")}
+
+                <style>
+
+                    /*
+                     * ====================================================
+                     * PRINT DOCUMENT RESET
+                     * ====================================================
+                     */
+
+                    html,
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        width: 8.5in !important;
+                        min-width: 8.5in !important;
+
+                        background: #ffffff !important;
+
+                        overflow: visible !important;
+                    }
+
+                    body {
+                        display: block !important;
+                    }
+
+
+                    /*
+                     * ====================================================
+                     * REPORT WRAPPER
+                     * ====================================================
+                     */
+
+                    .daily-receipt-preview-wrapper {
+
+                        width: 8.5in !important;
+                        min-width: 8.5in !important;
+
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        background: #ffffff !important;
+
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+
+                        overflow: visible !important;
+                    }
+
+
+                    /*
+                     * ====================================================
+                     * EACH FOLIO PAGE
+                     * ====================================================
+                     */
+
+                    .daily-receipt-paper {
+
+                        width: 8.5in !important;
+                        height: 13in !important;
+
+                        min-width: 8.5in !important;
+                        min-height: 13in !important;
+
+                        max-width: 8.5in !important;
+                        max-height: 13in !important;
+
+                        margin: 0 !important;
+
+                        padding: 0.30in 0.30in 0.45in 0.30in !important;
+
+                        background: #ffffff !important;
+
+                        box-shadow: none !important;
+
+                        overflow: hidden !important;
+
+                        position: relative !important;
+
+                        display: flex !important;
+                        flex-direction: column !important;
+
+                        box-sizing: border-box !important;
+
+                        break-after: page !important;
+                        page-break-after: always !important;
+                    }
+
+
+                    .daily-receipt-paper:last-child {
+
+                        break-after: auto !important;
+                        page-break-after: auto !important;
+                    }
+
+
+                    /*
+                     * ====================================================
+                     * HIDE PRINT BUTTON
+                     * ====================================================
+                     */
+
+                    .daily-receipt-floating-print {
+
+                        display: none !important;
+
+                    }
+
+
+                    /*
+                     * ====================================================
+                     * FORCE VISIBILITY
+                     * ====================================================
+                     */
+
+                    .daily-receipt-preview-wrapper,
+                    .daily-receipt-paper,
+                    .daily-receipt-paper * {
+
+                        visibility: visible !important;
+
+                    }
+
+
+                    /*
+                     * ====================================================
+                     * PAGE SIZE
+                     * ====================================================
+                     */
+
+                    @page {
+
+                        size: 8.5in 13in;
+
+                        margin: 0;
+
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                ${clonedReport.outerHTML}
+
+            </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+
+
+    /*
+     * ------------------------------------------------------------
+     * WAIT FOR EVERYTHING TO LOAD
+     * ------------------------------------------------------------
+     */
+
+    const waitForPrint = async () => {
+
+        try {
+
+            /*
+             * Wait for fonts
+             */
+            if (printWindow.document.fonts) {
+                await printWindow.document.fonts.ready;
+            }
+
+        } catch {
+            // Ignore font loading errors
+        }
+
+
+        /*
+         * Wait for stylesheets/images/layout
+         */
+        await new Promise<void>((resolve) => {
+
+            setTimeout(() => {
+
+                resolve();
+
+            }, 1000);
+
+        });
+
+
+        /*
+         * Make sure the window is active
+         */
+        printWindow.focus();
+
+
+        /*
+         * PRINT
+         */
+        printWindow.print();
+
+    };
+
+
+    /*
+     * Wait until print document finishes loading
+     */
+    if (
+        printWindow.document.readyState ===
+        "complete"
+    ) {
+
+        void waitForPrint();
+
+    } else {
+
+        printWindow.onload = () => {
+
+            void waitForPrint();
+
+        };
+
+    }
+
+
+    /*
+     * Close dedicated window after printing
+     */
+    printWindow.onafterprint = () => {
+
+        printWindow.close();
+
+    };
+
+}
+
+
+/* ============================================================
    COMPONENT
 ============================================================ */
 
@@ -126,6 +468,7 @@ export default function DailyReceiptByFundSource({
     if (!report) {
 
         return (
+
             <div className="
                 flex
                 min-h-[500px]
@@ -139,7 +482,6 @@ export default function DailyReceiptByFundSource({
 
             </div>
         );
-
     }
 
 
@@ -178,47 +520,97 @@ export default function DailyReceiptByFundSource({
         reportDate;
 
 
+    void dateFrom;
+    void dateTo;
+
+
     /* ========================================================
        PAGINATION
+       
+       NORMAL PAGE:
+       38 rows
 
-       Keep the existing Folio layout.
-       Only split the receipt rows into pages.
+       FINAL PAGE:
+       30 rows because it also contains:
+
+       - Grand Total
+       - Signatories
+       - Footer
+       - Page number
     ======================================================== */
 
-    const RECEIPTS_PER_PAGE = 24;
+    const NORMAL_PAGE_ROWS = 38;
+
+    const LAST_PAGE_ROWS = 30;
+
+
+    /* ========================================================
+       BUILD PAGES
+    ======================================================== */
 
     const pages: any[][] = [];
 
-    for (
-        let i = 0;
-        i < rows.length;
-        i += RECEIPTS_PER_PAGE
+    let remainingRows =
+        [...rows];
+
+
+    while (
+        remainingRows.length > 0
     ) {
 
+        /*
+           Remaining rows fit on the final page.
+        */
+
+        if (
+            remainingRows.length <=
+            LAST_PAGE_ROWS
+        ) {
+
+            pages.push(
+                remainingRows
+            );
+
+            remainingRows = [];
+
+            break;
+        }
+
+
+        /*
+           Fill a normal page.
+        */
+
         pages.push(
-            rows.slice(
-                i,
-                i + RECEIPTS_PER_PAGE
+            remainingRows.slice(
+                0,
+                NORMAL_PAGE_ROWS
             )
         );
 
+
+        remainingRows =
+            remainingRows.slice(
+                NORMAL_PAGE_ROWS
+            );
     }
 
 
-    /*
-       Always render at least one page,
-       even when there are no records.
-    */
-    if (pages.length === 0) {
+    /* ========================================================
+       ALWAYS HAVE ONE PAGE
+    ======================================================== */
+
+    if (
+        pages.length === 0
+    ) {
+
         pages.push([]);
+
     }
 
 
     /* ========================================================
        GRAND TOTAL
-
-       This is calculated from ALL records,
-       not just the current page.
     ======================================================== */
 
     const grandTotal =
@@ -231,7 +623,8 @@ export default function DailyReceiptByFundSource({
                 return (
                     total +
                     Number(
-                        item?.amount ?? 0
+                        item?.amount ??
+                        0
                     )
                 );
 
@@ -258,6 +651,11 @@ export default function DailyReceiptByFundSource({
             daily-receipt-preview-wrapper
         ">
 
+
+            {/* ==================================================
+                RECEIPT PAGES
+            ================================================== */}
+
             {
                 pages.map(
                     (
@@ -269,41 +667,80 @@ export default function DailyReceiptByFundSource({
                             pageIndex ===
                             pages.length - 1;
 
+
+                        /*
+                           Calculate the starting
+                           entry number correctly even
+                           when the last page has a
+                           different capacity.
+                        */
+
                         const startIndex =
-                            pageIndex *
-                            RECEIPTS_PER_PAGE;
+                            pages
+                                .slice(
+                                    0,
+                                    pageIndex
+                                )
+                                .reduce(
+                                    (
+                                        total,
+                                        page
+                                    ) =>
+                                        total +
+                                        page.length,
+                                    0
+                                );
 
 
                         return (
 
                             <div
-                                key={pageIndex}
+                                key={
+                                    pageIndex
+                                }
                                 className="
                                     daily-receipt-paper
                                 "
                             >
 
-                                {/* ==================================================
+
+                                {/* ============================================
                                     HEADER
-                                ================================================== */}
+                                ============================================ */}
 
                                 <DailyReceiptHeader
-                                    report={report}
-                                    fundSource={fundSource}
-                                    user={user}
-                                    formatDate={formatDate}
+                                    report={
+                                        report
+                                    }
+                                    fundSource={
+                                        fundSource
+                                    }
+                                    user={
+                                        user
+                                    }
+                                    formatDate={
+                                        formatDate
+                                    }
                                 />
 
 
-                                {/* ==================================================
-                                    DAILY RECEIPTS TABLE
-                                ================================================== */}
+                                {/* ============================================
+                                    RECEIPTS
+                                ============================================ */}
 
                                 <DailyReceipts
-                                    items={pageItems}
-                                    formatAmount={formatAmount}
-                                    startIndex={startIndex}
-                                    showGrandTotal={isLastPage}
+                                    items={
+                                        pageItems
+                                    }
+                                    formatAmount={
+                                        formatAmount
+                                    }
+                                    startIndex={
+                                        startIndex
+                                    }
+                                    showGrandTotal={
+                                        isLastPage
+                                    }
                                     totalReceiptCount={
                                         totalReceiptCount
                                     }
@@ -313,11 +750,10 @@ export default function DailyReceiptByFundSource({
                                 />
 
 
-                                {/* ==================================================
+                                {/* ============================================
                                     SIGNATORIES
-
-                                    ONLY ON LAST PAGE
-                                ================================================== */}
+                                    LAST PAGE ONLY
+                                ============================================ */}
 
                                 {
                                     isLastPage && (
@@ -326,59 +762,76 @@ export default function DailyReceiptByFundSource({
                                             daily-receipt-signatories
                                         ">
 
-                                            {/* ==================================================
-                                                LEFT - PREPARED BY
-                                            ================================================== */}
+
+                                            {/* ================================
+                                                PREPARED BY
+                                            ================================= */}
 
                                             <div>
 
                                                 <div className="
                                                     daily-receipt-signature-label
                                                 ">
+
                                                     Prepared by:
+
                                                 </div>
+
 
                                                 <div className="
                                                     daily-receipt-signature-name
                                                 ">
+
                                                     {
                                                         getFullName(
                                                             user
                                                         )
                                                     }
+
                                                 </div>
+
 
                                                 <div className="
                                                     daily-receipt-signature-role
                                                 ">
+
                                                     Accountable Officer
+
                                                 </div>
 
                                             </div>
 
 
-                                            {/* ==================================================
-                                                RIGHT - NOTED BY
-                                            ================================================== */}
+                                            {/* ================================
+                                                NOTED BY
+                                            ================================= */}
 
                                             <div>
 
                                                 <div className="
                                                     daily-receipt-signature-label
                                                 ">
+
                                                     Noted by:
+
                                                 </div>
+
 
                                                 <div className="
                                                     daily-receipt-signature-name
                                                 ">
+
                                                     IMLYN B. PARAPINA
+
                                                 </div>
+
 
                                                 <div className="
                                                     daily-receipt-signature-role
                                                 ">
+
                                                     Municipal Treasurer
+
                                                 </div>
 
                                             </div>
@@ -389,39 +842,79 @@ export default function DailyReceiptByFundSource({
                                 }
 
 
-                                {/* ==================================================
+                                {/* ============================================
                                     FOOTER
-
-                                    Keep footer on EVERY PAGE
-                                ================================================== */}
+                                ============================================ */}
 
                                 <div className="
                                     daily-receipt-footer
                                 ">
 
                                     <span>
+
                                         Daily Receipt by Fund Source
+
                                     </span>
 
 
                                     <span>
+
                                         {
                                             report?.report_no ??
                                             "—"
                                         }
+
                                     </span>
 
                                 </div>
 
+
+                                {/* ============================================
+                                    PAGE NUMBER
+                                ============================================ */}
+
+                                <div className="
+                                    daily-receipt-page-number
+                                ">
+
+                                    Page{" "}
+                                    {pageIndex + 1}
+                                    {" "}
+                                    of{" "}
+                                    {pages.length}
+
+                                </div>
+
+
                             </div>
 
                         );
-
                     }
                 )
             }
 
-        </div>
 
+            {/* ==================================================
+                FLOATING PRINT BUTTON
+            ================================================== */}
+
+            <button
+                type="button"
+                onClick={printDailyReceipt}
+                className="daily-receipt-floating-print"
+                title="Print Daily Receipt"
+                aria-label="Print Daily Receipt"
+            >
+                <span className="daily-receipt-print-icon">
+                    🖨
+                </span>
+
+                <span>
+                    Print
+                </span>
+            </button>
+
+
+        </div>
     );
 }

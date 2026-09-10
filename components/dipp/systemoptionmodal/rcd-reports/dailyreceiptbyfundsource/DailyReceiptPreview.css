@@ -1,16 +1,19 @@
 /* ============================================================
    DAILY RECEIPT PREVIEW
-   BASED ON RCD PREVIEW PAGE
    PAPER: 8.5 x 13 INCH
 ============================================================ */
 
 .daily-receipt-preview-wrapper {
+
     width: 100%;
+
     min-height: 100%;
 
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+
+    flex-direction: column;
+
+    align-items: center;
 
     padding: 24px;
 
@@ -23,19 +26,23 @@
 
 
 /* ============================================================
-   PAPER
+   FOLIO PAPER
 ============================================================ */
 
 .daily-receipt-paper {
+
     position: relative;
 
     width: 8.5in;
+
     height: 13in;
 
     min-width: 8.5in;
+
     max-width: 8.5in;
 
     min-height: 13in;
+
     max-height: 13in;
 
     flex: 0 0 8.5in;
@@ -44,10 +51,17 @@
 
     background: #fff;
 
+    /*
+       TOP
+       RIGHT
+       BOTTOM
+       LEFT
+    */
+
     padding:
         0.30in
         0.30in
-        0.25in
+        0.45in
         0.30in;
 
     color: #000;
@@ -65,7 +79,12 @@
 
     box-shadow:
         0 5px 25px
-        rgba(0, 0, 0, 0.18);
+        rgba(
+            0,
+            0,
+            0,
+            0.18
+        );
 
     display: flex;
 
@@ -78,6 +97,7 @@
 ============================================================ */
 
 .daily-receipt-government {
+
     width: 100%;
 
     text-align: center;
@@ -92,7 +112,9 @@
     line-height: 1.05;
 }
 
+
 .daily-receipt-municipality {
+
     margin-top: 2px;
 
     font-size: 18px;
@@ -100,13 +122,17 @@
     font-weight: 700;
 }
 
+
 .daily-receipt-office {
+
     font-size: 20px;
 
     font-weight: 700;
 }
 
+
 .daily-receipt-header-line {
+
     width: 100%;
 
     margin-top: 5px;
@@ -115,7 +141,9 @@
         1.5px solid #000;
 }
 
+
 .daily-receipt-title {
+
     margin-top: 10px;
 
     margin-bottom: 18px;
@@ -133,6 +161,7 @@
 ============================================================ */
 
 .daily-receipt-information {
+
     width: 100%;
 
     display: grid;
@@ -147,7 +176,9 @@
     box-sizing: border-box;
 }
 
+
 .daily-receipt-info-row {
+
     display: flex;
 
     align-items: baseline;
@@ -157,7 +188,9 @@
     margin-bottom: 5px;
 }
 
+
 .daily-receipt-info-label {
+
     font-size: 12px;
 
     font-weight: 500;
@@ -165,13 +198,17 @@
     white-space: nowrap;
 }
 
+
 .daily-receipt-info-value {
+
     font-size: 12px;
 
     font-weight: 700;
 }
 
+
 .daily-receipt-info-right {
+
     justify-content: flex-end;
 }
 
@@ -181,14 +218,19 @@
 ============================================================ */
 
 .daily-receipt-section {
+
     width: 100%;
 
     margin-top: 4px;
 
+    margin-bottom: 8px;
+
     box-sizing: border-box;
 }
 
+
 .daily-receipt-table {
+
     width: 100%;
 
     border-collapse: collapse;
@@ -198,90 +240,154 @@
     box-sizing: border-box;
 }
 
+
+/* ============================================================
+   TABLE CELLS
+============================================================ */
+
 .daily-receipt-table th,
 .daily-receipt-table td {
+
     border: 1px solid #000;
 
+    /*
+       COMPACT ROW SPACING
+    */
+
     padding:
-        4px
-        5px;
+        2px
+        4px;
 
     vertical-align: middle;
 
     box-sizing: border-box;
 }
 
+
+/* ============================================================
+   HEADER
+============================================================ */
+
 .daily-receipt-table th {
+
     text-align: center;
 
     font-size: 12px;
 
     font-weight: 700;
 
-    line-height: 1.15;
+    line-height: 1.05;
 }
+
+
+.daily-receipt-table thead th {
+
+    padding-top: 3px;
+
+    padding-bottom: 3px;
+
+    border:
+        1px solid #000;
+}
+
+
+/* ============================================================
+   BODY
+============================================================ */
 
 .daily-receipt-table td {
+
     font-size: 12px;
 
-    line-height: 1.1;
+    line-height: 1.05;
 }
 
 
-/* Header */
-.daily-receipt-table thead th {
-    border: 1px solid #000;
-}
-
-
-/* Body */
 .daily-receipt-table tbody td {
+
     border: none !important;
 
-    padding-top: 10px;
+    padding-top: 3px;
 
-    padding-bottom: 20px;
+    padding-bottom: 3px;
 }
 
 
-/* Grand total */
+/* ============================================================
+   GRAND TOTAL
+============================================================ */
+
 .daily-receipt-table tfoot td {
+
     border: none !important;
 
     border-top:
         1px solid #000 !important;
 
-    padding: 5px;
+    padding:
+        5px
+        4px;
+
+    font-weight: 700;
+}
+
+
+.daily-receipt-receipt-count {
+
+    font-weight: 700;
+}
+
+
+.daily-receipt-grand-total-label {
+
+    text-align: right !important;
+
+    font-weight: 700;
+}
+
+
+.daily-receipt-grand-total {
+
+    text-align: right !important;
+
+    font-size: 16px !important;
 
     font-weight: 700;
 }
 
 
 /* ============================================================
-   TABLE COLUMN WIDTHS
+   TABLE COLUMNS
 ============================================================ */
 
 .daily-receipt-entry-column {
+
     width: 10%;
 
     text-align: center !important;
 }
 
+
 .daily-receipt-table
 th:nth-child(2),
 .daily-receipt-table
 td:nth-child(2) {
+
     width: 20%;
 }
+
 
 .daily-receipt-table
 th:nth-child(3),
 .daily-receipt-table
 td:nth-child(3) {
+
     width: 50%;
 }
 
+
 .daily-receipt-amount-column {
+
     width: 20%;
 
     text-align: right !important;
@@ -293,6 +399,7 @@ td:nth-child(3) {
 ============================================================ */
 
 .daily-receipt-empty {
+
     padding: 20px !important;
 
     text-align: center !important;
@@ -302,47 +409,34 @@ td:nth-child(3) {
 
 
 /* ============================================================
-   GRAND TOTAL
-============================================================ */
-
-.daily-receipt-grand-total-label {
-    text-align: right !important;
-
-    font-weight: 700;
-}
-
-.daily-receipt-grand-total {
-    text-align: right !important;
-
-    font-size: 16px !important;
-
-    font-weight: 700;
-}
-
-
-/* ============================================================
    SIGNATORIES
 ============================================================ */
 
 .daily-receipt-signatories {
+
     width: 100%;
 
     margin-top: 50px;
 
     display: grid;
 
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+        1fr 1fr;
 
     gap: 80px;
 
     box-sizing: border-box;
 }
 
+
 .daily-receipt-signature-label {
+
     font-size: 12px;
 }
 
+
 .daily-receipt-signature-name {
+
     margin-top: 30px;
 
     padding-bottom: 4px;
@@ -357,7 +451,9 @@ td:nth-child(3) {
     font-weight: 700;
 }
 
+
 .daily-receipt-signature-role {
+
     margin-top: 4px;
 
     text-align: center;
@@ -371,6 +467,7 @@ td:nth-child(3) {
 ============================================================ */
 
 .daily-receipt-footer {
+
     width: 100%;
 
     margin-top: auto;
@@ -393,35 +490,151 @@ td:nth-child(3) {
 
 
 /* ============================================================
+   PAGE NUMBER
+============================================================ */
+
+.daily-receipt-page-number {
+
+    width: 100%;
+
+    margin-top: 8px;
+
+    text-align: center;
+
+    font-size: 9px;
+
+    font-weight: 600;
+
+    line-height: 1;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   FLOATING PRINT BUTTON
+============================================================ */
+
+.daily-receipt-floating-print {
+
+    position: fixed;
+
+    right: 28px;
+
+    bottom: 28px;
+
+    z-index: 9999;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    min-width: 105px;
+
+    height: 46px;
+
+    padding:
+        0
+        18px;
+
+    border: none;
+
+    border-radius: 23px;
+
+    background: #1e3a8a;
+
+    color: #fff;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 4px 12px
+        rgba(
+            0,
+            0,
+            0,
+            0.25
+        );
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+.daily-receipt-floating-print:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 6px 16px
+        rgba(
+            0,
+            0,
+            0,
+            0.30
+        );
+}
+
+
+.daily-receipt-floating-print:active {
+
+    transform:
+        translateY(0);
+
+    box-shadow:
+        0 3px 8px
+        rgba(
+            0,
+            0,
+            0,
+            0.20
+        );
+}
+
+
+.daily-receipt-print-icon {
+
+    font-size: 16px;
+
+    line-height: 1;
+}
+
+
+/* ============================================================
    MULTI-PAGE PREVIEW
 ============================================================ */
 
-/*
-   When there are multiple receipt pages,
-   keep every paper as its own Folio sheet.
-*/
-
 .daily-receipt-paper + .daily-receipt-paper {
+
     margin-top: 24px;
 }
 
 
-/*
-   Every paper after the first one is a new page.
-*/
-
 .daily-receipt-paper {
+
     break-after: page;
 
     page-break-after: always;
 }
 
 
-/*
-   Do not force a blank page after the final paper.
-*/
-
 .daily-receipt-paper:last-child {
+
     break-after: auto;
 
     page-break-after: auto;
@@ -429,172 +642,32 @@ td:nth-child(3) {
 
 
 /* ============================================================
-   PRINT
+   PRINT FALLBACK
+   The main print action opens a dedicated print window.
 ============================================================ */
 
 @media print {
 
-    @page {
-        size: 8.5in 13in;
-
-        margin: 0;
+    .daily-receipt-floating-print {
+        display: none !important;
     }
-
-
-    html,
-    body {
-        width: 8.5in !important;
-
-        height: auto !important;
-
-        margin: 0 !important;
-
-        padding: 0 !important;
-
-        background: #fff !important;
-
-        overflow: visible !important;
-    }
-
-
-    /*
-       Hide everything outside the
-       Daily Receipt report.
-    */
-
-    body * {
-        visibility: hidden !important;
-    }
-
-
-    /*
-       Make the entire report visible.
-
-       IMPORTANT:
-       The print-area ID is kept on the wrapper
-       so multiple .daily-receipt-paper elements
-       can be printed.
-    */
-
-    #daily-receipt-by-fund-source-print-area,
-    #daily-receipt-by-fund-source-print-area * {
-        visibility: visible !important;
-    }
-
-
-    /* ========================================================
-       WRAPPER
-    ======================================================== */
 
     .daily-receipt-preview-wrapper {
-
-        width: 8.5in !important;
-
-        height: auto !important;
-
-        min-width: 8.5in !important;
-
-        min-height: 0 !important;
-
-        margin: 0 !important;
-
-        padding: 0 !important;
-
-        display: block !important;
-
         background: #fff !important;
-
+        padding: 0 !important;
         overflow: visible !important;
     }
 
-
-    /* ========================================================
-       PAPER
-    ======================================================== */
-
     .daily-receipt-paper {
-
-        position: relative !important;
-
-        left: auto !important;
-
-        top: auto !important;
-
-        width: 8.5in !important;
-
-        height: 13in !important;
-
-        min-width: 8.5in !important;
-
-        min-height: 13in !important;
-
-        max-width: 8.5in !important;
-
-        max-height: 13in !important;
-
-        margin: 0 !important;
-
-        padding:
-            0.30in
-            0.30in
-            0.25in
-            0.30in !important;
-
-        box-sizing: border-box !important;
-
-        background: #fff !important;
-
         box-shadow: none !important;
-
-        overflow: hidden !important;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
+        margin-top: 0 !important;
         break-after: page !important;
-
         page-break-after: always !important;
     }
 
-
-    /*
-       Remove preview spacing between pages
-       while printing.
-    */
-
-    .daily-receipt-paper + .daily-receipt-paper {
-        margin-top: 0 !important;
-    }
-
-
-    /*
-       Last page does not create another blank page.
-    */
-
     .daily-receipt-paper:last-child {
-
         break-after: auto !important;
-
         page-break-after: auto !important;
-    }
-
-
-    /* ========================================================
-       TABLE
-    ======================================================== */
-
-    .daily-receipt-table {
-        width: 100% !important;
-    }
-
-
-    /* ========================================================
-       FOOTER
-    ======================================================== */
-
-    .daily-receipt-footer {
-        margin-top: auto !important;
     }
 
 }
