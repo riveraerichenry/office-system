@@ -585,9 +585,86 @@
     font-size: 13px;
 }
 
+/* ============================================================
+   MULTI-PAGE PREVIEW
+============================================================ */
+
+.abstract-summary-paper {
+    margin-top: 24px;
+    flex: 0 0 13in;
+}
+
+.abstract-summary-paper:first-of-type {
+    margin-top: 0;
+}
+
 
 /* ============================================================
-   PRINT
+   FLOATING PRINT BUTTON
+============================================================ */
+
+.abstract-summary-floating-print {
+    position: fixed;
+
+    right: 28px;
+    bottom: 28px;
+
+    z-index: 9999;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    min-width: 110px;
+    height: 44px;
+
+    padding: 0 16px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #1e3a8a;
+    color: #fff;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 4px 12px
+        rgba(
+            0,
+            0,
+            0,
+            0.20
+        );
+}
+
+.abstract-summary-floating-print:hover {
+    background: #1d4ed8;
+}
+
+.abstract-summary-floating-print:active {
+    transform: translateY(1px);
+}
+
+.abstract-summary-print-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+
+/* ============================================================
+   PRINT FALLBACK
+   The main print action opens a dedicated print window.
 ============================================================ */
 
 @media print {
@@ -597,119 +674,55 @@
         margin: 0;
     }
 
-
     html,
     body {
         width: 8.5in !important;
-
         margin: 0 !important;
-
         padding: 0 !important;
-
         background: #fff !important;
-
         overflow: visible !important;
     }
 
-
-    body * {
-        visibility: hidden !important;
+    .abstract-summary-floating-print {
+        display: none !important;
     }
-
-
-    #abstract-summary-print-area,
-    #abstract-summary-print-area * {
-        visibility: visible !important;
-    }
-
 
     .abstract-summary-preview-wrapper {
         width: 8.5in !important;
-
-        height: 13in !important;
-
         min-width: 8.5in !important;
 
-        min-height: 13in !important;
-
         margin: 0 !important;
-
         padding: 0 !important;
 
-        display: block !important;
-
         background: #fff !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
 
         overflow: visible !important;
     }
 
-
-    #abstract-summary-print-area {
-        position: absolute !important;
-
-        top: 0 !important;
-
-        left: 0 !important;
-
+    .abstract-summary-paper {
         width: 8.5in !important;
-
         height: 13in !important;
 
         min-width: 8.5in !important;
-
         min-height: 13in !important;
 
         max-width: 8.5in !important;
-
         max-height: 13in !important;
 
         margin: 0 !important;
 
-        padding:
-            0.42in
-            0.42in
-            0.35in
-            0.42in !important;
-
-        box-sizing: border-box !important;
-
-        background: #fff !important;
-
         box-shadow: none !important;
 
-        overflow: hidden !important;
-
-        display: flex !important;
-
-        flex-direction: column !important;
+        break-after: page !important;
+        page-break-after: always !important;
     }
 
-
-    .abstract-summary-section {
-        width: 100% !important;
-
-        min-width: 0 !important;
+    .abstract-summary-paper:last-child {
+        break-after: auto !important;
+        page-break-after: auto !important;
     }
-
-
-    .abstract-summary-table {
-        width: 100% !important;
-
-        table-layout: fixed !important;
-
-        border-collapse: collapse !important;
-    }
-
-
-    .abstract-summary-table thead th,
-    .abstract-summary-table tbody td,
-    .abstract-summary-table tfoot td {
-        box-sizing: border-box !important;
-    }
-
-
-    .abstract-summary-footer {
-        margin-top: auto !important;
-    }
-
 }

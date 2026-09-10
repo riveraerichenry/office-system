@@ -6,6 +6,10 @@ type Props = {
     formatAmount: (
         value: any
     ) => string;
+
+    showGrandTotal?: boolean;
+
+    grandTotalOverride?: number;
 };
 
 
@@ -140,6 +144,8 @@ function getAmount(
 export default function AbstractSummaryAccounts({
     items = [],
     formatAmount,
+    showGrandTotal = true,
+    grandTotalOverride,
 }: Props) {
 
     const rows: any[] =
@@ -148,7 +154,7 @@ export default function AbstractSummaryAccounts({
             : [];
 
 
-    const grandTotal =
+    const pageGrandTotal =
         rows.reduce(
             (
                 total: number,
@@ -158,6 +164,10 @@ export default function AbstractSummaryAccounts({
                 getAmount(item),
             0
         );
+
+    const grandTotal =
+        grandTotalOverride ??
+        pageGrandTotal;
 
 
     return (
@@ -370,34 +380,38 @@ export default function AbstractSummaryAccounts({
                     GRAND TOTAL
                 ==================================================== */}
 
-                <tfoot>
+                {showGrandTotal && (
 
-                    <tr>
+                    <tfoot>
 
-                        <td
-                            colSpan={6}
-                            className="
-                                abstract-summary-total-label
-                            "
-                        >
-                            Grand Total:
-                        </td>
+                        <tr>
 
-                        <td
-                            className="
-                                abstract-summary-total
-                            "
-                        >
-                            {
-                                formatAmount(
-                                    grandTotal
-                                )
-                            }
-                        </td>
+                            <td
+                                colSpan={6}
+                                className="
+                                    abstract-summary-total-label
+                                "
+                            >
+                                Grand Total:
+                            </td>
 
-                    </tr>
+                            <td
+                                className="
+                                    abstract-summary-total
+                                "
+                            >
+                                {
+                                    formatAmount(
+                                        grandTotal
+                                    )
+                                }
+                            </td>
 
-                </tfoot>
+                        </tr>
+
+                    </tfoot>
+
+                )}
 
             </table>
 

@@ -54,7 +54,7 @@ export default function AbstractSummaryHeader({
                 GOVERNMENT HEADER
             ==================================================== */}
 
-            <div className="daily-receipt-government">
+            <div className="abstract-summary-government">
 
                 <div>
                     Republic of the Philippines
@@ -65,13 +65,13 @@ export default function AbstractSummaryHeader({
                 </div>
 
                 <div className="
-                    daily-receipt-municipality
+                    abstract-summary-municipality
                 ">
                     MUNICIPALITY OF TAYTAY
                 </div>
 
                 <div className="
-                    daily-receipt-office
+                    abstract-summary-office
                 ">
                     OFFICE OF THE MUNICIPAL TREASURER
                 </div>
@@ -84,7 +84,7 @@ export default function AbstractSummaryHeader({
             ==================================================== */}
 
             <div className="
-                daily-receipt-header-line
+                abstract-summary-header-line
             " />
 
 
@@ -93,7 +93,7 @@ export default function AbstractSummaryHeader({
             ==================================================== */}
 
             <div className="
-                daily-receipt-title
+                abstract-summary-title
             ">
                 ABSTRACT OF COLLECTIONS
             </div>
@@ -104,7 +104,7 @@ export default function AbstractSummaryHeader({
             ==================================================== */}
 
             <div className="
-                daily-receipt-information
+                abstract-summary-information
             ">
 
 
@@ -117,17 +117,17 @@ export default function AbstractSummaryHeader({
                     {/* FUND TYPE */}
 
                     <div className="
-                        daily-receipt-info-row
+                        abstract-summary-info-row
                     ">
 
                         <span className="
-                            daily-receipt-info-label
+                            abstract-summary-info-label
                         ">
                             Fund Type:
                         </span>
 
                         <span className="
-                            daily-receipt-info-value
+                            abstract-summary-info-value
                         ">
 
                             {
@@ -150,17 +150,17 @@ export default function AbstractSummaryHeader({
                     {/* ACCOUNTABLE OFFICER */}
 
                     <div className="
-                        daily-receipt-info-row
+                        abstract-summary-info-row
                     ">
 
                         <span className="
-                            daily-receipt-info-label
+                            abstract-summary-info-label
                         ">
                             Accountable Officer:
                         </span>
 
                         <span className="
-                            daily-receipt-info-value
+                            abstract-summary-info-value
                         ">
 
                             {
@@ -185,18 +185,18 @@ export default function AbstractSummaryHeader({
                     {/* DATE */}
 
                     <div className="
-                        daily-receipt-info-row
-                        daily-receipt-info-right
+                        abstract-summary-info-row
+                        abstract-summary-info-right
                     ">
 
                         <span className="
-                            daily-receipt-info-label
+                            abstract-summary-info-label
                         ">
                             Date:
                         </span>
 
                         <span className="
-                            daily-receipt-info-value
+                            abstract-summary-info-value
                         ">
 
                             {
@@ -214,18 +214,18 @@ export default function AbstractSummaryHeader({
                     {/* REPORT NO */}
 
                     <div className="
-                        daily-receipt-info-row
-                        daily-receipt-info-right
+                        abstract-summary-info-row
+                        abstract-summary-info-right
                     ">
 
                         <span className="
-                            daily-receipt-info-label
+                            abstract-summary-info-label
                         ">
                             Report No:
                         </span>
 
                         <span className="
-                            daily-receipt-info-value
+                            abstract-summary-info-value
                         ">
 
                             {

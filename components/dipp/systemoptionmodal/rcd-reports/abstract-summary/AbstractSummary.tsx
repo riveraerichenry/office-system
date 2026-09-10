@@ -115,6 +115,264 @@ function getFullName(
 
 
 /* ============================================================
+   PRINT
+   Use a dedicated print window so Chrome print preview receives
+   the actual report content and stylesheet URLs.
+============================================================ */
+
+function printAbstractSummary() {
+
+    const reportElement =
+        document.querySelector(
+            ".abstract-summary-preview-wrapper"
+        ) as HTMLElement | null;
+
+    if (!reportElement) {
+        console.error(
+            "Abstract Summary preview not found."
+        );
+        return;
+    }
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1200,height=900"
+        );
+
+    if (!printWindow) {
+        alert(
+            "Please allow pop-ups for this site so the report can be printed."
+        );
+        return;
+    }
+
+    const styles: string[] = [];
+
+    document
+        .querySelectorAll(
+            'link[rel="stylesheet"]'
+        )
+        .forEach((link) => {
+
+            const href =
+                link.getAttribute("href");
+
+            if (!href) {
+                return;
+            }
+
+            const absoluteHref =
+                new URL(
+                    href,
+                    window.location.href
+                ).href;
+
+            styles.push(
+                `<link rel="stylesheet" href="${absoluteHref}" />`
+            );
+        });
+
+    document
+        .querySelectorAll("style")
+        .forEach((style) => {
+            styles.push(
+                style.outerHTML
+            );
+        });
+
+    const clonedReport =
+        reportElement.cloneNode(
+            true
+        ) as HTMLElement;
+
+    clonedReport
+        .querySelector(
+            ".abstract-summary-floating-print"
+        )
+        ?.remove();
+
+    clonedReport
+        .querySelectorAll("button")
+        .forEach((button) => {
+            button.remove();
+        });
+
+    printWindow.document.open();
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+            <head>
+
+                <meta charset="UTF-8" />
+
+                <title>
+                    Abstract of Collections
+                </title>
+
+                ${styles.join("\n")}
+
+                <style>
+
+                    html,
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        width: 8.5in !important;
+                        min-width: 8.5in !important;
+
+                        background: #fff !important;
+
+                        overflow: visible !important;
+                    }
+
+                    body {
+                        display: block !important;
+                    }
+
+                    .abstract-summary-preview-wrapper {
+
+                        width: 8.5in !important;
+                        min-width: 8.5in !important;
+
+                        margin: 0 !important;
+                        padding: 0 !important;
+
+                        background: #fff !important;
+
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+
+                        overflow: visible !important;
+                    }
+
+                    .abstract-summary-paper {
+
+                        width: 8.5in !important;
+                        height: 13in !important;
+
+                        min-width: 8.5in !important;
+                        min-height: 13in !important;
+
+                        max-width: 8.5in !important;
+                        max-height: 13in !important;
+
+                        margin: 0 !important;
+
+                        background: #fff !important;
+
+                        box-shadow: none !important;
+
+                        overflow: hidden !important;
+
+                        position: relative !important;
+
+                        display: flex !important;
+                        flex-direction: column !important;
+
+                        box-sizing: border-box !important;
+
+                        break-after: page !important;
+                        page-break-after: always !important;
+                    }
+
+                    .abstract-summary-paper:last-child {
+
+                        break-after: auto !important;
+                        page-break-after: auto !important;
+                    }
+
+                    .abstract-summary-floating-print {
+                        display: none !important;
+                    }
+
+                    .abstract-summary-preview-wrapper,
+                    .abstract-summary-paper,
+                    .abstract-summary-paper * {
+                        visibility: visible !important;
+                    }
+
+                    @page {
+                        size: 8.5in 13in;
+                        margin: 0;
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                ${clonedReport.outerHTML}
+
+            </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+
+    const waitForPrint =
+        async () => {
+
+            try {
+
+                if (
+                    printWindow.document.fonts
+                ) {
+                    await printWindow
+                        .document
+                        .fonts
+                        .ready;
+                }
+
+            } catch {
+                // Ignore font loading errors.
+            }
+
+            await new Promise<void>(
+                (resolve) => {
+
+                    setTimeout(
+                        resolve,
+                        1000
+                    );
+
+                }
+            );
+
+            printWindow.focus();
+
+            printWindow.print();
+        };
+
+    if (
+        printWindow.document.readyState ===
+        "complete"
+    ) {
+
+        void waitForPrint();
+
+    } else {
+
+        printWindow.onload =
+            () => {
+                void waitForPrint();
+            };
+
+    }
+
+    printWindow.onafterprint =
+        () => {
+            printWindow.close();
+        };
+}
+
+
+/* ============================================================
    COMPONENT
 ============================================================ */
 
@@ -125,7 +383,6 @@ export default function AbstractSummary({
     fundSource,
     user,
 }: Props) {
-
 
     /* ========================================================
        INITIAL REPORT
@@ -207,7 +464,6 @@ export default function AbstractSummary({
         const reportId =
             initialReport?.id;
 
-
         if (!reportId) {
 
             setSelectedReport(
@@ -226,12 +482,9 @@ export default function AbstractSummary({
             );
 
             return;
-
         }
 
-
         let cancelled = false;
-
 
         async function loadAbstractSummary() {
 
@@ -241,14 +494,8 @@ export default function AbstractSummary({
 
                 setError(null);
 
-
-                /* ==================================================
-                   API
-                ================================================== */
-
                 const url =
                     `/api/rcd/reports/${reportId}/abstractsummary`;
-
 
                 const response =
                     await fetch(
@@ -259,14 +506,8 @@ export default function AbstractSummary({
                         }
                     );
 
-
                 const data =
                     await response.json();
-
-
-                /* ==================================================
-                   ERROR
-                ================================================== */
 
                 if (!response.ok) {
 
@@ -274,63 +515,38 @@ export default function AbstractSummary({
                         data?.error ??
                         "Failed to load Abstract Summary."
                     );
-
                 }
-
 
                 if (cancelled) {
                     return;
                 }
 
-
-                /* ==================================================
-                   RCD
-                ================================================== */
-
-                if (
-                    data?.rcd
-                ) {
+                if (data?.rcd) {
 
                     setSelectedReport(
                         data.rcd
                     );
 
-                }
-                else {
+                } else {
 
                     setSelectedReport(
                         initialReport
                     );
-
                 }
 
-
-                /* ==================================================
-                   FUND SOURCE
-                ================================================== */
-
-                if (
-                    data?.fund_source
-                ) {
+                if (data?.fund_source) {
 
                     setSelectedFundSource(
                         data.fund_source
                     );
 
-                }
-                else {
+                } else {
 
                     setSelectedFundSource(
                         fundSource ??
                         null
                     );
-
                 }
-
-
-                /* ==================================================
-                   ITEMS
-                ================================================== */
 
                 const rows =
                     Array.isArray(
@@ -339,11 +555,9 @@ export default function AbstractSummary({
                         ? data.items
                         : [];
 
-
                 setAccountRows(
                     rows
                 );
-
 
             }
             catch (
@@ -355,7 +569,6 @@ export default function AbstractSummary({
                     err
                 );
 
-
                 if (!cancelled) {
 
                     setError(
@@ -363,11 +576,9 @@ export default function AbstractSummary({
                         "Failed to load Abstract Summary."
                     );
 
-
                     setAccountRows(
                         []
                     );
-
                 }
 
             }
@@ -385,16 +596,13 @@ export default function AbstractSummary({
 
         }
 
-
         loadAbstractSummary();
-
 
         return () => {
 
             cancelled = true;
 
         };
-
 
     }, [
         initialReport?.id,
@@ -423,6 +631,78 @@ export default function AbstractSummary({
 
 
     /* ============================================================
+       PAGINATION
+
+       The daily receipt page uses a practical 38-row page and
+       keeps the final page shorter so the Grand Total and
+       signatories have room.
+    ============================================================ */
+
+    const NORMAL_PAGE_ROWS = 38;
+    const LAST_PAGE_ROWS = 30;
+
+    const pages: any[][] = [];
+
+    if (accountRows.length === 0) {
+
+        pages.push([]);
+
+    } else {
+
+        let start = 0;
+
+        while (
+            start < accountRows.length
+        ) {
+
+            const remaining =
+                accountRows.length -
+                start;
+
+            const pageSize =
+                remaining <= LAST_PAGE_ROWS
+                    ? remaining
+                    : NORMAL_PAGE_ROWS;
+
+            pages.push(
+                accountRows.slice(
+                    start,
+                    start + pageSize
+                )
+            );
+
+            start += pageSize;
+        }
+    }
+
+
+    /* ============================================================
+       GRAND TOTAL
+    ============================================================ */
+
+    const grandTotal =
+        accountRows.reduce(
+            (
+                total: number,
+                item: any
+            ) => {
+
+                const amount =
+                    Number(
+                        item?.amount ??
+                        item?.total ??
+                        item?.value ??
+                        0
+                    );
+
+                return total + amount;
+
+            },
+            0
+        );
+
+
+    /* ============================================================
        RENDER
     ============================================================ */
 
@@ -432,193 +712,228 @@ export default function AbstractSummary({
             abstract-summary-preview-wrapper
         ">
 
+            {/* ==================================================
+                PRINT BUTTON
+            ================================================== */}
 
-            <div
-                id="abstract-summary-print-area"
+            <button
+                type="button"
+                onClick={
+                    printAbstractSummary
+                }
                 className="
-                    abstract-summary-paper
+                    abstract-summary-floating-print
                 "
+                title="Print Abstract of Collections"
+                aria-label="Print Abstract of Collections"
             >
 
-
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
-
-                <AbstractSummaryHeader
-                    report={
-                        selectedReport
-                    }
-
-                    fundSource={
-                        selectedFundSource
-                    }
-
-                    user={
-                        user
-                    }
-                />
-
-
-                {/* ==================================================
-                    COLLECTION TABLE
-                ================================================== */}
-
-                {loading ? (
-
-                    <div className="
-                        abstract-summary-status
-                    ">
-
-                        Loading collections...
-
-                    </div>
-
-                ) : error ? (
-
-                    <div className="
-                        abstract-summary-status
-                        abstract-summary-error
-                    ">
-
-                        {error}
-
-                    </div>
-
-                ) : (
-
-                    <AbstractSummaryAccounts
-
-                        items={
-                            accountRows
-                        }
-
-                        formatAmount={
-                            formatAmount
-                        }
-
-                    />
-
-                )}
-
-
-                {/* ==================================================
-                    SIGNATORIES
-                ================================================== */}
-
-                <div className="
-                    abstract-summary-signatories
+                <span className="
+                    abstract-summary-print-icon
                 ">
+                    🖨
+                </span>
+
+                <span>
+                    Print
+                </span>
+
+            </button>
 
 
-                    {/* ==================================================
-                        PREPARED BY
-                    ================================================== */}
+            {/* ==================================================
+                PAGES
+            ================================================== */}
 
-                    <div className="
-                        abstract-summary-signature
-                    ">
+            {pages.map(
+                (
+                    pageItems,
+                    pageIndex
+                ) => {
 
-                        <div className="
-                            abstract-summary-signature-label
-                        ">
+                    const isLastPage =
+                        pageIndex ===
+                        pages.length - 1;
 
-                            Prepared By:
+                    return (
 
-                        </div>
-
-
-                        <div className="
-                            abstract-summary-signature-name
-                        ">
-
-                            {
-                                selectedReport?.rcd_by_name ??
-                                getFullName(user)
+                        <div
+                            key={
+                                `abstract-summary-page-${pageIndex}`
                             }
+                            className="
+                                abstract-summary-paper
+                            "
+                        >
+
+                            {/* ==================================================
+                                HEADER
+                            ================================================== */}
+
+                            <AbstractSummaryHeader
+                                report={
+                                    selectedReport
+                                }
+
+                                fundSource={
+                                    selectedFundSource
+                                }
+
+                                user={
+                                    user
+                                }
+                            />
+
+
+                            {/* ==================================================
+                                COLLECTION TABLE
+                            ================================================== */}
+
+                            {loading ? (
+
+                                <div className="
+                                    abstract-summary-status
+                                ">
+
+                                    Loading collections...
+
+                                </div>
+
+                            ) : error ? (
+
+                                <div className="
+                                    abstract-summary-status
+                                    abstract-summary-error
+                                ">
+
+                                    {error}
+
+                                </div>
+
+                            ) : (
+
+                                <AbstractSummaryAccounts
+                                    items={
+                                        pageItems
+                                    }
+
+                                    formatAmount={
+                                        formatAmount
+                                    }
+
+                                    showGrandTotal={
+                                        isLastPage
+                                    }
+
+                                    grandTotalOverride={
+                                        grandTotal
+                                    }
+
+                                />
+
+                            )}
+
+
+                            {/* ==================================================
+                                SIGNATORIES — LAST PAGE ONLY
+                            ================================================== */}
+
+                            {isLastPage && (
+
+                                <div className="
+                                    abstract-summary-signatories
+                                ">
+
+                                    <div className="
+                                        abstract-summary-signature
+                                    ">
+
+                                        <div className="
+                                            abstract-summary-signature-label
+                                        ">
+                                            Prepared By:
+                                        </div>
+
+                                        <div className="
+                                            abstract-summary-signature-name
+                                        ">
+
+                                            {
+                                                selectedReport?.rcd_by_name ??
+                                                getFullName(user)
+                                            }
+
+                                        </div>
+
+                                        <div className="
+                                            abstract-summary-signature-role
+                                        ">
+                                            Accountable Officer
+                                        </div>
+
+                                    </div>
+
+
+                                    <div className="
+                                        abstract-summary-signature
+                                    ">
+
+                                        <div className="
+                                            abstract-summary-signature-label
+                                        ">
+                                            Noted By:
+                                        </div>
+
+                                        <div className="
+                                            abstract-summary-signature-name
+                                        ">
+                                            MARIA CRISTINA B. FORMACION
+                                        </div>
+
+                                        <div className="
+                                            abstract-summary-signature-role
+                                        ">
+                                            Municipal Treasurer
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            )}
+
+
+                            {/* ==================================================
+                                FOOTER
+                            ================================================== */}
+
+                            <div className="
+                                abstract-summary-footer
+                            ">
+
+                                <span>
+                                    Abstract of Collections
+                                </span>
+
+                                <span>
+                                    {
+                                        selectedReport?.report_no ??
+                                        "—"
+                                    }
+                                </span>
+
+                                <span>
+                                    Page {pageIndex + 1} of {pages.length}
+                                </span>
+
+                            </div>
 
                         </div>
 
+                    );
 
-                        <div className="
-                            abstract-summary-signature-role
-                        ">
-
-                            Accountable Officer
-
-                        </div>
-
-                    </div>
-
-
-                    {/* ==================================================
-                        NOTED BY
-                    ================================================== */}
-
-                    <div className="
-                        abstract-summary-signature
-                    ">
-
-                        <div className="
-                            abstract-summary-signature-label
-                        ">
-
-                            Noted By:
-
-                        </div>
-
-
-                        <div className="
-                            abstract-summary-signature-name
-                        ">
-
-                            MARIA CRISTINA B. FORMACION
-
-                        </div>
-
-
-                        <div className="
-                            abstract-summary-signature-role
-                        ">
-
-                            Municipal Treasurer
-
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-
-                {/* ==================================================
-                    FOOTER
-                ================================================== */}
-
-                <div className="
-                    abstract-summary-footer
-                ">
-
-                    <span>
-
-                        Abstract of Collections
-
-                    </span>
-
-
-                    <span>
-
-                        {
-                            selectedReport?.report_no ??
-                            "—"
-                        }
-
-                    </span>
-
-                </div>
-
-
-            </div>
+                }
+            )}
 
         </div>
 
