@@ -5,11 +5,16 @@ type Props = {
     formatAmount: (
         value: any
     ) => string;
+
+    showGrandTotal?: boolean;
+    grandTotalOverride?: number;
 };
 
 export default function AbstractSummaryByAccounts({
     items = [],
     formatAmount,
+    showGrandTotal = true,
+    grandTotalOverride,
 }: Props) {
 
     const rows: any[] =
@@ -18,6 +23,7 @@ export default function AbstractSummaryByAccounts({
             : [];
 
     const grandTotal =
+        grandTotalOverride ??
         rows.reduce(
             (
                 total: number,
@@ -106,29 +112,31 @@ export default function AbstractSummaryByAccounts({
 
                 </tbody>
 
-                <tfoot>
+                {showGrandTotal && (
+                    <tfoot>
 
-                    <tr>
+                        <tr>
 
-                        <td
-                            colSpan={2}
-                            className="abstract-by-summary-total-label"
-                        >
-                            Grand Total:
-                        </td>
+                            <td
+                                colSpan={2}
+                                className="abstract-by-summary-total-label"
+                            >
+                                Grand Total:
+                            </td>
 
-                        <td className="abstract-by-summary-total">
-                            ₱
-                            {
-                                formatAmount(
-                                    grandTotal
-                                )
-                            }
-                        </td>
+                            <td className="abstract-by-summary-total">
+                                ₱
+                                {
+                                    formatAmount(
+                                        grandTotal
+                                    )
+                                }
+                            </td>
 
-                    </tr>
+                        </tr>
 
-                </tfoot>
+                    </tfoot>
+                )}
 
             </table>
 

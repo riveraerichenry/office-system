@@ -172,6 +172,109 @@
 
 
 /* ============================================================
+   INFORMATION
+============================================================ */
+
+.abstract-summary-information {
+    width: 100%;
+
+    margin-top: 24px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   LEFT INFORMATION COLUMN
+============================================================ */
+
+.abstract-summary-information > div:first-child {
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+/* ============================================================
+   RIGHT INFORMATION COLUMN
+============================================================ */
+
+.abstract-summary-info-right-column {
+    width: 2.8in;
+
+    margin-left: auto;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   INFORMATION ROW
+============================================================ */
+
+.abstract-summary-info-row {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 7px;
+
+    margin-bottom: 7px;
+
+    font-size: 11px;
+
+    line-height: 1.2;
+}
+
+
+.abstract-summary-info-label {
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.abstract-summary-info-value {
+    font-weight: 400;
+
+    min-width: 0;
+
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   RIGHT INFORMATION ROW
+============================================================ */
+
+.abstract-summary-info-right {
+    justify-content: flex-end;
+
+    text-align: right;
+}
+
+
+.abstract-summary-info-right
+.abstract-summary-info-label {
+    text-align: right;
+}
+
+
+.abstract-summary-info-right
+.abstract-summary-info-value {
+    text-align: right;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
    TABLE SECTION
 ============================================================ */
 
@@ -585,14 +688,17 @@
     font-size: 13px;
 }
 
+
 /* ============================================================
    MULTI-PAGE PREVIEW
 ============================================================ */
 
 .abstract-summary-paper {
     margin-top: 24px;
+
     flex: 0 0 13in;
 }
+
 
 .abstract-summary-paper:first-of-type {
     margin-top: 0;
@@ -607,25 +713,31 @@
     position: fixed;
 
     right: 28px;
+
     bottom: 28px;
 
     z-index: 9999;
 
     display: inline-flex;
+
     align-items: center;
+
     justify-content: center;
 
     gap: 8px;
 
     min-width: 110px;
+
     height: 44px;
 
     padding: 0 16px;
 
     border: none;
+
     border-radius: 8px;
 
     background: #1e3a8a;
+
     color: #fff;
 
     font-family:
@@ -634,6 +746,7 @@
         sans-serif;
 
     font-size: 13px;
+
     font-weight: 700;
 
     cursor: pointer;
@@ -648,16 +761,20 @@
         );
 }
 
+
 .abstract-summary-floating-print:hover {
     background: #1d4ed8;
 }
+
 
 .abstract-summary-floating-print:active {
     transform: translateY(1px);
 }
 
+
 .abstract-summary-print-icon {
     font-size: 16px;
+
     line-height: 1;
 }
 
@@ -671,46 +788,62 @@
 
     @page {
         size: 8.5in 13in;
+
         margin: 0;
     }
+
 
     html,
     body {
         width: 8.5in !important;
+
         margin: 0 !important;
+
         padding: 0 !important;
+
         background: #fff !important;
+
         overflow: visible !important;
     }
+
 
     .abstract-summary-floating-print {
         display: none !important;
     }
 
+
     .abstract-summary-preview-wrapper {
         width: 8.5in !important;
+
         min-width: 8.5in !important;
 
         margin: 0 !important;
+
         padding: 0 !important;
 
         background: #fff !important;
 
         display: flex !important;
+
         flex-direction: column !important;
+
         align-items: center !important;
 
         overflow: visible !important;
     }
 
+
     .abstract-summary-paper {
         width: 8.5in !important;
+
         height: 13in !important;
 
         min-width: 8.5in !important;
+
         min-height: 13in !important;
 
         max-width: 8.5in !important;
+
         max-height: 13in !important;
 
         margin: 0 !important;
@@ -718,11 +851,14 @@
         box-shadow: none !important;
 
         break-after: page !important;
+
         page-break-after: always !important;
     }
 
+
     .abstract-summary-paper:last-child {
         break-after: auto !important;
+
         page-break-after: auto !important;
     }
 }

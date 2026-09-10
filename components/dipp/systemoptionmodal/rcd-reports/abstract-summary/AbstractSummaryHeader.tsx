@@ -179,7 +179,9 @@ export default function AbstractSummaryHeader({
                     RIGHT
                 ================================================== */}
 
-                <div>
+                <div className="
+                    abstract-summary-info-right-column
+                ">
 
 
                     {/* DATE */}

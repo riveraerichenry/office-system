@@ -142,15 +142,37 @@
 
     margin-top: 24px;
 
-    display: grid;
+    display: flex;
 
-    grid-template-columns:
-        1fr
-        1fr;
+    justify-content: space-between;
 
-    column-gap: 60px;
+    align-items: flex-start;
 
     box-sizing: border-box;
+}
+
+
+/* ============================================================
+   LEFT INFORMATION COLUMN
+============================================================ */
+
+.abstract-by-summary-information > div:first-child {
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+/* ============================================================
+   RIGHT INFORMATION COLUMN
+============================================================ */
+
+.abstract-by-summary-info-right-column {
+    width: 2.8in;
+
+    margin-left: auto;
+
+    flex-shrink: 0;
 }
 
 
@@ -189,8 +211,28 @@
 }
 
 
+/* ============================================================
+   RIGHT INFORMATION ROW
+============================================================ */
+
 .abstract-by-summary-info-right {
-    justify-content: flex-start;
+    justify-content: flex-end;
+
+    text-align: right;
+}
+
+
+.abstract-by-summary-info-right
+.abstract-by-summary-info-label {
+    text-align: right;
+}
+
+
+.abstract-by-summary-info-right
+.abstract-by-summary-info-value {
+    text-align: right;
+
+    white-space: nowrap;
 }
 
 
@@ -470,155 +512,117 @@
 }
 
 
+.abstract-by-summary-subtitle {
+    margin-top: 4px;
+
+    text-align: center;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
 /* ============================================================
-   PRINT
+   FLOATING PRINT BUTTON
+============================================================ */
+
+.abstract-by-summary-floating-print {
+    position: fixed;
+
+    right: 24px;
+    bottom: 24px;
+
+    z-index: 9999;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 11px 16px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #2563eb;
+    color: #fff;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 4px 12px
+        rgba(
+            0,
+            0,
+            0,
+            0.20
+        );
+}
+
+
+.abstract-by-summary-floating-print:hover {
+    background: #1d4ed8;
+}
+
+
+.abstract-by-summary-print-icon {
+    font-size: 16px;
+}
+
+
+/* ============================================================
+   MULTI-PAGE PREVIEW
+============================================================ */
+
+.abstract-by-summary-paper + .abstract-by-summary-paper {
+    margin-top: 24px;
+}
+
+
+/* ============================================================
+   PRINT FALLBACK
+   Main print action uses a dedicated print window.
 ============================================================ */
 
 @media print {
 
-    @page {
-        size: 8.5in 13in;
-
-        margin: 0;
+    .abstract-by-summary-floating-print {
+        display: none !important;
     }
-
-
-    html,
-    body {
-        width: 8.5in !important;
-
-        margin: 0 !important;
-
-        padding: 0 !important;
-
-        background: #fff !important;
-
-        overflow: visible !important;
-    }
-
-
-    body * {
-        visibility: hidden !important;
-    }
-
-
-    #abstract-by-summary-print-area,
-    #abstract-by-summary-print-area * {
-        visibility: visible !important;
-    }
-
-
-    /* ========================================================
-       PRINT WRAPPER
-    ======================================================== */
 
     .abstract-by-summary-preview-wrapper {
-        width: 8.5in !important;
-
-        height: 13in !important;
-
-        min-width: 8.5in !important;
-
-        min-height: 13in !important;
-
-        margin: 0 !important;
+        background: #fff !important;
 
         padding: 0 !important;
-
-        display: block !important;
-
-        background: #fff !important;
 
         overflow: visible !important;
     }
 
-
-    /* ========================================================
-       PRINT PAPER
-    ======================================================== */
-
-    #abstract-by-summary-print-area {
-        position: absolute !important;
-
-        top: 0 !important;
-
-        left: 0 !important;
-
-        width: 8.5in !important;
-
-        height: 13in !important;
-
-        min-width: 8.5in !important;
-
-        min-height: 13in !important;
-
-        max-width: 8.5in !important;
-
-        max-height: 13in !important;
-
-        margin: 0 !important;
-
-        padding:
-            0.42in
-            0.42in
-            0.35in
-            0.42in !important;
-
-        box-sizing: border-box !important;
-
-        background: #fff !important;
-
+    .abstract-by-summary-paper {
         box-shadow: none !important;
 
-        overflow: hidden !important;
+        margin-top: 0 !important;
 
-        display: flex !important;
+        break-after: page !important;
 
-        flex-direction: column !important;
+        page-break-after: always !important;
     }
 
+    .abstract-by-summary-paper:last-child {
+        break-after: auto !important;
 
-    /* ========================================================
-       INFORMATION
-    ======================================================== */
-
-    .abstract-by-summary-information {
-        width: 100% !important;
-
-        margin-top: 24px !important;
-
-        display: grid !important;
-
-        grid-template-columns:
-            1fr
-            1fr !important;
-
-        column-gap: 60px !important;
+        page-break-after: auto !important;
     }
-
-
-    .abstract-by-summary-info-row {
-        font-size: 11px !important;
-
-        margin-bottom: 7px !important;
-    }
-
-
-    /* ========================================================
-       TABLE
-    ======================================================== */
-
-    .abstract-by-summary-table {
-        width: 100% !important;
-    }
-
-
-    /* ========================================================
-       FOOTER
-    ======================================================== */
-
-    .abstract-by-summary-footer {
-        margin-top: auto !important;
-    }
-
 }

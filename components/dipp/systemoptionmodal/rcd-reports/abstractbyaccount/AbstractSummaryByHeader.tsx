@@ -10,7 +10,6 @@ type Props = {
     ) => string;
 };
 
-
 export default function AbstractSummaryByHeader({
     report,
     fundSource,
@@ -121,6 +120,10 @@ export default function AbstractSummaryByHeader({
                 ABSTRACT OF COLLECTIONS
             </div>
 
+            <div className="abstract-by-summary-subtitle">
+                ( Account Summary )
+            </div>
+
 
             {/* =========================================================
                 INFORMATION
@@ -130,32 +133,24 @@ export default function AbstractSummaryByHeader({
 
 
                 {/* =====================================================
-                    LEFT
+                    LEFT SIDE
                 ===================================================== */}
 
                 <div>
-
 
                     {/* FUND TYPE */}
 
                     <div className="abstract-by-summary-info-row">
 
-                        <span className="
-                            abstract-by-summary-info-label
-                        ">
+                        <span className="abstract-by-summary-info-label">
                             Fund Type:
                         </span>
 
-
-                        <span className="
-                            abstract-by-summary-info-value
-                        ">
-
+                        <span className="abstract-by-summary-info-value">
                             {
                                 fundType ||
                                 "—"
                             }
-
                         </span>
 
                     </div>
@@ -165,32 +160,25 @@ export default function AbstractSummaryByHeader({
 
                     <div className="abstract-by-summary-info-row">
 
-                        <span className="
-                            abstract-by-summary-info-label
-                        ">
+                        <span className="abstract-by-summary-info-label">
                             Accountable Officer:
                         </span>
 
-
-                        <span className="
-                            abstract-by-summary-info-value
-                        ">
-
+                        <span className="abstract-by-summary-info-value">
                             {
                                 accountableOfficer
                             }
-
                         </span>
 
                     </div>
-
 
                 </div>
 
 
                 {/* =====================================================
-                    RIGHT
+                    RIGHT SIDE
                 ===================================================== */}
+
                 <div className="abstract-by-summary-info-right-column">
 
                     {/* DATE */}
@@ -200,15 +188,11 @@ export default function AbstractSummaryByHeader({
                         abstract-by-summary-info-right
                     ">
 
-                        <span className="
-                            abstract-by-summary-info-label
-                        ">
+                        <span className="abstract-by-summary-info-label">
                             Date:
                         </span>
 
-                        <span className="
-                            abstract-by-summary-info-value
-                        ">
+                        <span className="abstract-by-summary-info-value">
                             {
                                 formatDate(
                                     reportDate
@@ -226,15 +210,11 @@ export default function AbstractSummaryByHeader({
                         abstract-by-summary-info-right
                     ">
 
-                        <span className="
-                            abstract-by-summary-info-label
-                        ">
+                        <span className="abstract-by-summary-info-label">
                             Report No:
                         </span>
 
-                        <span className="
-                            abstract-by-summary-info-value
-                        ">
+                        <span className="abstract-by-summary-info-value">
                             {
                                 reportNo
                             }
@@ -243,7 +223,6 @@ export default function AbstractSummaryByHeader({
                     </div>
 
                 </div>
-
 
             </div>
 
