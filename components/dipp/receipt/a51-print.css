@@ -242,11 +242,27 @@ body {
 
     width: 340px;
 
-    min-height: 38px;
-
     font-size: 12px;
 
     font-weight: 600;
+
+    white-space: normal !important;
+
+    overflow: visible !important;
+
+    text-overflow: unset !important;
+
+    height: auto !important;
+
+    min-height: 0.35in !important;
+
+    line-height: 1.15 !important;
+
+    word-break: normal !important;
+
+    overflow-wrap: normal !important;
+
+    display: block !important;
 }
 
 

@@ -307,8 +307,9 @@ export default function ReceiptFooter({
                    REMARKS
                 ===================================================== */
 
-                "--receipt-remarks-x": "50px",
-                "--receipt-remarks-y": "420px",
+                "--receipt-remarks-x": "45px",
+                "--receipt-remarks-y": "410px",
+                "--receipt-remarks-width": "100px",
 
 
                 /* =====================================================
