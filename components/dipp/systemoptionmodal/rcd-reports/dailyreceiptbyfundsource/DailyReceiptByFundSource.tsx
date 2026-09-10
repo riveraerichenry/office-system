@@ -179,6 +179,76 @@ export default function DailyReceiptByFundSource({
 
 
     /* ========================================================
+       PAGINATION
+
+       Keep the existing Folio layout.
+       Only split the receipt rows into pages.
+    ======================================================== */
+
+    const RECEIPTS_PER_PAGE = 24;
+
+    const pages: any[][] = [];
+
+    for (
+        let i = 0;
+        i < rows.length;
+        i += RECEIPTS_PER_PAGE
+    ) {
+
+        pages.push(
+            rows.slice(
+                i,
+                i + RECEIPTS_PER_PAGE
+            )
+        );
+
+    }
+
+
+    /*
+       Always render at least one page,
+       even when there are no records.
+    */
+    if (pages.length === 0) {
+        pages.push([]);
+    }
+
+
+    /* ========================================================
+       GRAND TOTAL
+
+       This is calculated from ALL records,
+       not just the current page.
+    ======================================================== */
+
+    const grandTotal =
+        rows.reduce(
+            (
+                total,
+                item
+            ) => {
+
+                return (
+                    total +
+                    Number(
+                        item?.amount ?? 0
+                    )
+                );
+
+            },
+            0
+        );
+
+
+    /* ========================================================
+       TOTAL RECEIPTS
+    ======================================================== */
+
+    const totalReceiptCount =
+        rows.length;
+
+
+    /* ========================================================
        RENDER
     ======================================================== */
 
@@ -188,132 +258,168 @@ export default function DailyReceiptByFundSource({
             daily-receipt-preview-wrapper
         ">
 
-            <div
-                id="
-                    daily-receipt-by-fund-source-print-area
-                "
-                className="
-                    daily-receipt-paper
-                "
-            >
+            {
+                pages.map(
+                    (
+                        pageItems,
+                        pageIndex
+                    ) => {
 
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
+                        const isLastPage =
+                            pageIndex ===
+                            pages.length - 1;
 
-                <DailyReceiptHeader
-                    report={report}
-                    fundSource={fundSource}
-                    user={user}
-                    formatDate={formatDate}
-                />
+                        const startIndex =
+                            pageIndex *
+                            RECEIPTS_PER_PAGE;
 
 
-                {/* ==================================================
-                    DAILY RECEIPTS TABLE
-                ================================================== */}
+                        return (
 
-                <DailyReceipts
-                    items={rows}
-                    formatAmount={formatAmount}
-                />
+                            <div
+                                key={pageIndex}
+                                className="
+                                    daily-receipt-paper
+                                "
+                            >
 
+                                {/* ==================================================
+                                    HEADER
+                                ================================================== */}
 
-                {/* ==================================================
-                    SIGNATORIES
-                ================================================== */}
-
-                <div className="
-                    daily-receipt-signatories
-                ">
-
-                    {/* ==================================================
-                        LEFT - PREPARED BY
-                    ================================================== */}
-
-                    <div>
-
-                        <div className="
-                            daily-receipt-signature-label
-                        ">
-                            Prepared by:
-                        </div>
-
-                        <div className="
-                            daily-receipt-signature-name
-                        ">
-                            {
-                                getFullName(
-                                    user
-                                )
-                            }
-                        </div>
-
-                        <div className="
-                            daily-receipt-signature-role
-                        ">
-                            Accountable Officer
-                        </div>
-
-                    </div>
+                                <DailyReceiptHeader
+                                    report={report}
+                                    fundSource={fundSource}
+                                    user={user}
+                                    formatDate={formatDate}
+                                />
 
 
-                    {/* ==================================================
-                        RIGHT - NOTED BY
-                    ================================================== */}
+                                {/* ==================================================
+                                    DAILY RECEIPTS TABLE
+                                ================================================== */}
 
-                    <div>
-
-                        <div className="
-                            daily-receipt-signature-label
-                        ">
-                            Noted by:
-                        </div>
-
-                        <div className="
-                            daily-receipt-signature-name
-                        ">
-                            IMLYN B. PARAPINA
-                        </div>
-
-                        <div className="
-                            daily-receipt-signature-role
-                        ">
-                            Municipal Treasurer
-                        </div>
-
-                    </div>
-
-                </div>
+                                <DailyReceipts
+                                    items={pageItems}
+                                    formatAmount={formatAmount}
+                                    startIndex={startIndex}
+                                    showGrandTotal={isLastPage}
+                                    totalReceiptCount={
+                                        totalReceiptCount
+                                    }
+                                    grandTotalOverride={
+                                        grandTotal
+                                    }
+                                />
 
 
-                {/* ==================================================
-                    FOOTER
-                ================================================== */}
+                                {/* ==================================================
+                                    SIGNATORIES
 
-                <div className="
-                    daily-receipt-footer
-                ">
+                                    ONLY ON LAST PAGE
+                                ================================================== */}
 
-                    <span>
+                                {
+                                    isLastPage && (
 
-                        Daily Receipt by Fund Source
+                                        <div className="
+                                            daily-receipt-signatories
+                                        ">
 
-                    </span>
+                                            {/* ==================================================
+                                                LEFT - PREPARED BY
+                                            ================================================== */}
+
+                                            <div>
+
+                                                <div className="
+                                                    daily-receipt-signature-label
+                                                ">
+                                                    Prepared by:
+                                                </div>
+
+                                                <div className="
+                                                    daily-receipt-signature-name
+                                                ">
+                                                    {
+                                                        getFullName(
+                                                            user
+                                                        )
+                                                    }
+                                                </div>
+
+                                                <div className="
+                                                    daily-receipt-signature-role
+                                                ">
+                                                    Accountable Officer
+                                                </div>
+
+                                            </div>
 
 
-                    <span>
+                                            {/* ==================================================
+                                                RIGHT - NOTED BY
+                                            ================================================== */}
 
-                        {
-                            report?.report_no ??
-                            "—"
-                        }
+                                            <div>
 
-                    </span>
+                                                <div className="
+                                                    daily-receipt-signature-label
+                                                ">
+                                                    Noted by:
+                                                </div>
 
-                </div>
+                                                <div className="
+                                                    daily-receipt-signature-name
+                                                ">
+                                                    IMLYN B. PARAPINA
+                                                </div>
 
-            </div>
+                                                <div className="
+                                                    daily-receipt-signature-role
+                                                ">
+                                                    Municipal Treasurer
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    )
+                                }
+
+
+                                {/* ==================================================
+                                    FOOTER
+
+                                    Keep footer on EVERY PAGE
+                                ================================================== */}
+
+                                <div className="
+                                    daily-receipt-footer
+                                ">
+
+                                    <span>
+                                        Daily Receipt by Fund Source
+                                    </span>
+
+
+                                    <span>
+                                        {
+                                            report?.report_no ??
+                                            "—"
+                                        }
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        );
+
+                    }
+                )
+            }
 
         </div>
 

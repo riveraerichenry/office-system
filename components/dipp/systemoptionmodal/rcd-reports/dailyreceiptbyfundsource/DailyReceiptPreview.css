@@ -228,26 +228,34 @@
 }
 
 
-
 /* Header */
 .daily-receipt-table thead th {
     border: 1px solid #000;
 }
 
+
 /* Body */
 .daily-receipt-table tbody td {
     border: none !important;
-    padding-top: 10;
-    padding-bottom: 20;
+
+    padding-top: 10px;
+
+    padding-bottom: 20px;
 }
+
 
 /* Grand total */
 .daily-receipt-table tfoot td {
     border: none !important;
-    border-top: 1px solid #000 !important;
+
+    border-top:
+        1px solid #000 !important;
+
     padding: 5px;
+
     font-weight: 700;
 }
+
 
 /* ============================================================
    TABLE COLUMN WIDTHS
@@ -305,7 +313,9 @@ td:nth-child(3) {
 
 .daily-receipt-grand-total {
     text-align: right !important;
+
     font-size: 16px !important;
+
     font-weight: 700;
 }
 
@@ -383,6 +393,42 @@ td:nth-child(3) {
 
 
 /* ============================================================
+   MULTI-PAGE PREVIEW
+============================================================ */
+
+/*
+   When there are multiple receipt pages,
+   keep every paper as its own Folio sheet.
+*/
+
+.daily-receipt-paper + .daily-receipt-paper {
+    margin-top: 24px;
+}
+
+
+/*
+   Every paper after the first one is a new page.
+*/
+
+.daily-receipt-paper {
+    break-after: page;
+
+    page-break-after: always;
+}
+
+
+/*
+   Do not force a blank page after the final paper.
+*/
+
+.daily-receipt-paper:last-child {
+    break-after: auto;
+
+    page-break-after: auto;
+}
+
+
+/* ============================================================
    PRINT
 ============================================================ */
 
@@ -390,6 +436,7 @@ td:nth-child(3) {
 
     @page {
         size: 8.5in 13in;
+
         margin: 0;
     }
 
@@ -397,21 +444,37 @@ td:nth-child(3) {
     html,
     body {
         width: 8.5in !important;
-        height: 13in !important;
+
+        height: auto !important;
 
         margin: 0 !important;
+
         padding: 0 !important;
 
         background: #fff !important;
 
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
+
+    /*
+       Hide everything outside the
+       Daily Receipt report.
+    */
 
     body * {
         visibility: hidden !important;
     }
 
+
+    /*
+       Make the entire report visible.
+
+       IMPORTANT:
+       The print-area ID is kept on the wrapper
+       so multiple .daily-receipt-paper elements
+       can be printed.
+    */
 
     #daily-receipt-by-fund-source-print-area,
     #daily-receipt-by-fund-source-print-area * {
@@ -419,14 +482,22 @@ td:nth-child(3) {
     }
 
 
+    /* ========================================================
+       WRAPPER
+    ======================================================== */
+
     .daily-receipt-preview-wrapper {
+
         width: 8.5in !important;
-        height: 13in !important;
+
+        height: auto !important;
 
         min-width: 8.5in !important;
-        min-height: 13in !important;
+
+        min-height: 0 !important;
 
         margin: 0 !important;
+
         padding: 0 !important;
 
         display: block !important;
@@ -437,20 +508,28 @@ td:nth-child(3) {
     }
 
 
-    #daily-receipt-by-fund-source-print-area {
+    /* ========================================================
+       PAPER
+    ======================================================== */
 
-        position: absolute !important;
+    .daily-receipt-paper {
 
-        left: 0 !important;
-        top: 0 !important;
+        position: relative !important;
+
+        left: auto !important;
+
+        top: auto !important;
 
         width: 8.5in !important;
+
         height: 13in !important;
 
         min-width: 8.5in !important;
+
         min-height: 13in !important;
 
         max-width: 8.5in !important;
+
         max-height: 13in !important;
 
         margin: 0 !important;
@@ -472,15 +551,50 @@ td:nth-child(3) {
         display: flex !important;
 
         flex-direction: column !important;
+
+        break-after: page !important;
+
+        page-break-after: always !important;
     }
 
+
+    /*
+       Remove preview spacing between pages
+       while printing.
+    */
+
+    .daily-receipt-paper + .daily-receipt-paper {
+        margin-top: 0 !important;
+    }
+
+
+    /*
+       Last page does not create another blank page.
+    */
+
+    .daily-receipt-paper:last-child {
+
+        break-after: auto !important;
+
+        page-break-after: auto !important;
+    }
+
+
+    /* ========================================================
+       TABLE
+    ======================================================== */
 
     .daily-receipt-table {
         width: 100% !important;
     }
 
 
+    /* ========================================================
+       FOOTER
+    ======================================================== */
+
     .daily-receipt-footer {
         margin-top: auto !important;
     }
+
 }
