@@ -1332,31 +1332,31 @@ export default function OfficialReceiptDetailsModal({
                                     header.form_code !== "CTC" && (
 
                                         <GeneralItemsTable
-
                                             items={
-                                                editableGeneralItems
+                                                editableGeneralItems.map(
+                                                    (item) => ({
+                                                        ...item,
+                                                        remarks:
+                                                            item.remarks ??
+                                                            undefined,
+                                                    })
+                                                )
                                             }
-
                                             grandTotal={
                                                 generalGrandTotal
                                             }
-
                                             saving={
                                                 savingGeneralItems
                                             }
-
                                             accountOptions={
                                                 accountOptions
                                             }
-
                                             loadingAccounts={
                                                 loadingAccounts
                                             }
-
                                             onSave={
                                                 handleSaveGeneralItems
                                             }
-
                                         />
 
                                     )
