@@ -6,6 +6,10 @@ type Props = {
 };
 
 
+/* =====================================================
+   NUMBER TO WORDS
+===================================================== */
+
 function numberToWords(amount: number) {
 
     const ones = [
@@ -181,10 +185,15 @@ function numberToWords(amount: number) {
 }
 
 
+/* =====================================================
+   RECEIPT FOOTER
+===================================================== */
+
 export default function ReceiptFooter({
     transaction,
     items,
 }: Props) {
+
 
     /*
      * =====================================================
@@ -245,6 +254,36 @@ export default function ReceiptFooter({
             : "";
 
 
+    /*
+     * =====================================================
+     * ITEM REMARKS
+     * =====================================================
+     *
+     * Uses item_remarks first.
+     *
+     * Falls back to remarks in case
+     * the API still returns the original
+     * field name.
+     *
+     * If there are multiple item remarks,
+     * they are combined using " | ".
+     */
+
+    const itemRemarks =
+        items
+            .map(
+                (item) =>
+                    item.item_remarks ??
+                    item.remarks ??
+                    ""
+            )
+            .filter(
+                (remark) =>
+                    String(remark).trim() !== ""
+            )
+            .join(" | ");
+
+
     return (
 
         <div
@@ -269,7 +308,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-remarks-x": "50px",
-                "--receipt-remarks-y": "460px",
+                "--receipt-remarks-y": "420px",
 
 
                 /* =====================================================
@@ -322,6 +361,7 @@ export default function ReceiptFooter({
             } as React.CSSProperties}
         >
 
+
             {/* =====================================================
                 REMARKS
             ===================================================== */}
@@ -329,7 +369,7 @@ export default function ReceiptFooter({
             <div
                 className="receipt-footer-remarks"
             >
-                {transaction?.remarks ?? ""}
+                {itemRemarks}
             </div>
 
 

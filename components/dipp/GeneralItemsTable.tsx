@@ -25,15 +25,11 @@ label: string;
 };
 
 type Item = {
-
-account_id?: string;
-
-account_code: string;
-
-account_name: string;
-
-amount: number | string;
-
+    account_id?: string;
+    account_code: string;
+    account_name: string;
+    amount: number | string;
+    remarks?: string;
 };
 
 type Props = {
@@ -865,9 +861,11 @@ return (
 
 
                         <th className="w-52 border-b px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-
                             Amount
+                        </th>
 
+                        <th className="min-w-[280px] border-b px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                            Remarks
                         </th>
 
 
@@ -1129,6 +1127,52 @@ return (
                                                     )
                                                 }
 
+                                            </span>
+
+                                        )}
+
+                                    </td>
+                                    <td className="min-w-[280px] px-4 py-3">
+
+                                        {editing ? (
+
+                                            <input
+                                                type="text"
+                                                value={
+                                                    item.remarks ?? ""
+                                                }
+                                                disabled={saving}
+                                                onChange={(e) =>
+                                                    updateItem(
+                                                        index,
+                                                        "remarks",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="Enter remarks..."
+                                                className="
+                                                    w-full
+                                                    rounded-lg
+                                                    border
+                                                    border-slate-300
+                                                    bg-white
+                                                    px-3
+                                                    py-2
+                                                    text-sm
+                                                    text-slate-900
+                                                    outline-none
+                                                    transition
+                                                    focus:border-blue-500
+                                                    focus:ring-2
+                                                    focus:ring-blue-100
+                                                    disabled:bg-slate-100
+                                                "
+                                            />
+
+                                        ) : (
+
+                                            <span className="text-sm text-slate-700">
+                                                {item.remarks || "-"}
                                             </span>
 
                                         )}

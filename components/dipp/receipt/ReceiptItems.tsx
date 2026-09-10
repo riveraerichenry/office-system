@@ -34,12 +34,6 @@ export default function ReceiptItems({
 
                 "--receipt-nature-y": "300px",
 
-                /*
-                 * Maximum width of Nature of Collection.
-                 *
-                 * Increase or decrease this value depending
-                 * on the available space before Account Code.
-                 */
                 "--receipt-nature-width": "140px",
 
 
@@ -50,6 +44,21 @@ export default function ReceiptItems({
                 "--receipt-account-code-x": "200px",
 
                 "--receipt-account-code-y": "300px",
+
+
+                /* =====================================================
+                   REMARKS
+                ===================================================== */
+
+                /*
+                 * Remarks will appear BELOW the Account Code.
+                 */
+
+                "--receipt-remarks-x": "200px",
+
+                "--receipt-remarks-y": "312px",
+
+                "--receipt-remarks-width": "70px",
 
 
                 /* =====================================================
@@ -65,13 +74,6 @@ export default function ReceiptItems({
                    ROW SPACING
                 ===================================================== */
 
-                /*
-                 * Space between each item row.
-                 *
-                 * Since Nature of Collection can now use
-                 * up to 2 lines, use a larger spacing
-                 * to prevent overlapping.
-                 */
                 "--receipt-item-spacing": "25px",
 
             } as React.CSSProperties}
@@ -114,6 +116,17 @@ export default function ReceiptItems({
                             className="receipt-item-account-code"
                         >
                             {item.account_code}
+                        </div>
+
+
+                        {/* =================================================
+                            REMARKS
+                        ================================================= */}
+
+                        <div
+                            className="receipt-item-remarks"
+                        >
+                            {item.item_remarks ?? ""}
                         </div>
 
 
@@ -216,6 +229,7 @@ export default function ReceiptItems({
                     /*
                      * Maximum of 2 lines
                      */
+
                     display: -webkit-box;
 
                     -webkit-box-orient: vertical;
@@ -253,6 +267,43 @@ export default function ReceiptItems({
                     text-align: center;
 
                     white-space: nowrap;
+
+                }
+
+
+                /* =====================================================
+                   REMARKS
+                ===================================================== */
+
+                .receipt-item-remarks {
+
+                    position: absolute;
+
+                    top: calc(
+                        var(--receipt-remarks-y) +
+                        (
+                            var(--item-index) *
+                            var(--receipt-item-spacing)
+                        )
+                    );
+
+                    left:
+                        var(--receipt-remarks-x);
+
+                    width:
+                        var(--receipt-remarks-width);
+
+                    text-align: center;
+
+                    white-space: normal;
+
+                    overflow: hidden;
+
+                    text-overflow: ellipsis;
+
+                    font-size: 9px;
+
+                    line-height: 10px;
 
                 }
 
