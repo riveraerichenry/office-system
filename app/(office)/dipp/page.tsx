@@ -28,7 +28,8 @@ import AF54ReceiptModal
 import GenerateRCDModal
     from "@/components/dipp/systemoptionmodal/GenerateRCDModal";
 
-import RCDRemittanceModal from "@/components/dipp/systemoptionmodal/rcd-remittance/RCDRemittanceModal";
+import RCDRemittanceModal
+    from "@/components/dipp/systemoptionmodal/rcd-remittance/RCDRemittanceModal";
 
 import OfficialReceiptDetailsModal
     from "@/components/dipp/OfficialReceiptModal";
@@ -49,9 +50,8 @@ import CTCCReceiptModal
     from "@/components/dipp/ctc/CTCCReceiptModal";
 
 
-
-
 export default function DIPPPage() {
+
 
     /*
     |--------------------------------------------------------------------------
@@ -269,6 +269,18 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
+    | Daily Collection Modal
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openDailyCollectionModal,
+        setOpenDailyCollectionModal,
+    ] = useState(false);
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Daily / Monthly View
     |--------------------------------------------------------------------------
     */
@@ -315,7 +327,9 @@ export default function DIPPPage() {
     */
 
     useEffect(() => {
+
         loadBooklets();
+
     }, [search]);
 
 
@@ -326,7 +340,9 @@ export default function DIPPPage() {
     */
 
     useEffect(() => {
+
         loadSummary();
+
     }, [fiscalYear]);
 
 
@@ -337,7 +353,9 @@ export default function DIPPPage() {
     */
 
     useEffect(() => {
+
         loadDailyCollections();
+
     }, [
         viewMode,
         dailySearch,
@@ -354,6 +372,7 @@ export default function DIPPPage() {
     async function loadTransactionDetails(
         id: string
     ) {
+
         try {
 
             setReceiptLoading(
@@ -396,6 +415,7 @@ export default function DIPPPage() {
             );
 
         }
+
     }
 
 
@@ -446,6 +466,7 @@ export default function DIPPPage() {
                 );
 
                 return;
+
             }
 
 
@@ -471,7 +492,9 @@ export default function DIPPPage() {
                     );
 
                     return;
+
                 }
+
             }
 
 
@@ -499,6 +522,7 @@ export default function DIPPPage() {
             );
 
         }
+
     }
 
 
@@ -553,6 +577,7 @@ export default function DIPPPage() {
             );
 
         }
+
     }
 
 
@@ -640,6 +665,7 @@ export default function DIPPPage() {
             );
 
         }
+
     }
 
 
@@ -659,7 +685,9 @@ export default function DIPPPage() {
             mode ===
             viewMode
         ) {
+
             return;
+
         }
 
         setDailyCollections(
@@ -673,6 +701,30 @@ export default function DIPPPage() {
         setViewMode(
             mode
         );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Open Daily Collection
+    |--------------------------------------------------------------------------
+    */
+
+    function openDailyCollection() {
+
+        setDailyPage(
+            1
+        );
+
+        setDailySearch(
+            ""
+        );
+
+        setOpenDailyCollectionModal(
+            true
+        );
+
     }
 
 
@@ -780,6 +832,7 @@ export default function DIPPPage() {
             );
 
             return;
+
         }
 
 
@@ -801,6 +854,7 @@ export default function DIPPPage() {
             );
 
             return;
+
         }
 
 
@@ -822,6 +876,7 @@ export default function DIPPPage() {
             );
 
             return;
+
         }
 
 
@@ -832,7 +887,8 @@ export default function DIPPPage() {
         */
 
         if (
-            formCode === "AF58"
+            formCode ===
+            "AF58"
         ) {
 
             setOpenAF58Modal(
@@ -840,6 +896,7 @@ export default function DIPPPage() {
             );
 
             return;
+
         }
 
 
@@ -850,7 +907,8 @@ export default function DIPPPage() {
         */
 
         if (
-            formCode === "AF54"
+            formCode ===
+            "AF54"
         ) {
 
             setOpenAF54Modal(
@@ -858,6 +916,7 @@ export default function DIPPPage() {
             );
 
             return;
+
         }
 
 
@@ -870,6 +929,7 @@ export default function DIPPPage() {
         setOpenGeneralModal(
             true
         );
+
     }
 
 
@@ -882,9 +942,13 @@ export default function DIPPPage() {
     async function refreshDashboard() {
 
         await Promise.all([
+
             loadBooklets(),
+
             loadSummary(),
+
             loadDailyCollections(),
+
         ]);
 
     }
@@ -897,12 +961,74 @@ export default function DIPPPage() {
     */
 
     return (
+
         <>
+
             {/* ==============================================================
                 MAIN DASHBOARD
             ============================================================== */}
 
-            <div className="grid grid-cols-12 gap-6">
+            <div className="mr-6 grid grid-cols-12 gap-6">
+
+
+                {/* ==========================================================
+                    FISCAL YEAR SUMMARY
+                ========================================================== */}
+
+                <div className="col-span-9">
+
+                    <FiscalYearSummary
+
+                        forms={
+                            summaryForms
+                        }
+
+                        rows={
+                            summaryRows
+                        }
+
+                        years={
+                            summaryYears
+                        }
+
+                        loading={
+                            summaryLoading
+                        }
+
+                        fiscalYear={
+                            fiscalYear
+                        }
+
+                        onFiscalYearChange={
+                            setFiscalYear
+                        }
+
+                        onRefresh={
+                            loadSummary
+                        }
+
+                        onDailyCollection={
+                            openDailyCollection
+                        }
+
+                        onMonthClick={(
+                            month
+                        ) => {
+
+                            setSelectedMonth(
+                                month
+                            );
+
+                            setOpenMonthlyModal(
+                                true
+                            );
+
+                        }}
+
+                    />
+
+                </div>
+
 
                 {/* ==========================================================
                     ACTIVE BOOKLETS
@@ -945,116 +1071,148 @@ export default function DIPPPage() {
                 </div>
 
 
-                {/* ==========================================================
-                    FISCAL SUMMARY
-                ========================================================== */}
-
-                <div className="col-span-6">
-
-                    <FiscalYearSummary
-
-                        forms={
-                            summaryForms
-                        }
-
-                        rows={
-                            summaryRows
-                        }
-
-                        years={
-                            summaryYears
-                        }
-
-                        loading={
-                            summaryLoading
-                        }
-
-                        fiscalYear={
-                            fiscalYear
-                        }
-
-                        onFiscalYearChange={
-                            setFiscalYear
-                        }
-
-                        onRefresh={
-                            loadSummary
-                        }
-
-                        onMonthClick={(
-                            month
-                        ) => {
-
-                            setSelectedMonth(
-                                month
-                            );
-
-                            setOpenMonthlyModal(
-                                true
-                            );
-
-                        }}
-
-                    />
-
-                </div>
-
-
-                {/* ==========================================================
-                    DAILY / MONTHLY
-                ========================================================== */}
-
-                <div className="col-span-3">
-
-                    <DailyCollections
-
-                        rows={
-                            dailyCollections
-                        }
-
-                        loading={
-                            dailyLoading
-                        }
-
-                        page={
-                            dailyPage
-                        }
-
-                        totalPages={
-                            dailyTotalPages
-                        }
-
-                        totalRecords={
-                            dailyTotalRecords
-                        }
-
-                        viewMode={
-                            viewMode
-                        }
-
-                        onViewModeChange={
-                            handleViewModeChange
-                        }
-
-                        onPageChange={(
-                            page
-                        ) => {
-
-                            setDailyPage(
-                                page
-                            );
-
-                        }}
-
-                        onSelectTransaction={
-                            loadTransactionDetails
-                        }
-
-                    />
-
-                </div>
-
             </div>
+
+
+            {/* ==============================================================
+                DAILY COLLECTION MODAL
+            ============================================================== */}
+
+            {openDailyCollectionModal && (
+
+                <div
+
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+
+                    onClick={() => {
+
+                        setOpenDailyCollectionModal(
+                            false
+                        );
+
+                    }}
+
+                >
+
+                    <div
+
+                        className="relative w-full max-w-6xl overflow-hidden rounded-xl bg-white shadow-2xl"
+
+                        onClick={(e) => {
+
+                            e.stopPropagation();
+
+                        }}
+
+                    >
+
+                        {/* ==================================================
+                            MODAL HEADER
+                        ================================================== */}
+
+                        <div className="flex items-center justify-between border-b px-5 py-4">
+
+                            <div>
+
+                                <h2 className="text-lg font-bold text-slate-800">
+
+                                    Daily Collection
+
+                                </h2>
+
+                                <p className="text-sm text-slate-500">
+
+                                    Collection history
+
+                                </p>
+
+                            </div>
+
+
+                            <button
+
+                                type="button"
+
+                                onClick={() => {
+
+                                    setOpenDailyCollectionModal(
+                                        false
+                                    );
+
+                                }}
+
+                                className="rounded-lg px-3 py-2 text-2xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+
+                                aria-label="Close"
+
+                            >
+
+                                ×
+
+                            </button>
+
+                        </div>
+
+
+                        {/* ==================================================
+                            MODAL CONTENT
+                        ================================================== */}
+
+                        <div className="max-h-[80vh] overflow-y-auto">
+
+                            <DailyCollections
+
+                                rows={
+                                    dailyCollections
+                                }
+
+                                loading={
+                                    dailyLoading
+                                }
+
+                                page={
+                                    dailyPage
+                                }
+
+                                totalPages={
+                                    dailyTotalPages
+                                }
+
+                                totalRecords={
+                                    dailyTotalRecords
+                                }
+
+                                viewMode={
+                                    viewMode
+                                }
+
+                                onViewModeChange={
+                                    handleViewModeChange
+                                }
+
+                                onPageChange={(
+                                    page
+                                ) => {
+
+                                    setDailyPage(
+                                        page
+                                    );
+
+                                }}
+
+                                onSelectTransaction={
+                                    loadTransactionDetails
+                                }
+
+                            />
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
 
 
             {/* ==============================================================
@@ -1556,5 +1714,7 @@ export default function DIPPPage() {
             />
 
         </>
+
     );
+
 }

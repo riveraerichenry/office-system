@@ -3,13 +3,9 @@ import { authorize } from "@/lib/authorize";
 import { pool } from "@/lib/db";
 import { MODULE_PATHS } from "@/lib/module-paths";
 
-export async function GET(
-    req: NextRequest
-) {
-
+export async function GET(req: NextRequest) {
     try {
-
-        await authorize(
+        const user = await authorize(
             req,
             MODULE_PATHS.DIPP,
             "view"
@@ -17,210 +13,190 @@ export async function GET(
 
         const fiscalYear =
             Number(
-
-                req.nextUrl.searchParams.get(
-                    "fiscal_year"
-                )
-
-                ||
-
-                new Date().getFullYear()
-
+                req.nextUrl.searchParams.get("fiscal_year")
+                || new Date().getFullYear()
             );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Logged-in User
+        |--------------------------------------------------------------------------
+        |
+        | encoded_by contains the ID of the user who encoded the transaction.
+        |
+        */
+
+        const encodedBy =
+            user?.id ||
+            user?.user_id;
+
+        if (!encodedBy) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Unable to determine logged-in user.",
+                },
+                {
+                    status: 401,
+                }
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
         | Get Collection Summary
         |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        | Only transactions encoded by the logged-in user are included.
+        |
         */
 
-        const result =
-            await pool.query(
+        const result = await pool.query(
+            `
+            SELECT
 
-                `
+                EXTRACT(
+                    MONTH FROM dt.receipt_date
+                )::INT AS month,
 
-                SELECT
+                af.form_code,
 
-                    EXTRACT(
+                COUNT(*)::INT AS receipts,
 
-                        MONTH FROM dt.receipt_date
+                COALESCE(
+                    SUM(dt.grand_total),
+                    0
+                )::NUMERIC AS amount
 
-                    )::INT
+            FROM dipp_transactions dt
 
-                        AS month,
+            INNER JOIN accountable_forms af
+                ON af.id = dt.accountable_form_id
 
-                    af.form_code,
+            WHERE
 
-                    COUNT(*)::INT
+                dt.is_cancelled = FALSE
 
-                        AS receipts,
+            AND
 
-                    COALESCE(
+                EXTRACT(
+                    YEAR FROM dt.receipt_date
+                ) = $1
 
-                        SUM(dt.grand_total),
+            AND
 
-                        0
+                dt.encoded_by = $2
 
-                    )::NUMERIC
+            GROUP BY
 
-                        AS amount
+                EXTRACT(
+                    MONTH FROM dt.receipt_date
+                ),
 
-                FROM dipp_transactions dt
+                af.form_code
 
-                INNER JOIN accountable_forms af
+            ORDER BY
 
-                    ON af.id =
-                    dt.accountable_form_id
+                EXTRACT(
+                    MONTH FROM dt.receipt_date
+                ),
 
-                WHERE
-
-                    dt.is_cancelled = FALSE
-
-                AND
-
-                    EXTRACT(
-
-                        YEAR FROM dt.receipt_date
-
-                    ) = $1
-
-                GROUP BY
-
-                    EXTRACT(
-
-                        MONTH FROM dt.receipt_date
-
-                    ),
-
-                    af.form_code
-
-                ORDER BY
-
-                    EXTRACT(
-
-                        MONTH FROM dt.receipt_date
-
-                    ),
-
-                    af.form_code
-
-                `,
-
-                [
-
-                    fiscalYear,
-
-                ]
-
-            );
+                af.form_code
+            `,
+            [
+                fiscalYear,
+                encodedBy,
+            ]
+        );
 
         /*
-        
         |--------------------------------------------------------------------------
         | Month Labels
         |--------------------------------------------------------------------------
         */
 
-
         const monthNames = [
-
             "January",
-
             "February",
-
             "March",
-
             "April",
-
             "May",
-
             "June",
-
             "July",
-
             "August",
-
             "September",
-
             "October",
-
             "November",
-
             "December",
-
         ];
 
-
-
-
-        const yearResult =
-    await pool.query(
-
-        `
-
-        SELECT DISTINCT
-
-            EXTRACT(
-                YEAR FROM receipt_date
-            )::INT AS year
-
-        FROM dipp_transactions
-
-        WHERE
-
-            is_cancelled = FALSE
-
-        ORDER BY
-
-            year DESC
-
-        `
-
-    );
-
-        const years =
-            yearResult.rows.map(
-
-                (r: any) =>
-
-                    Number(r.year)
-
-            );
-
-                /*
+        /*
         |--------------------------------------------------------------------------
-        | Load All Accountable Forms
+        | Get Available Years
+        |--------------------------------------------------------------------------
+        |
+        | Also filter this by encoded_by so the year dropdown only
+        | contains years where THIS USER has transactions.
+        |
+        */
+
+        const yearResult = await pool.query(
+            `
+            SELECT DISTINCT
+
+                EXTRACT(
+                    YEAR FROM receipt_date
+                )::INT AS year
+
+            FROM dipp_transactions
+
+            WHERE
+
+                is_cancelled = FALSE
+
+            AND
+
+                encoded_by = $1
+
+            ORDER BY
+
+                year DESC
+            `,
+            [
+                encodedBy,
+            ]
+        );
+
+        const years = yearResult.rows.map(
+            (r: any) =>
+                Number(r.year)
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load All Active Accountable Forms
         |--------------------------------------------------------------------------
         */
 
+        const formResult = await pool.query(
+            `
+            SELECT
 
-        const formResult =
-            await pool.query(
+                form_code
 
-                `
+            FROM accountable_forms
 
-                SELECT
+            WHERE is_active = TRUE
 
-                    form_code
+            ORDER BY form_code
+            `
+        );
 
-                FROM accountable_forms
-
-                WHERE is_active = TRUE
-
-                ORDER BY form_code
-
-                `
-
-            );
-
-        const forms =
-            formResult.rows.map(
-
-                (r: any) =>
-
-                    r.form_code
-
-            );
+        const forms = formResult.rows.map(
+            (r: any) =>
+                r.form_code
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -228,87 +204,58 @@ export async function GET(
         |--------------------------------------------------------------------------
         */
 
-        const rows =
+        const rows = monthNames.map(
+            (
+                month,
+                index
+            ) => {
 
-            monthNames.map(
-
-                (
-
+                const row: any = {
                     month,
+                };
 
-                    index
+                /*
+                |--------------------------------------------------------------------------
+                | Initialize Every Form to Zero
+                |--------------------------------------------------------------------------
+                */
 
-                ) => {
+                forms.forEach(
+                    form => {
+                        row[form] = 0;
+                    }
+                );
 
-                    const row: any = {
+                /*
+                |--------------------------------------------------------------------------
+                | Fill Values From Query
+                |--------------------------------------------------------------------------
+                */
 
-                        month,
+                result.rows
+                    .filter(
+                        (r: any) =>
+                            Number(r.month) ===
+                            index + 1
+                    )
+                    .forEach(
+                        (r: any) => {
 
-                    };
+                            row[
+                                r.form_code
+                            ] =
+                                Number(
+                                    r.amount
+                                );
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Initialize Every Form to Zero
-                    |--------------------------------------------------------------------------
-                    */
-
-                    forms.forEach(
-
-                        form =>
-
-                            row[form] = 0
-
+                        }
                     );
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Fill Values From Query
-                    |--------------------------------------------------------------------------
-                    */
+                return row;
+            }
+        );
 
-                    result.rows
-
-                        .filter(
-
-                            (r: any) =>
-
-                                Number(
-
-                                    r.month
-
-                                ) ===
-
-                                index + 1
-
-                        )
-
-                        .forEach(
-
-                            (r: any) => {
-
-                                row[
-
-                                    r.form_code
-
-                                ] =
-
-                                    Number(
-
-                                        r.amount
-
-                                    );
-
-                            }
-
-                        );
-
-                    return row;
-
-                }
-
-            );
-
-                    /*
+        /*
         |--------------------------------------------------------------------------
         | Response
         |--------------------------------------------------------------------------
@@ -318,7 +265,8 @@ export async function GET(
 
             success: true,
 
-            fiscal_year: fiscalYear,
+            fiscal_year:
+                fiscalYear,
 
             forms,
 
@@ -328,50 +276,32 @@ export async function GET(
 
         });
 
-    }
-
-    catch (err: any) {
+    } catch (err: any) {
 
         console.error(
-
             "===================================="
-
         );
 
         console.error(
-
             "DIPP FISCAL YEAR SUMMARY"
-
         );
 
         console.error(err);
 
         console.error(
-
             "===================================="
-
         );
 
         return NextResponse.json(
-
             {
-
                 success: false,
 
                 message:
-
                     err.message,
-
             },
-
             {
-
                 status: 500,
-
             }
-
         );
-
     }
-
 }

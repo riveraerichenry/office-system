@@ -12,32 +12,49 @@ type Props = {
 
     fiscalYear: number;
 
-    onFiscalYearChange: (year: number) => void;
+    onFiscalYearChange: (
+        year: number
+    ) => void;
 
     onRefresh: () => void;
 
+    onDailyCollection: () => void;
+
     onMonthClick: (
-
         month: number
-
     ) => void;
 
 };
 
+
 const MONTHS = [
+
     "January",
+
     "February",
+
     "March",
+
     "April",
+
     "May",
+
     "June",
+
     "July",
+
     "August",
+
     "September",
+
     "October",
+
     "November",
+
     "December",
+
 ];
+
 
 export default function FiscalYearSummary({
 
@@ -55,17 +72,28 @@ export default function FiscalYearSummary({
 
     onRefresh,
 
+    onDailyCollection,
+
     onMonthClick,
 
 }: Props) {
 
 
-    console.log("Forms:", forms);
-    console.log("Rows:", rows);
+    console.log(
+        "Forms:",
+        forms
+    );
+
+    console.log(
+        "Rows:",
+        rows
+    );
+
 
     return (
 
         <div className="rounded-xl border bg-white shadow-sm">
+
 
             {/* ======================================================
                 Header
@@ -89,20 +117,25 @@ export default function FiscalYearSummary({
 
                 </div>
 
+
                 <div className="flex items-center gap-2">
+
+                    {/* ==================================================
+                        Fiscal Year
+                    ================================================== */}
 
                     <select
 
-                        value={fiscalYear}
+                        value={
+                            fiscalYear
+                        }
 
                         onChange={(e) =>
-
                             onFiscalYearChange(
-
-                                Number(e.target.value)
-
+                                Number(
+                                    e.target.value
+                                )
                             )
-
                         }
 
                         className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -117,9 +150,13 @@ export default function FiscalYearSummary({
 
                                     <option
 
-                                        key={year}
+                                        key={
+                                            year
+                                        }
 
-                                        value={year}
+                                        value={
+                                            year
+                                        }
 
                                     >
 
@@ -135,9 +172,18 @@ export default function FiscalYearSummary({
 
                     </select>
 
+
+                    {/* ==================================================
+                        Refresh
+                    ================================================== */}
+
                     <button
 
-                        onClick={onRefresh}
+                        type="button"
+
+                        onClick={
+                            onRefresh
+                        }
 
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
 
@@ -147,9 +193,31 @@ export default function FiscalYearSummary({
 
                     </button>
 
+
+                    {/* ==================================================
+                        Daily Collection
+                    ================================================== */}
+
+                    <button
+
+                        type="button"
+
+                        onClick={
+                            onDailyCollection
+                        }
+
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+
+                    >
+
+                        Daily Collection
+
+                    </button>
+
                 </div>
 
             </div>
+
 
             {/* ======================================================
                 Table
@@ -159,9 +227,11 @@ export default function FiscalYearSummary({
 
                 <table className="w-full border-collapse">
 
+
                     <thead className="sticky top-0 bg-slate-100">
 
                         <tr>
+
 
                             <th className="sticky left-0 z-10 border-b bg-slate-100 px-3 py-2 text-left text-xs font-bold uppercase">
 
@@ -169,17 +239,22 @@ export default function FiscalYearSummary({
 
                             </th>
 
+
                             {
 
                                 forms.map(
 
-                                    (form) => (
+                                    (
+                                        form
+                                    ) => (
 
                                         <th
 
-                                            key={form}
+                                            key={
+                                                form
+                                            }
 
-                                            className="border-b px-3 py-2 text-right text-xs font-bold uppercase whitespace-nowrap"
+                                            className="whitespace-nowrap border-b px-3 py-2 text-right text-xs font-bold uppercase"
 
                                         >
 
@@ -193,17 +268,25 @@ export default function FiscalYearSummary({
 
                             }
 
+
                             <th className="border-b px-3 py-2 text-right text-xs font-bold uppercase">
 
                                 Total
 
                             </th>
 
+
                         </tr>
 
                     </thead>
 
+
                     <tbody>
+
+
+                        {/* ==================================================
+                            LOADING
+                        ================================================== */}
 
                         {
 
@@ -214,9 +297,7 @@ export default function FiscalYearSummary({
                                     <td
 
                                         colSpan={
-
                                             forms.length + 2
-
                                         }
 
                                         className="py-10 text-center text-slate-500"
@@ -233,50 +314,66 @@ export default function FiscalYearSummary({
 
                         }
 
+
+                        {/* ==================================================
+                            MONTHS
+                        ================================================== */}
+
                         {
 
                             !loading &&
 
                             MONTHS.map(
 
-                            (
+                                (
 
-                                month,
+                                    month,
 
-                                index
+                                    index
 
-                            ) => {
+                                ) => {
 
-                                const row =
-                                    rows.find(
+                                    const row =
 
-                                        r =>
+                                        rows.find(
 
-                                            r.month === month
+                                            r =>
 
-                                    ) || {};
+                                                r.month ===
+                                                month
 
-                                let rowTotal = 0;
+                                        ) || {};
 
-                                return (
 
-                                    <tr
+                                    let rowTotal = 0;
 
-                                        key={month}
 
-                                        onClick={() =>
+                                    return (
 
-                                            onMonthClick(
+                                        <tr
 
-                                                index + 1
+                                            key={
+                                                month
+                                            }
 
-                                            )
+                                            onClick={() =>
 
-                                        }
+                                                onMonthClick(
 
-                                        className="cursor-pointer transition hover:bg-blue-50"
+                                                    index + 1
 
-                                    >
+                                                )
+
+                                            }
+
+                                            className="cursor-pointer transition hover:bg-blue-50"
+
+                                        >
+
+
+                                            {/* ==================================
+                                                MONTH
+                                            ================================== */}
 
                                             <td className="sticky left-0 border-b bg-white px-3 py-2 text-xs font-semibold">
 
@@ -284,27 +381,41 @@ export default function FiscalYearSummary({
 
                                             </td>
 
+
+                                            {/* ==================================
+                                                FORMS
+                                            ================================== */}
+
                                             {
 
                                                 forms.map(
 
-                                                    (form) => {
+                                                    (
+                                                        form
+                                                    ) => {
 
                                                         const amount =
 
                                                             Number(
 
-                                                                row[form] ?? 0
+                                                                row[
+                                                                    form
+                                                                ] ?? 0
 
                                                             );
 
-                                                        rowTotal += amount;
+
+                                                        rowTotal +=
+                                                            amount;
+
 
                                                         return (
 
                                                             <td
 
-                                                                key={form}
+                                                                key={
+                                                                    form
+                                                                }
 
                                                                 className="border-b px-3 py-2 text-right text-xs tabular-nums"
 
@@ -318,9 +429,11 @@ export default function FiscalYearSummary({
 
                                                                         {
 
-                                                                            minimumFractionDigits: 2,
+                                                                            minimumFractionDigits:
+                                                                                2,
 
-                                                                            maximumFractionDigits: 2,
+                                                                            maximumFractionDigits:
+                                                                                2,
 
                                                                         }
 
@@ -338,6 +451,11 @@ export default function FiscalYearSummary({
 
                                             }
 
+
+                                            {/* ==================================
+                                                ROW TOTAL
+                                            ================================== */}
+
                                             <td className="border-b bg-slate-50 px-3 py-2 text-right text-xs font-bold">
 
                                                 {
@@ -348,9 +466,11 @@ export default function FiscalYearSummary({
 
                                                         {
 
-                                                            minimumFractionDigits: 2,
+                                                            minimumFractionDigits:
+                                                                2,
 
-                                                            maximumFractionDigits: 2,
+                                                            maximumFractionDigits:
+                                                                2,
 
                                                         }
 
@@ -359,6 +479,7 @@ export default function FiscalYearSummary({
                                                 }
 
                                             </td>
+
 
                                         </tr>
 
@@ -370,7 +491,9 @@ export default function FiscalYearSummary({
 
                         }
 
+
                     </tbody>
+
 
                     {/* ======================================================
                         Grand Total
@@ -380,17 +503,21 @@ export default function FiscalYearSummary({
 
                         <tr>
 
+
                             <td className="sticky left-0 border-t bg-slate-100 px-3 py-2 text-xs font-bold uppercase">
 
                                 Total
 
                             </td>
 
+
                             {
 
                                 forms.map(
 
-                                    (form) => {
+                                    (
+                                        form
+                                    ) => {
 
                                         const total =
 
@@ -408,7 +535,9 @@ export default function FiscalYearSummary({
 
                                                     Number(
 
-                                                        row[form] ?? 0
+                                                        row[
+                                                            form
+                                                        ] ?? 0
 
                                                     ),
 
@@ -416,11 +545,14 @@ export default function FiscalYearSummary({
 
                                             );
 
+
                                         return (
 
                                             <td
 
-                                                key={form}
+                                                key={
+                                                    form
+                                                }
 
                                                 className="border-t px-3 py-2 text-right text-xs font-bold"
 
@@ -434,9 +566,11 @@ export default function FiscalYearSummary({
 
                                                         {
 
-                                                            minimumFractionDigits: 2,
+                                                            minimumFractionDigits:
+                                                                2,
 
-                                                            maximumFractionDigits: 2,
+                                                            maximumFractionDigits:
+                                                                2,
 
                                                         }
 
@@ -453,6 +587,7 @@ export default function FiscalYearSummary({
                                 )
 
                             }
+
 
                             <td className="border-t bg-blue-50 px-3 py-2 text-right text-sm font-extrabold text-blue-700">
 
@@ -484,7 +619,9 @@ export default function FiscalYearSummary({
 
                                                     Number(
 
-                                                        row[form] ?? 0
+                                                        row[
+                                                            form
+                                                        ] ?? 0
 
                                                     ),
 
@@ -500,9 +637,11 @@ export default function FiscalYearSummary({
 
                                         {
 
-                                            minimumFractionDigits: 2,
+                                            minimumFractionDigits:
+                                                2,
 
-                                            maximumFractionDigits: 2,
+                                            maximumFractionDigits:
+                                                2,
 
                                         }
 
@@ -512,13 +651,16 @@ export default function FiscalYearSummary({
 
                             </td>
 
+
                         </tr>
 
                     </tfoot>
 
+
                 </table>
 
             </div>
+
 
         </div>
 

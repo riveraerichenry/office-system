@@ -9,27 +9,68 @@ export async function GET(
 
     try {
 
-        await authorize(
+        const user = await authorize(
             req,
             MODULE_PATHS.DIPP,
             "view"
         );
 
+        /*
+        |--------------------------------------------------------------------------
+        | Logged-in User
+        |--------------------------------------------------------------------------
+        */
+
+        const encodedBy =
+            user?.id ||
+            user?.user_id;
+
+        if (!encodedBy) {
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Unable to determine logged-in user.",
+                },
+                {
+                    status: 401,
+                }
+            );
+
+        }
+
+
         const month =
             Number(
-                req.nextUrl.searchParams.get("month")
+                req.nextUrl.searchParams.get(
+                    "month"
+                )
             );
 
         const year =
             Number(
-                req.nextUrl.searchParams.get("year")
+                req.nextUrl.searchParams.get(
+                    "year"
+                )
             );
 
         const formCode =
-            req.nextUrl.searchParams.get("form_code");
+            req.nextUrl.searchParams.get(
+                "form_code"
+            );
 
         const search =
-            req.nextUrl.searchParams.get("search") || "";
+            req.nextUrl.searchParams.get(
+                "search"
+            ) || "";
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Query Parameters
+        |--------------------------------------------------------------------------
+        */
 
         const params: any[] = [
 
@@ -37,7 +78,16 @@ export async function GET(
 
             year,
 
+            encodedBy,
+
         ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Base Filter
+        |--------------------------------------------------------------------------
+        */
 
         let where = `
 
@@ -57,7 +107,12 @@ export async function GET(
                     YEAR FROM dt.receipt_date
                 ) = $2
 
+            AND
+
+                dt.encoded_by = $3
+
         `;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -67,7 +122,9 @@ export async function GET(
 
         if (formCode) {
 
-            params.push(formCode);
+            params.push(
+                formCode
+            );
 
             where += `
 
@@ -79,6 +136,7 @@ export async function GET(
 
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | Search
@@ -87,7 +145,9 @@ export async function GET(
 
         if (search) {
 
-            params.push(`%${search}%`);
+            params.push(
+                `%${search}%`
+            );
 
             where += `
 
@@ -105,7 +165,8 @@ export async function GET(
 
         }
 
-                /*
+
+        /*
         |--------------------------------------------------------------------------
         | Transactions
         |--------------------------------------------------------------------------
@@ -165,6 +226,7 @@ export async function GET(
 
             );
 
+
         /*
         |--------------------------------------------------------------------------
         | Totals
@@ -188,14 +250,13 @@ export async function GET(
                     total +
 
                     Number(
-
                         row.grand_total
-
                     ),
 
                 0
 
             );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -207,7 +268,8 @@ export async function GET(
 
             success: true,
 
-            rows: result.rows,
+            rows:
+                result.rows,
 
             totalReceipts,
 
@@ -220,24 +282,19 @@ export async function GET(
     catch (err: any) {
 
         console.error(
-
             "===================================="
-
         );
 
         console.error(
-
             "MONTH TRANSACTIONS"
-
         );
 
         console.error(err);
 
         console.error(
-
             "===================================="
-
         );
+
 
         return NextResponse.json(
 
@@ -246,7 +303,6 @@ export async function GET(
                 success: false,
 
                 message:
-
                     err.message,
 
             },
