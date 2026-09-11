@@ -14,15 +14,13 @@ export async function GET(
   }
 ) {
   try {
-
     await authorize(
       req,
       MODULE_PATHS.RAT,
       "view"
     );
 
-    const { id } =
-      await params;
+    const { id } = await params;
 
     /*
     |--------------------------------------------------------------------------
@@ -30,97 +28,90 @@ export async function GET(
     |--------------------------------------------------------------------------
     */
 
-    const header =
-      await pool.query(
-        `
-        SELECT
+    const header = await pool.query(
+      `
+      SELECT
 
-            rh.*,
+          rh.*,
 
-            rr.ris_no,
-            rr.request_date,
+          rr.ris_no,
+          rr.request_date,
 
-            requester.full_name
-                AS accountable_officer,
+          requester.full_name
+              AS accountable_officer,
 
-            generator.full_name
-                AS generated_by_name
+          generator.full_name
+              AS generated_by_name
 
-        FROM rat_headers rh
+      FROM rat_headers rh
 
-        INNER JOIN ris_requests rr
-            ON rr.id =
-                rh.ris_id
+      INNER JOIN ris_requests rr
+          ON rr.id = rh.ris_id
 
-        INNER JOIN users requester
-            ON requester.id =
-                rr.requested_by
+      INNER JOIN users requester
+          ON requester.id = rr.requested_by
 
-        LEFT JOIN users generator
-            ON generator.id =
-                rh.generated_by
+      LEFT JOIN users generator
+          ON generator.id = rh.generated_by
 
-        WHERE
+      WHERE
+          rh.id = $1
 
-            rh.id = $1
-
-        LIMIT 1
-        `,
-        [id]
-      );
+      LIMIT 1
+      `,
+      [id]
+    );
 
     /*
     |--------------------------------------------------------------------------
-    | RAT Items
+    | RAT Items / Assigned Booklets
     |--------------------------------------------------------------------------
     */
 
-    const items =
-      await pool.query(
-        `
-        SELECT
+    const items = await pool.query(
+      `
+      SELECT
 
-            ri.id,
+          ri.id,
 
-            af.form_code,
-            af.form_name,
+          ri.ris_request_item_id,
+          ri.booklet_registration_id,
 
-            sb.control_no,
-            sb.series,
+          af.form_code,
+          af.form_name,
 
-            sb.beginning_or,
-            sb.ending_or,
+          sb.control_no,
+          sb.series,
 
-            sb.current_or,
+          sb.beginning_or,
+          sb.ending_or,
 
-            sb.status
+          sb.current_or,
 
-        FROM rat_items ri
+          sb.status,
 
-        INNER JOIN
-            smi_booklet_registration sb
-                ON sb.id =
-                    ri.accountable_form_booklet_id
+          sb.issued_date
 
-        INNER JOIN
-            accountable_forms af
-                ON af.id =
-                    sb.accountable_form_id
+      FROM rat_items ri
 
-        WHERE
+      INNER JOIN smi_booklet_registration sb
+          ON sb.id = ri.booklet_registration_id
 
-            ri.rat_id = $1
+      INNER JOIN accountable_forms af
+          ON af.id = sb.accountable_form_id
 
-        ORDER BY
+      WHERE
+          ri.rat_id = $1
+          AND ri.is_active = TRUE
 
-            af.form_code,
-            sb.control_no
-        `,
-        [id]
-      );
+      ORDER BY
+          af.form_code,
+          sb.control_no
+      `,
+      [id]
+    );
 
     return NextResponse.json({
-
       success: true,
 
       header:
@@ -128,12 +119,14 @@ export async function GET(
 
       items:
         items.rows,
-
     });
 
   } catch (err: any) {
 
-    console.error(err);
+    console.error(
+      "RAT Details Error:",
+      err
+    );
 
     return NextResponse.json(
       {
@@ -144,6 +137,5 @@ export async function GET(
         status: 500,
       }
     );
-
   }
 }

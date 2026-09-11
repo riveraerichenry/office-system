@@ -888,9 +888,15 @@ try {
                 |--------------------------------------------------------------------------
                 */
 
-                isCTC
-                    ? formCode
-                    : "RPT",
+                formCode === "AF51"
+                    ? "AF51"
+                    : formCode === "AF56"
+                        ? "RPT"
+                        : formCode === "CTC-I"
+                            ? "CTCI-I"
+                            : formCode === "CTC-C"
+                                ? "C"
+                                : formCode,
 
             ]
         );
@@ -1374,9 +1380,15 @@ try {
             bookletStatus,
 
         transaction_type:
-            isCTC
-                ? formCode
-                : "RPT",
+            formCode === "AF51"
+                    ? "AF51"
+                    : formCode === "AF56"
+                        ? "RPT"
+                        : formCode === "CTC-I"
+                            ? "CTCI-I"
+                            : formCode === "CTC-C"
+                                ? "C"
+                                : formCode,
 
     });
 

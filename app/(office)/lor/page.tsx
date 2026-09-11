@@ -377,19 +377,15 @@ export default function LORPage() {
 
       />
       <LORDetailsModal
-
         open={openLORModal}
-
         selected={selectedLOR}
-
         onClose={() => {
-
           setOpenLORModal(false);
-
           setSelectedLOR(null);
-
         }}
-
+        onSuccess={async () => {
+          await loadLORs();
+        }}
       />
 
     </>

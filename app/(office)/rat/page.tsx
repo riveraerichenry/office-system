@@ -210,52 +210,11 @@ export default function RATPage() {
 
       {/* Approved RIS */}
 
-      <div className="col-span-3">
-
-        <ApprovedRISTable
-          data={approvedRIS}
-          loading={loadingApproved}
-          selected={selectedRIS}
-          search={search}
-          onSearch={setSearch}
-          onRefresh={loadApprovedRIS}
-          onSelect={(row) => {
-
-            setSelectedRIS(row);
-
-            setOpenModal(true);
-
-          }}
-        />
-
-        <RISDetailsModal
-          open={openModal}
-          risId={selectedRIS?.id ?? null}
-          onClose={() => {
-
-            setOpenModal(false);
-
-            setSelectedRIS(null);
-
-          }}
-          onSuccess={async () => {
-
-            setOpenModal(false);
-
-            setSelectedRIS(null);
-
-            await loadApprovedRIS();
-
-            await loadRATs();
-
-          }}
-        />
-
-      </div>
+      
 
       {/* RAT Records */}
 
-      <div className="col-span-6">
+      <div className="col-span-8">
 
         <RATTable
           data={rats}
@@ -292,6 +251,48 @@ export default function RATPage() {
             setOpenRATModal(false);
 
             setSelectedRAT(null);
+
+          }}
+        />
+
+      </div>
+      <div className="col-span-4">
+
+        <ApprovedRISTable
+          data={approvedRIS}
+          loading={loadingApproved}
+          selected={selectedRIS}
+          search={search}
+          onSearch={setSearch}
+          onRefresh={loadApprovedRIS}
+          onSelect={(row) => {
+
+            setSelectedRIS(row);
+
+            setOpenModal(true);
+
+          }}
+        />
+
+        <RISDetailsModal
+          open={openModal}
+          risId={selectedRIS?.id ?? null}
+          onClose={() => {
+
+            setOpenModal(false);
+
+            setSelectedRIS(null);
+
+          }}
+          onSuccess={async () => {
+
+            setOpenModal(false);
+
+            setSelectedRIS(null);
+
+            await loadApprovedRIS();
+
+            await loadRATs();
 
           }}
         />
