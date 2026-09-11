@@ -4,6 +4,8 @@ import {
     useState,
 } from "react";
 
+import axios from "axios";
+
 import {
     X,
     Printer,
@@ -140,7 +142,6 @@ export default function GenerateRCDModal({
 
             setError("");
 
-
             // -----------------------------------------------
             // VALIDATION
             // -----------------------------------------------
@@ -194,61 +195,55 @@ export default function GenerateRCDModal({
 
             setGenerating(true);
 
-
             try {
 
+                // =============================================
+                // POST TO RCD API
+                // =============================================
+
                 const response =
-                    await fetch(
+                    await axios.post(
                         "/api/rcd",
                         {
-                            method:
-                                "POST",
+                            fund_source_id:
+                                fundSourceId,
 
-                            headers: {
-                                "Content-Type":
-                                    "application/json",
-                            },
+                            date_from:
+                                dateFrom,
 
-                            body:
-                                JSON.stringify(
-                                    {
-                                        fund_source_id:
-                                            fundSourceId,
-
-                                        date_from:
-                                            dateFrom,
-
-                                        date_to:
-                                            dateTo,
-                                    }
-                                ),
+                            date_to:
+                                dateTo,
                         }
                     );
 
 
+                // =============================================
+                // AXIOS RESPONSE
+                // =============================================
+
                 const data =
-                    await response.json();
+                    response.data;
 
 
-                // -------------------------------------------
+                // =============================================
                 // API ERROR
-                // -------------------------------------------
+                // =============================================
 
                 if (
-                    !response.ok ||
-                    !data.success
+                    !data?.success
                 ) {
 
                     throw new Error(
-                        data.message ||
+                        data?.message ||
                         "Failed to generate RCD."
                     );
+
                 }
 
 
-                // -------------------------------------------
+                // =============================================
                 // SAVE GENERATED RCD
-                // -------------------------------------------
+                // =============================================
 
                 setGeneratedRCD(
                     data
@@ -265,15 +260,23 @@ export default function GenerateRCDModal({
                 );
 
 
-                setError(
+                // Axios error response
+                const message =
+                    error?.response?.data?.message ||
                     error?.message ||
-                    "Failed to generate RCD."
+                    "Failed to generate RCD.";
+
+
+                setError(
+                    message
                 );
 
 
             } finally {
 
-                setGenerating(false);
+                setGenerating(
+                    false
+                );
 
             }
         };
@@ -289,6 +292,7 @@ export default function GenerateRCDModal({
             if (
                 !generatedRCD
             ) {
+
                 return;
             }
 
@@ -314,6 +318,7 @@ export default function GenerateRCDModal({
     // =========================================================
 
     return (
+
         <div
             className="
                 fixed
@@ -367,8 +372,11 @@ export default function GenerateRCDModal({
                                 text-slate-900
                             "
                         >
+
                             Generate RCD
+
                         </h2>
+
 
                         <p
                             className="
@@ -376,7 +384,9 @@ export default function GenerateRCDModal({
                                 text-slate-500
                             "
                         >
+
                             Report of Collections and Deposits
+
                         </p>
 
                     </div>
@@ -515,6 +525,7 @@ export default function GenerateRCDModal({
                         >
 
                             <RCDPreview
+
                                 rcd={
                                     generatedRCD?.rcd ??
                                     null
@@ -539,6 +550,7 @@ export default function GenerateRCDModal({
                                     generatedRCD?.previous_form_rows ??
                                     []
                                 }
+
                             />
 
                         </div>
@@ -597,11 +609,13 @@ export default function GenerateRCDModal({
                                         font-bold
                                     "
                                 >
+
                                     {
                                         generatedRCD
                                             .rcd
                                             .report_no
                                     }
+
                                 </span>
 
                             </div>
@@ -615,7 +629,9 @@ export default function GenerateRCDModal({
                                     text-slate-400
                                 "
                             >
+
                                 Select the fund source and date range.
+
                             </span>
 
                         )}

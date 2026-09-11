@@ -12,7 +12,6 @@ import {
 
 
 type Props = {
-
     rcds: RCD[];
 
     selectedRCDId:
@@ -24,7 +23,6 @@ type Props = {
     onSelect: (
         rcd: RCD
     ) => void;
-
 };
 
 
@@ -45,7 +43,6 @@ function formatCurrency(
     ).format(
         Number(value ?? 0)
     );
-
 }
 
 
@@ -57,28 +54,21 @@ function formatDate(
 ): string {
 
     if (!value) {
-
         return "—";
-
     }
-
 
     const date =
         new Date(
             value
         );
 
-
     if (
         Number.isNaN(
             date.getTime()
         )
     ) {
-
         return value;
-
     }
-
 
     return date.toLocaleDateString(
         "en-PH",
@@ -88,7 +78,196 @@ function formatDate(
             day: "numeric",
         }
     );
+}
 
+
+/*
+=========================================================
+STATUS BADGE
+=========================================================
+*/
+
+function StatusBadge({
+    status,
+}: {
+    status:
+        | string
+        | null
+        | undefined;
+}) {
+
+    const normalizedStatus =
+        String(
+            status ?? ""
+        )
+            .trim()
+            .toUpperCase();
+
+
+    /*
+    =====================================================
+    REMITTED
+    =====================================================
+    */
+
+    if (
+        normalizedStatus ===
+        "REMITTED"
+    ) {
+
+        return (
+            <span
+                className="
+                    inline-flex
+                    items-center
+                    gap-1
+                    rounded-full
+                    bg-green-100
+                    px-2
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    text-green-700
+                "
+            >
+
+                <CheckCircle2
+                    size={12}
+                />
+
+                REMITTED
+
+            </span>
+        );
+    }
+
+
+    /*
+    =====================================================
+    FOR REMITTANCE
+    =====================================================
+    */
+
+    if (
+        normalizedStatus ===
+        "FOR REMITTANCE"
+    ) {
+
+        return (
+            <span
+                className="
+                    inline-flex
+                    rounded-full
+                    bg-yellow-100
+                    px-2
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    text-yellow-700
+                "
+            >
+
+                FOR REMITTANCE
+
+            </span>
+        );
+    }
+
+
+    /*
+    =====================================================
+    DRAFT
+    =====================================================
+    */
+
+    if (
+        normalizedStatus ===
+        "DRAFT"
+    ) {
+
+        return (
+            <span
+                className="
+                    inline-flex
+                    rounded-full
+                    bg-gray-100
+                    px-2
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    text-gray-700
+                "
+            >
+
+                DRAFT
+
+            </span>
+        );
+    }
+
+
+    /*
+    =====================================================
+    POSTED
+    =====================================================
+    */
+
+    if (
+        normalizedStatus ===
+        "POSTED"
+    ) {
+
+        return (
+            <span
+                className="
+                    inline-flex
+                    rounded-full
+                    bg-blue-100
+                    px-2
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    text-blue-700
+                "
+            >
+
+                POSTED
+
+            </span>
+        );
+    }
+
+
+    /*
+    =====================================================
+    DEFAULT
+    =====================================================
+    */
+
+    return (
+        <span
+            className="
+                inline-flex
+                rounded-full
+                bg-gray-100
+                px-2
+                py-1
+                text-[10px]
+                font-bold
+                uppercase
+                text-gray-700
+            "
+        >
+
+            {normalizedStatus ||
+                "UNKNOWN"}
+
+        </span>
+    );
 }
 
 
@@ -116,16 +295,17 @@ export default function RCDRemittanceList({
     ) {
 
         return (
-
-            <div className="
-                flex
-                h-full
-                items-center
-                justify-center
-                gap-2
-                text-sm
-                text-gray-500
-            ">
+            <div
+                className="
+                    flex
+                    h-full
+                    items-center
+                    justify-center
+                    gap-2
+                    text-sm
+                    text-gray-500
+                "
+            >
 
                 <RefreshCw
                     size={18}
@@ -137,9 +317,7 @@ export default function RCDRemittanceList({
                 Loading RCD reports...
 
             </div>
-
         );
-
     }
 
 
@@ -154,24 +332,23 @@ export default function RCDRemittanceList({
     ) {
 
         return (
-
-            <div className="
-                flex
-                h-full
-                items-center
-                justify-center
-                px-6
-                text-center
-                text-sm
-                text-gray-500
-            ">
+            <div
+                className="
+                    flex
+                    h-full
+                    items-center
+                    justify-center
+                    px-6
+                    text-center
+                    text-sm
+                    text-gray-500
+                "
+            >
 
                 No RCD reports found.
 
             </div>
-
         );
-
     }
 
 
@@ -182,27 +359,24 @@ export default function RCDRemittanceList({
     */
 
     return (
-
-        <div className="
-            space-y-2
-            p-3
-        ">
+        <div
+            className="
+                space-y-2
+                p-3
+            "
+        >
 
             {rcds.map(
-                rcd => {
+                (
+                    rcd
+                ) => {
 
                     const selected =
                         selectedRCDId ===
                         rcd.id;
 
 
-                    const remitted =
-                        rcd.has_remittance ===
-                        true;
-
-
                     return (
-
                         <button
 
                             key={
@@ -218,17 +392,11 @@ export default function RCDRemittanceList({
                             }
 
                             className={`
-
                                 w-full
-
                                 rounded-xl
-
                                 border
-
                                 p-4
-
                                 text-left
-
                                 transition
 
                                 ${
@@ -247,24 +415,27 @@ export default function RCDRemittanceList({
                                             hover:bg-blue-50
                                         `
                                 }
-
                             `}
-
                         >
 
-                            {/* HEADER */}
+                            {/* =========================================
+                                HEADER
+                            ========================================= */}
 
-                            <div className="
-                                flex
-                                items-center
-                                justify-between
-                            ">
+                            <div
+                                className="
+                                    flex
+                                    items-center
+                                    justify-between
+                                "
+                            >
 
-
-                                <span className="
-                                    font-bold
-                                    text-blue-800
-                                ">
+                                <span
+                                    className="
+                                        font-bold
+                                        text-blue-800
+                                    "
+                                >
 
                                     {
                                         rcd.report_no
@@ -274,9 +445,7 @@ export default function RCDRemittanceList({
 
 
                                 <ChevronRight
-
                                     size={18}
-
                                     className={
 
                                         selected
@@ -286,24 +455,29 @@ export default function RCDRemittanceList({
                                             : "text-gray-400"
 
                                     }
-
                                 />
 
                             </div>
 
 
-                            {/* FUND SOURCE */}
+                            {/* =========================================
+                                FUND SOURCE
+                            ========================================= */}
 
-                            <div className="
-                                mt-2
-                                text-sm
-                                font-semibold
-                                text-gray-700
-                            ">
+                            <div
+                                className="
+                                    mt-2
+                                    text-sm
+                                    font-semibold
+                                    text-gray-700
+                                "
+                            >
 
-                                {rcd.fund_code
-                                    ? `${rcd.fund_code} - `
-                                    : ""}
+                                {
+                                    rcd.fund_code
+                                        ? `${rcd.fund_code} - `
+                                        : ""
+                                }
 
                                 {
                                     rcd.fund_name ??
@@ -314,15 +488,19 @@ export default function RCDRemittanceList({
                             </div>
 
 
-                            {/* DATE + AMOUNT */}
+                            {/* =========================================
+                                DATE + AMOUNT
+                            ========================================= */}
 
-                            <div className="
-                                mt-2
-                                flex
-                                justify-between
-                                text-xs
-                                text-gray-500
-                            ">
+                            <div
+                                className="
+                                    mt-2
+                                    flex
+                                    justify-between
+                                    text-xs
+                                    text-gray-500
+                                "
+                            >
 
                                 <span>
 
@@ -335,9 +513,11 @@ export default function RCDRemittanceList({
                                 </span>
 
 
-                                <strong className="
-                                    text-gray-800
-                                ">
+                                <strong
+                                    className="
+                                        text-gray-800
+                                    "
+                                >
 
                                     ₱
 
@@ -352,13 +532,17 @@ export default function RCDRemittanceList({
                             </div>
 
 
-                            {/* COVERAGE */}
+                            {/* =========================================
+                                COVERAGE
+                            ========================================= */}
 
-                            <div className="
-                                mt-1
-                                text-xs
-                                text-gray-500
-                            ">
+                            <div
+                                className="
+                                    mt-1
+                                    text-xs
+                                    text-gray-500
+                                "
+                            >
 
                                 Coverage:
 
@@ -381,73 +565,32 @@ export default function RCDRemittanceList({
                             </div>
 
 
-                            {/* STATUS */}
+                            {/* =========================================
+                                STATUS
+                            ========================================= */}
 
-                            <div className="
-                                mt-2
-                                flex
-                                items-center
-                                justify-between
-                            ">
+                            <div
+                                className="
+                                    mt-2
+                                    flex
+                                    items-center
+                                    justify-between
+                                "
+                            >
 
-
-                                {remitted ? (
-
-                                    <span className="
-                                        inline-flex
-                                        items-center
-                                        gap-1
-                                        rounded-full
-                                        bg-green-100
-                                        px-2
-                                        py-1
-                                        text-[10px]
-                                        font-bold
-                                        uppercase
-                                        text-green-700
-                                    ">
-
-                                        <CheckCircle2
-                                            size={12}
-                                        />
-
-                                        REMITTED
-
-                                    </span>
-
-                                ) : (
-
-                                    <span className="
-                                        inline-flex
-                                        rounded-full
-                                        bg-yellow-100
-                                        px-2
-                                        py-1
-                                        text-[10px]
-                                        font-bold
-                                        uppercase
-                                        text-yellow-700
-                                    ">
-
-                                        FOR REMITTANCE
-
-                                    </span>
-
-                                )}
-
+                                <StatusBadge
+                                    status={
+                                        rcd.status
+                                    }
+                                />
 
                             </div>
 
-
                         </button>
-
                     );
-
                 }
             )}
 
         </div>
-
     );
-
 }

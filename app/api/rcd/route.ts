@@ -1314,7 +1314,7 @@ export async function POST(
 
                     $6,
 
-                    'DRAFT',
+                    'FOR REMITTANCE',
 
                     $7,
 
@@ -1436,48 +1436,12 @@ export async function POST(
 
 
         // =====================================================
-        // MARK TRANSACTIONS AS REMITTED
+        // DO NOT UPDATE DIPP TRANSACTIONS AS REMITTED
+        //
+        // RCD generation only creates the RCD header and items.
+        // dipp_transactions.is_remitted and remittance_id remain
+        // unchanged.
         // =====================================================
-
-        const transactionIds =
-            transactions.map(
-                (
-                    transaction: any
-                ) =>
-                    transaction.id
-            );
-
-
-        await client.query(
-            `
-            UPDATE dipp_transactions
-
-            SET
-
-                is_remitted =
-                    TRUE,
-
-                remittance_id =
-                    $1,
-
-                updated_at =
-                    CURRENT_TIMESTAMP
-
-            WHERE
-
-                id =
-                    ANY(
-                        $2::uuid[]
-                    )
-            `,
-            [
-
-                rcdId,
-
-                transactionIds,
-
-            ]
-        );
 
 
         // =====================================================
