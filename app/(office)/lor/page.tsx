@@ -267,41 +267,11 @@ export default function LORPage() {
 
         {/* Assigned Booklets */}
 
-        <div className="col-span-3">
-
-          <AssignedRATTable
-
-            data={assignedRAT}
-
-            loading={loadingAssigned}
-
-            selected={selectedBooklet}
-
-            search={search}
-
-            onSearch={setSearch}
-
-            onRefresh={loadAssignedRAT}
-
-            onSelect={(row) => {
-
-              setSelectedBooklet(row);
-
-              setSelectedRAT(row);
-
-              setOpenModal(true);
-
-
-
-            }}
-
-          />
-
-        </div>
+        
 
         {/* Released Booklets */}
 
-        <div className="col-span-6">
+        <div className="col-span-8">
 
           <LORTable
 
@@ -341,15 +311,41 @@ export default function LORPage() {
 
         </div>
 
-        {/* Details */}
+        <div className="col-span-4">
 
-        <div className="col-span-3">
+          <AssignedRATTable
 
-          {/* Next:
-              LOR Details Panel
-          */}
+            data={assignedRAT}
+
+            loading={loadingAssigned}
+
+            selected={selectedBooklet}
+
+            search={search}
+
+            onSearch={setSearch}
+
+            onRefresh={loadAssignedRAT}
+
+            onSelect={(row) => {
+
+              setSelectedBooklet(row);
+
+              setSelectedRAT(row);
+
+              setOpenModal(true);
+
+
+
+            }}
+
+          />
 
         </div>
+
+        {/* Details */}
+
+       
 
       </div>
 
