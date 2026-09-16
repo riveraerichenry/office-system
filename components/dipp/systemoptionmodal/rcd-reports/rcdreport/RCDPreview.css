@@ -451,7 +451,6 @@
     font-weight: 700;
 }
 
-
 .summary-cash-value {
     font-size: 15px !important;
 }
@@ -565,6 +564,76 @@
 
 
 /* ============================================================
+   MULTIPLE RCD REPORTS
+============================================================ */
+
+.rcd-report-group {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+}
+
+
+/* ============================================================
+   INDIVIDUAL RCD REPORT PAGE
+============================================================ */
+
+.rcd-report-page {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: flex-start;
+}
+
+
+/* ============================================================
+   PRINT PAGE BREAK
+============================================================ */
+
+.print-page-break {
+    display: none;
+
+    width: 100%;
+
+    height: 0;
+
+    margin: 0;
+
+    padding: 0;
+}
+
+
+/* ============================================================
+   RCD PRINT AREA
+============================================================ */
+
+/*
+   IMPORTANT:
+
+   This is intentionally a CLASS instead of an ID.
+
+   RCDReport.tsx can render:
+
+       BASIC
+       SEF
+
+   at the same time.
+
+   Therefore two RCDPreview components can exist on the page.
+*/
+
+.rcd-print-area {
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
    PRINT
 ============================================================ */
 
@@ -576,6 +645,7 @@
 
     @page {
         size: 8.5in 13in;
+
         margin: 0;
     }
 
@@ -586,16 +656,21 @@
 
     html,
     body {
+
         width: 8.5in !important;
+
         height: 13in !important;
 
         min-width: 8.5in !important;
+
         min-height: 13in !important;
 
         max-width: 8.5in !important;
+
         max-height: 13in !important;
 
         margin: 0 !important;
+
         padding: 0 !important;
 
         background: #ffffff !important;
@@ -609,16 +684,18 @@
     -------------------------------------------------------- */
 
     body * {
+
         visibility: hidden !important;
     }
 
 
     /* --------------------------------------------------------
-       SHOW ONLY RCD
+       SHOW RCD PRINT AREAS
     -------------------------------------------------------- */
 
-    #rcd-print-area,
-    #rcd-print-area * {
+    .rcd-print-area,
+    .rcd-print-area * {
+
         visibility: visible !important;
     }
 
@@ -628,53 +705,109 @@
     -------------------------------------------------------- */
 
     .rcd-preview-wrapper {
+
         position: static !important;
 
         width: 8.5in !important;
+
         height: 13in !important;
 
         min-width: 8.5in !important;
+
         min-height: 13in !important;
 
         max-width: 8.5in !important;
+
         max-height: 13in !important;
 
         margin: 0 !important;
+
         padding: 0 !important;
 
         background: #ffffff !important;
 
         display: block !important;
 
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
 
     /* --------------------------------------------------------
-       RCD PAPER
+       REPORT GROUP
     -------------------------------------------------------- */
 
-    #rcd-print-area {
-
-        position: absolute !important;
-
-        top: 0 !important;
-        left: 0 !important;
+    .rcd-report-group {
 
         width: 8.5in !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        display: block !important;
+    }
+
+
+    /* --------------------------------------------------------
+       INDIVIDUAL REPORT PAGE
+    -------------------------------------------------------- */
+
+    .rcd-report-page {
+
+        width: 8.5in !important;
+
         height: 13in !important;
 
         min-width: 8.5in !important;
+
         min-height: 13in !important;
 
         max-width: 8.5in !important;
+
+        max-height: 13in !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        display: block !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+    }
+
+
+    /* --------------------------------------------------------
+       RCD PAPER / PRINT AREA
+    -------------------------------------------------------- */
+
+    .rcd-print-area {
+
+        position: relative !important;
+
+        top: auto !important;
+
+        left: auto !important;
+
+        width: 8.5in !important;
+
+        height: 13in !important;
+
+        min-width: 8.5in !important;
+
+        min-height: 13in !important;
+
+        max-width: 8.5in !important;
+
         max-height: 13in !important;
 
         margin: 0 !important;
 
         /*
-           Keep the actual RCD inside the 8.5 x 13 page.
+           TOP RIGHT BOTTOM LEFT
         */
+
         padding:
             0.30in
             0.30in
@@ -698,6 +831,10 @@
         transform: none !important;
 
         zoom: 1 !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
     }
 
 
@@ -763,7 +900,7 @@
     -------------------------------------------------------- */
 
     .rcd-paper,
-    #rcd-print-area {
+    .rcd-print-area {
 
         box-shadow: none !important;
     }
@@ -774,8 +911,10 @@
     -------------------------------------------------------- */
 
     .fixed {
+
         position: static !important;
     }
+
 
     .overflow-hidden,
     .overflow-auto,
@@ -783,5 +922,89 @@
     .overflow-x-auto {
 
         overflow: visible !important;
+    }
+
+
+    /* ========================================================
+       FORCE SECOND REPORT TO NEW PAGE
+    ======================================================== */
+
+    .print-page-break {
+
+        display: block !important;
+
+        width: 100% !important;
+
+        height: 0 !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        break-before: page !important;
+
+        page-break-before: always !important;
+
+        break-after: page !important;
+
+        page-break-after: always !important;
+
+        visibility: hidden !important;
+    }
+
+
+    /* --------------------------------------------------------
+       REPORT AFTER PAGE BREAK
+    -------------------------------------------------------- */
+
+    .print-page-break + div {
+
+        break-before: page !important;
+
+        page-break-before: always !important;
+    }
+
+
+    /* ========================================================
+       AVOID BREAKING TABLES
+    ======================================================== */
+
+    table,
+    tr,
+    td,
+    th {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+    }
+
+
+    /* ========================================================
+       KEEP EACH RCD PAPER TO ONE PAGE
+    ======================================================== */
+
+    .rcd-print-area {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+        break-after: page !important;
+
+        page-break-after: always !important;
+    }
+
+
+    /* ========================================================
+       LAST REPORT
+       DON'T CREATE AN EXTRA BLANK PAGE
+    ======================================================== */
+
+    .rcd-print-area:last-child {
+
+        break-after: auto !important;
+
+        page-break-after: auto !important;
     }
 }

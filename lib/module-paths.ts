@@ -1,20 +1,11 @@
 export const MODULE_PATHS = {
   SMI: "/smi",
-
   RIS: "/ris",
-
-  RIS_APPROVAL:
-    "/ris-approval",
-
+  RIS_APPROVAL: "/ris-approval",
   RAT: "/rat",
-
   LOR: "/lor",
-
   DIPP: "/dipp",
-
-  COLLECTION:
-    "/collection",
-
-  DISBURSEMENT:
-    "/disbursement",
+  COLLECTION: "/collection",
+  DISBURSEMENT: "/disbursement",
+  REMITTANCE: "/remittance",
 };

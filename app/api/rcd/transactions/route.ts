@@ -577,6 +577,23 @@ export async function GET(
                     AND dt.remittance_id IS NULL
 
 
+                    /*
+                    =============================================
+                    NOT ALREADY IN RCD
+                    =============================================
+                    */
+
+                    AND NOT EXISTS (
+                        SELECT 1
+
+                        FROM rcd_items ri
+
+                        WHERE
+                            ri.dipp_transaction_id =
+                                dt.id
+                    )
+
+
                 ORDER BY
 
                     /*

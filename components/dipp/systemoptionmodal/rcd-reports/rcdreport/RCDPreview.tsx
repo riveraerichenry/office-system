@@ -4,7 +4,6 @@ import {
     useMemo,
 } from "react";
 
-
 import RCDHeader from "./RCDHeader";
 
 import RCDCollections from "./RCDCollections";
@@ -19,7 +18,6 @@ import RCDSummary from "./RCDSummary";
 
 import RCDFooter from "./RCDFooter";
 
-
 import {
     RCD,
     RCDItem,
@@ -27,7 +25,6 @@ import {
     RCDUser,
     RCDFormRow,
 } from "./RCDTypes";
-
 
 import "./RCDPreview.css";
 
@@ -1068,9 +1065,27 @@ export default function RCDPreview({
 
         <div className="rcd-preview-wrapper">
 
+            {/*
+            ====================================================
+            IMPORTANT
+
+            DO NOT USE:
+
+            id="rcd-print-area"
+
+            here.
+
+            RCDReport.tsx can render TWO RCDPreview components
+            for fund source 106.
+
+            Using the same ID twice causes the print CSS to
+            target only the wrong/first report.
+
+            ====================================================
+            */}
+
             <div
-                id="rcd-print-area"
-                className="rcd-paper"
+                className="rcd-paper rcd-print-area"
             >
 
                 <div className="rcd-content">

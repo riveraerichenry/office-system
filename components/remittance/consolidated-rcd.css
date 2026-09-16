@@ -1,0 +1,856 @@
+/* ============================================================
+   CONSOLIDATED RCD PRINT FORM
+
+   PAPER:
+   Legal
+
+   SIZE:
+   8.5 x 13 inches
+
+   ORIENTATION:
+   Portrait
+============================================================ */
+
+
+/* ============================================================
+   PAPER
+============================================================ */
+
+.consolidated-rcd-paper {
+  width: 8.5in;
+
+  /*
+     IMPORTANT:
+
+     Do NOT use a fixed height.
+
+     The report is allowed to become longer than
+     one physical page when the collection table
+     contains many rows.
+  */
+
+  min-height: 13in;
+
+  height: auto;
+
+  box-sizing: border-box;
+
+  margin: 0 auto;
+
+  padding: 0.20in 0.25in;
+
+  background: #ffffff;
+
+  color: #000000;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  font-size: 8px;
+
+  line-height: 1.05;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.rcd-header {
+  width: 100%;
+}
+
+
+/* ============================================================
+   HEADER TITLE
+============================================================ */
+
+.rcd-header-title {
+  width: 100%;
+
+  text-align: center;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  line-height: 1.1;
+}
+
+
+/* ============================================================
+   LOCATION
+============================================================ */
+
+.rcd-header-location {
+  width: 100%;
+
+  margin-top: 1px;
+
+  margin-bottom: 3px;
+
+  text-align: center;
+
+  font-size: 8px;
+
+  line-height: 1;
+}
+
+
+/* ============================================================
+   HEADER TABLE
+============================================================ */
+
+.rcd-header-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+}
+
+
+/* ============================================================
+   HEADER CELLS
+============================================================ */
+
+.rcd-header-table td {
+  height: 17px;
+
+  padding: 2px 4px;
+
+  border: 1px solid #000000;
+
+  box-sizing: border-box;
+
+  vertical-align: middle;
+}
+
+
+/* ============================================================
+   HEADER LABEL
+============================================================ */
+
+.rcd-header-label {
+  font-weight: 400;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   HEADER VALUE
+============================================================ */
+
+.rcd-header-value {
+  font-weight: 400;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: clip;
+}
+
+
+/* ============================================================
+   FIRST ROW WIDTHS
+============================================================ */
+
+.rcd-header-fund-label {
+  width: 7%;
+}
+
+.rcd-header-fund-value {
+  width: 48%;
+}
+
+.rcd-header-date-label {
+  width: 7%;
+}
+
+.rcd-header-date-value {
+  width: 38%;
+}
+
+
+/* ============================================================
+   SECOND ROW WIDTHS
+============================================================ */
+
+.rcd-header-accountable-label {
+  width: 23%;
+}
+
+.rcd-header-accountable-value {
+  width: 42%;
+}
+
+.rcd-header-report-label {
+  width: 12%;
+}
+
+.rcd-header-report-value {
+  width: 23%;
+}
+
+
+/* ============================================================
+   GENERIC TABLE
+============================================================ */
+
+.rcd-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+
+  color: #000000;
+}
+
+
+.rcd-table th,
+.rcd-table td {
+  border: 1px solid #000000;
+
+  padding: 2px 3px;
+
+  box-sizing: border-box;
+
+  vertical-align: middle;
+}
+
+
+.rcd-table th {
+  font-weight: 400;
+
+  text-align: center;
+}
+
+
+/* ============================================================
+   GENERIC
+============================================================ */
+
+.rcd-bold {
+  font-weight: 700;
+}
+
+
+.rcd-amount {
+  text-align: right;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   SECTION TITLE
+============================================================ */
+
+.rcd-section-title {
+  margin-top: 4px;
+
+  padding: 2px 3px;
+
+  border-top: 1px solid #000000;
+
+  border-bottom: 1px solid #000000;
+
+  font-size: 8px;
+
+  font-weight: 700;
+
+  line-height: 1.05;
+
+  break-after: avoid;
+
+  page-break-after: avoid;
+}
+
+
+/* ============================================================
+   PAGE BREAK RULES
+============================================================ */
+
+/*
+   IMPORTANT:
+
+   Individual table rows must remain intact.
+
+   The browser can move an entire row to the
+   next page, but must not cut the row in half.
+*/
+
+.rcd-table tr {
+  break-inside: avoid;
+
+  page-break-inside: avoid;
+}
+
+
+/*
+   Collection data rows specifically.
+*/
+
+.rcd-collection-data-row {
+  break-inside: avoid !important;
+
+  page-break-inside: avoid !important;
+}
+
+
+/*
+   Collection header should stay intact.
+*/
+
+.rcd-collections-table thead {
+  display: table-header-group;
+}
+
+
+/*
+   Repeat table header when the collection table
+   continues to another printed page.
+*/
+
+.rcd-collections-table thead tr {
+  break-inside: avoid;
+
+  page-break-inside: avoid;
+}
+
+
+/*
+   Keep collection subsection headings intact.
+*/
+
+.rcd-collections-subtitle-row,
+.rcd-collections-remittance-header {
+  break-inside: avoid;
+
+  page-break-inside: avoid;
+}
+
+
+/*
+   Keep TOTAL together.
+*/
+
+.rcd-total-row {
+  break-inside: avoid !important;
+
+  page-break-inside: avoid !important;
+}
+
+
+/*
+   Generic section.
+
+   Sections are allowed to move naturally
+   to the next physical page.
+*/
+
+.rcd-section {
+  break-inside: auto;
+
+  page-break-inside: auto;
+}
+
+
+/* ============================================================
+   SCREEN PREVIEW
+============================================================ */
+
+@media screen {
+  .consolidated-rcd-paper {
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.12);
+  }
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+  /* ==========================================================
+     LEGAL PAPER
+  ========================================================== */
+
+  @page {
+  size: 8.5in 13in;
+  margin: 0;
+}
+
+
+  /* ==========================================================
+     BODY
+  ========================================================== */
+
+  html,
+  body {
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    width: 8.5in;
+
+    background: #ffffff !important;
+  }
+
+
+  /* ==========================================================
+     HIDE EVERYTHING
+  ========================================================== */
+
+  body * {
+    visibility: hidden;
+  }
+
+
+  /* ==========================================================
+     SHOW ONLY RCD
+  ========================================================== */
+
+  #consolidated-rcd-print,
+  #consolidated-rcd-print * {
+    visibility: visible;
+  }
+
+
+  /* ==========================================================
+     PRINT CONTAINER
+  ========================================================== */
+
+  #consolidated-rcd-print {
+    position: absolute;
+
+    left: 0;
+
+    top: 0;
+
+    width: 8.5in !important;
+
+    /*
+       IMPORTANT:
+
+       NO fixed/min-height for printing.
+
+       This allows normal browser pagination.
+    */
+
+    min-height: 0 !important;
+
+    height: auto !important;
+
+    overflow: visible !important;
+
+    margin: 0 !important;
+
+    padding: 0.20in 0.25in !important;
+
+    box-sizing: border-box;
+
+    background: #ffffff !important;
+
+    box-shadow: none !important;
+
+    /*
+       IMPORTANT:
+
+       Do NOT use flex during printing.
+    */
+
+    display: block !important;
+  }
+
+
+  /* ==========================================================
+     PAPER
+
+     Override the screen min-height and flex behavior.
+  ========================================================== */
+
+  .consolidated-rcd-paper {
+    width: 8.5in !important;
+
+    min-height: 0 !important;
+
+    height: auto !important;
+
+    overflow: visible !important;
+
+    margin: 0 !important;
+
+    padding: 0.20in 0.25in !important;
+
+    box-sizing: border-box;
+
+    background: #ffffff !important;
+
+    box-shadow: none !important;
+
+    display: block !important;
+  }
+
+
+  /* ==========================================================
+     COLLECTIONS SECTION
+  ========================================================== */
+
+  .rcd-collections {
+    width: 100% !important;
+
+    break-inside: auto !important;
+
+    page-break-inside: auto !important;
+  }
+
+
+  /* ==========================================================
+     COLLECTIONS TABLE
+
+     THIS IS THE MAIN PAGE-BREAK FIX.
+  ========================================================== */
+
+  .rcd-collections-table {
+    width: 100% !important;
+
+    border-collapse: collapse !important;
+
+    table-layout: fixed !important;
+
+    break-inside: auto !important;
+
+    page-break-inside: auto !important;
+  }
+
+
+  /* ==========================================================
+     REPEAT COLLECTION TABLE HEADER
+
+     When rows continue onto Page 2,
+     these headers are printed again.
+  ========================================================== */
+
+  .rcd-collections-table thead {
+    display: table-header-group !important;
+  }
+
+
+  /* ==========================================================
+     COLLECTION ROWS
+  ========================================================== */
+
+  .rcd-collections-table tbody tr {
+    break-inside: avoid !important;
+
+    page-break-inside: avoid !important;
+  }
+
+
+  .rcd-collection-data-row {
+    break-inside: avoid !important;
+
+    page-break-inside: avoid !important;
+  }
+
+
+  /* ==========================================================
+     COLLECTION SUB HEADERS
+  ========================================================== */
+
+  .rcd-collections-subtitle-row {
+    break-inside: avoid !important;
+
+    page-break-inside: avoid !important;
+  }
+
+
+  .rcd-collections-remittance-header {
+    break-inside: avoid !important;
+
+    page-break-inside: avoid !important;
+  }
+
+
+  /* ==========================================================
+     TOTAL
+
+     Do not split TOTAL.
+  ========================================================== */
+
+  .rcd-total-row {
+    break-inside: avoid !important;
+
+    page-break-inside: avoid !important;
+  }
+
+
+  /* ==========================================================
+     SECTION HEADINGS
+  ========================================================== */
+
+  .rcd-section-title {
+    break-after: avoid !important;
+
+    page-break-after: avoid !important;
+  }
+
+
+  /* ==========================================================
+     C. ACCOUNTABILITY
+
+     Keep this section together when possible.
+
+     If the browser cannot fit it on the remaining
+     space, it will move it naturally to the next page.
+  ========================================================== */
+
+  .consolidated-rcd-section-c {
+    break-inside: avoid;
+
+    page-break-inside: avoid;
+  }
+
+
+  /* ==========================================================
+     D. SUMMARY
+
+     Keep summary together when possible.
+  ========================================================== */
+
+  .consolidated-rcd-section-d {
+    break-inside: avoid;
+
+    page-break-inside: avoid;
+  }
+
+
+  /* ==========================================================
+     FOOTER
+
+     Keep certification/signatures together when possible.
+  ========================================================== */
+
+  .consolidated-rcd-footer-section {
+    break-inside: avoid;
+
+    page-break-inside: avoid;
+  }
+
+
+  /* ==========================================================
+     FOOTER
+
+     Remove the flex "margin-top:auto" behavior
+     during print so it doesn't create a second
+     page/copy.
+  ========================================================== */
+
+  .consolidated-rcd-footer {
+    margin-top: 0 !important;
+
+    break-inside: avoid;
+
+    page-break-inside: avoid;
+  }
+
+
+  /* ==========================================================
+     BUTTONS
+  ========================================================== */
+
+  button {
+    display: none !important;
+  }
+
+
+  /* ==========================================================
+     MANUAL PAGE BREAK
+
+     Available if we ever need it for another section,
+     but NOT used for the collection table.
+  ========================================================== */
+
+  .rcd-page-break {
+    break-before: page;
+
+    page-break-before: always;
+  }
+}
+
+
+/* ============================================================
+   COLLECTIONS
+============================================================ */
+
+.rcd-collections {
+  width: 100%;
+
+  margin-top: 4px;
+}
+
+
+/* ============================================================
+   COLLECTIONS TABLE
+============================================================ */
+
+.rcd-collections-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+}
+
+
+/* ============================================================
+   ALL CELLS
+============================================================ */
+
+.rcd-collections-table th,
+.rcd-collections-table td {
+  border: 1px solid #000;
+
+  padding: 1px 3px;
+
+  height: 15px;
+
+  font-size: 7px;
+
+  line-height: 1.05;
+
+  vertical-align: middle;
+}
+
+
+/* ============================================================
+   HEADERS
+============================================================ */
+
+.rcd-collections-table th {
+  text-align: center;
+
+  font-weight: 400;
+}
+
+
+/* ============================================================
+   TOP COLLECTION HEADER
+============================================================ */
+
+.rcd-col-form {
+  width: 27%;
+}
+
+.rcd-col-or {
+  width: 50%;
+}
+
+.rcd-col-amount {
+  width: 23%;
+}
+
+.rcd-col-from {
+  width: 16.66%;
+}
+
+.rcd-col-to {
+  width: 16.66%;
+}
+
+.rcd-col-report {
+  width: 16.66%;
+}
+
+
+/* ============================================================
+   SECTION 2 TITLE
+============================================================ */
+
+.rcd-liquidating-title {
+  text-align: left;
+
+  font-size: 7px !important;
+
+  font-weight: 700 !important;
+
+  padding-left: 5px !important;
+
+  height: 15px !important;
+}
+
+
+/* ============================================================
+   SECTION 2 COLUMNS
+============================================================ */
+
+.rcd-liquidating-collector {
+  width: 27%;
+}
+
+.rcd-liquidating-or-from {
+  width: 16.66%;
+}
+
+.rcd-liquidating-or-to {
+  width: 16.66%;
+}
+
+.rcd-liquidating-remittance {
+  width: 16.66%;
+}
+
+.rcd-liquidating-amount {
+  width: 23%;
+}
+
+
+/* ============================================================
+   CENTER
+============================================================ */
+
+.rcd-center {
+  text-align: center;
+}
+
+
+/* ============================================================
+   AMOUNT
+============================================================ */
+
+.rcd-amount {
+  text-align: right;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   TOTAL
+============================================================ */
+
+.rcd-total-row td {
+  height: 18px;
+
+  font-weight: 700;
+}
+
+.rcd-total-label {
+  text-align: right;
+
+  padding-right: 8px !important;
+}
+
+.rcd-total-amount {
+  text-align: right;
+
+  white-space: nowrap;
+}

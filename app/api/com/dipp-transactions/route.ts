@@ -4,19 +4,13 @@ import { authorize } from "@/lib/authorize";
 import { pool } from "@/lib/db";
 import { MODULE_PATHS } from "@/lib/module-paths";
 
-
-export async function GET(
-    req: NextRequest
-) {
-
+export async function GET(req: NextRequest) {
     try {
-
         await authorize(
             req,
             MODULE_PATHS.DIPP,
             "view"
         );
-
 
         /*
         ============================================================
@@ -24,14 +18,13 @@ export async function GET(
 
         FUND SOURCE RELATIONSHIP:
 
-        dipp_transactions.remittance_id
+        dipp_transactions.lor_release_id
                     ↓
-        rcd_transaction.id
+        lor_releases.id
                     ↓
-        rcd_transaction.fund_source_id
+        lor_releases.fund_source_id
                     ↓
         fund_sources.id
-
 
         OFFICER:
 
@@ -41,201 +34,205 @@ export async function GET(
         ============================================================
         */
 
+        const result = await pool.query(`
+            SELECT
 
-        const result =
-            await pool.query(
-                `
-                SELECT
+                /*
+                ====================================================
+                DIPP TRANSACTION
+                ====================================================
+                */
 
-                    dt.id,
+                dt.id,
 
-                    dt.or_number,
+                dt.or_number,
 
-                    dt.receipt_date,
+                dt.receipt_date,
 
-                    dt.payor,
+                dt.payor,
 
-                    dt.payment_mode,
+                dt.payment_mode,
 
-                    dt.remarks,
+                dt.remarks,
 
-                    dt.grand_total,
+                dt.grand_total,
 
-                    dt.status,
+                dt.status,
 
-                    dt.transaction_type,
+                dt.transaction_type,
 
-                    dt.is_cancelled,
+                dt.is_cancelled,
 
-                    dt.is_remitted,
+                dt.is_remitted,
 
-                    dt.accountable_form_id,
+                dt.accountable_form_id,
 
-                    dt.booklet_registration_id,
+                dt.booklet_registration_id,
 
-                    dt.remittance_id,
+                dt.lor_release_id,
 
-                    dt.collector_id,
+                dt.remittance_id,
 
-                    dt.encoded_by,
+                dt.collector_id,
 
-                    dt.created_at,
+                dt.encoded_by,
 
-
-                    /*
-                    ====================================================
-                    ACCOUNTABLE FORM
-                    ====================================================
-                    */
-
-                    af.form_code,
-
-                    af.form_name,
-
-
-                    /*
-                    ====================================================
-                    COLLECTOR / OFFICER
-                    ====================================================
-                    */
-
-                    collector.full_name
-                        AS collector_name,
-
-
-                    /*
-                    ====================================================
-                    ENCODED BY
-                    ====================================================
-                    */
-
-                    encoder.full_name
-                        AS encoded_by_name,
-
-
-                    /*
-                    ====================================================
-                    RCD
-                    ====================================================
-                    */
-
-                    rt.report_no
-                        AS rcd_report_no,
-
-                    rt.fund_source_id,
-
-
-                    /*
-                    ====================================================
-                    FUND SOURCE
-                    ====================================================
-                    */
-
-                    fs.fund_code,
-
-                    fs.fund_name,
-
-                    fs.acronym
-
-                FROM dipp_transactions dt
+                dt.created_at,
 
 
                 /*
-                ========================================================
+                ====================================================
                 ACCOUNTABLE FORM
-                ========================================================
+                ====================================================
                 */
 
-                LEFT JOIN accountable_forms af
-                    ON af.id =
-                        dt.accountable_form_id
+                af.form_code,
+
+                af.form_name,
 
 
                 /*
-                ========================================================
+                ====================================================
                 COLLECTOR / OFFICER
-                ========================================================
+                ====================================================
                 */
 
-                LEFT JOIN users collector
-                    ON collector.id =
-                        dt.collector_id
+                collector.full_name
+                    AS collector_name,
 
 
                 /*
-                ========================================================
+                ====================================================
                 ENCODED BY
-                ========================================================
+                ====================================================
                 */
 
-                LEFT JOIN users encoder
-                    ON encoder.id =
-                        dt.encoded_by
+                encoder.full_name
+                    AS encoded_by_name,
 
 
                 /*
-                ========================================================
-                RCD / REMITTANCE
-
-                dipp_transactions.remittance_id
-                    →
-                rcd_transaction.id
-                ========================================================
+                ====================================================
+                LOR RELEASE
+                ====================================================
                 */
 
-                LEFT JOIN rcd_transaction rt
-                    ON rt.id =
-                        dt.remittance_id
+                lr.id
+                    AS lor_release_id,
+
+                lr.lor_no
+                    AS lor_no,
+
+                lr.fund_source_id
+                    AS fund_source_id,
 
 
                 /*
-                ========================================================
+                ====================================================
                 FUND SOURCE
 
-                rcd_transaction.fund_source_id
-                    →
+                lor_releases.fund_source_id
+                    ↓
                 fund_sources.id
-                ========================================================
+                ====================================================
                 */
 
-                LEFT JOIN fund_sources fs
-                    ON fs.id =
-                        rt.fund_source_id
+                fs.fund_code
+                    AS fund_code,
+
+                fs.fund_name
+                    AS fund_name,
+
+                fs.acronym
+                    AS fund_acronym
 
 
-                ORDER BY
+            FROM dipp_transactions dt
 
-                    dt.receipt_date DESC
-                        NULLS LAST,
 
-                    dt.created_at DESC
-                        NULLS LAST
-                `
-            );
+            /*
+            ========================================================
+            ACCOUNTABLE FORM
+            ========================================================
+            */
 
+            LEFT JOIN accountable_forms af
+                ON af.id = dt.accountable_form_id
+
+
+            /*
+            ========================================================
+            COLLECTOR / OFFICER
+            ========================================================
+            */
+
+            LEFT JOIN users collector
+                ON collector.id = dt.collector_id
+
+
+            /*
+            ========================================================
+            ENCODED BY
+            ========================================================
+            */
+
+            LEFT JOIN users encoder
+                ON encoder.id = dt.encoded_by
+
+
+            /*
+            ========================================================
+            LOR RELEASE
+
+            dipp_transactions.lor_release_id
+                ↓
+            lor_releases.id
+            ========================================================
+            */
+
+            LEFT JOIN lor_releases lr
+                ON lr.id = dt.lor_release_id
+
+
+            /*
+            ========================================================
+            FUND SOURCE
+
+            lor_releases.fund_source_id
+                ↓
+            fund_sources.id
+            ========================================================
+            */
+
+            LEFT JOIN fund_sources fs
+                ON fs.id = lr.fund_source_id
+
+
+            /*
+            ========================================================
+            ORDER
+            ========================================================
+            */
+
+            ORDER BY
+
+                dt.receipt_date DESC NULLS LAST,
+
+                dt.created_at DESC NULLS LAST
+        `);
 
         return NextResponse.json({
-
             success: true,
 
-            data:
-                result.rows,
+            data: result.rows,
 
-            count:
-                result.rows.length,
-
+            count: result.rows.length,
         });
-
-    }
-    catch (
-        error: any
-    ) {
-
+    } catch (error: any) {
         console.error(
             "GET COM DIPP TRANSACTIONS ERROR:",
             error
         );
-
 
         return NextResponse.json(
             {
@@ -249,7 +246,5 @@ export async function GET(
                 status: 500,
             }
         );
-
     }
-
 }

@@ -580,27 +580,6 @@ export async function POST(
 
                     /*
                     =================================================
-                    NOT REMITTED
-                    =================================================
-                    */
-
-                    AND COALESCE(
-                        dt.is_remitted,
-                        FALSE
-                    ) = FALSE
-
-
-                    /*
-                    =================================================
-                    NO REMITTANCE ID
-                    =================================================
-                    */
-
-                    AND dt.remittance_id IS NULL
-
-
-                    /*
-                    =================================================
                     NOT ALREADY IN RCD
                     =================================================
                     */
@@ -1048,46 +1027,46 @@ export async function POST(
             // DEBUG
             // =================================================
 
-            console.log(
-                "RCD BOOKLET ACCOUNTABILITY",
-                {
+            // console.log(
+            //     "RCD BOOKLET ACCOUNTABILITY",
+            //     {
 
-                    formCode,
+            //         formCode,
 
-                    transactionCount:
-                        groupTransactions.length,
+            //         transactionCount:
+            //             groupTransactions.length,
 
-                    bookletId:
-                        bookletTransaction
-                            ?.booklet_registration_id,
+            //         bookletId:
+            //             bookletTransaction
+            //                 ?.booklet_registration_id,
 
-                    bookletBeginningOR:
-                        bookletTransaction
-                            ?.booklet_beginning_or,
+            //         bookletBeginningOR:
+            //             bookletTransaction
+            //                 ?.booklet_beginning_or,
 
-                    bookletEndingOR:
-                        bookletEnding,
+            //         bookletEndingOR:
+            //             bookletEnding,
 
-                    bookletCurrentOR:
-                        bookletTransaction
-                            ?.booklet_current_or,
+            //         bookletCurrentOR:
+            //             bookletTransaction
+            //                 ?.booklet_current_or,
 
-                    currentRCDFirstOR:
-                        currentMin,
+            //         currentRCDFirstOR:
+            //             currentMin,
 
-                    currentRCDLastOR:
-                        currentMax,
+            //         currentRCDLastOR:
+            //             currentMax,
 
-                    beginningFrom,
+            //         beginningFrom,
 
-                    beginningTo,
+            //         beginningTo,
 
-                    endingFrom,
+            //         endingFrom,
 
-                    endingTo,
+            //         endingTo,
 
-                }
-            );
+            //     }
+            // );
 
 
             // =================================================
@@ -1432,15 +1411,33 @@ export async function POST(
                 ]
             );
 
+
+            // =====================================================
+            // CLEAR DIPP REMITTANCE DETAILS
+            // =====================================================
+
+            await client.query(
+                `
+                UPDATE dipp_transactions
+                SET
+                    remittance_id = NULL,
+                    is_remitted = FALSE
+                WHERE id = $1
+                `,
+                [
+                    transaction.id,
+                ]
+            );
+
         }
 
 
         // =====================================================
-        // DO NOT UPDATE DIPP TRANSACTIONS AS REMITTED
+        // REMITTANCE DETAILS CLEARED
         //
-        // RCD generation only creates the RCD header and items.
-        // dipp_transactions.is_remitted and remittance_id remain
-        // unchanged.
+        // RCD generation does not mark DIPP transactions as remitted.
+        // remittance_id is cleared and is_remitted is reset to FALSE
+        // for the transactions included in this RCD.
         // =====================================================
 
 

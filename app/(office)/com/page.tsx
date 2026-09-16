@@ -21,21 +21,47 @@ export default function SystemControlPage() {
 
     return (
 
-        <div className="
-            min-h-full
-            bg-slate-100
-            p-4
-        ">
+        <div
+            className="
+                min-h-full
+                bg-slate-100
+                p-4
+            "
+        >
+
+            {/* ==================================================
+                COM HEADER
+            ================================================== */}
 
             <div className="mb-4">
 
-                <h1 className="
-                    text-2xl
-                    font-bold
-                    text-slate-800
+                <div className="
+                    flex
+                    items-center
+                    gap-3
                 ">
-                    System Control
-                </h1>
+
+                    <h1 className="
+                        text-2xl
+                        font-bold
+                        text-slate-800
+                    ">
+                        System Control and Override Module
+                    </h1>
+
+                    <span className="
+                        rounded-md
+                        bg-blue-100
+                        px-2.5
+                        py-1
+                        text-xs
+                        font-bold
+                        text-blue-700
+                    ">
+                        COM
+                    </span>
+
+                </div>
 
 
                 <p className="
@@ -43,11 +69,16 @@ export default function SystemControlPage() {
                     text-sm
                     text-slate-500
                 ">
-                    Manage and inspect system transactions.
+                    Centralized transaction control, inspection,
+                    and authorized system overrides.
                 </p>
 
             </div>
 
+
+            {/* ==================================================
+                TRANSACTION CONTROL
+            ================================================== */}
 
             <div className="
                 grid
@@ -56,10 +87,12 @@ export default function SystemControlPage() {
                 xl:grid-cols-12
             ">
 
-                {/* 8 COLUMNS */}
+                {/* ==================================================
+                    TRANSACTION LIST
+                ================================================== */}
 
                 <div className="
-                    xl:col-span-8
+                    xl:col-span-7
                     overflow-hidden
                     rounded-xl
                     border
@@ -80,10 +113,12 @@ export default function SystemControlPage() {
                 </div>
 
 
-                {/* 4 COLUMNS */}
+                {/* ==================================================
+                    TRANSACTION DETAILS
+                ================================================== */}
 
                 <div className="
-                    xl:col-span-4
+                    xl:col-span-5
                     overflow-hidden
                     rounded-xl
                     border
