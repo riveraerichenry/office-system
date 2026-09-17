@@ -135,6 +135,18 @@ const RPT_COLUMNS: ColumnDefinition[] = [
     },
 
     {
+        id: "rpt_penalty",
+        code: null,
+        label: "PENALTY",
+    },
+
+    {
+        id: "rpt_discount",
+        code: null,
+        label: "DISCOUNT",
+    },
+
+    {
         id: "rpt_total",
         code: null,
         label: "TOTAL",
@@ -682,18 +694,29 @@ export async function GET(
                             );
 
 
+                        const penalty =
+                            toNumber(
+                                rpt.penalty
+                            );
+
+
+                        const discount =
+                            toNumber(
+                                rpt.discount
+                            );
+
+
                         /*
-                         * The screenshot/report structure
-                         * shows RPT as:
+                         * RPT distribution:
                          *
                          * BASIC
                          * SEF
+                         * PENALTY
+                         * DISCOUNT
                          * TOTAL
                          *
-                         * TOTAL = BASIC + SEF
-                         *
-                         * Penalty is handled separately
-                         * in the existing account logic.
+                         * TOTAL =
+                         * BASIC + SEF + PENALTY - DISCOUNT
                          */
 
                         addValue(
@@ -712,8 +735,25 @@ export async function GET(
 
                         addValue(
                             values,
+                            "rpt_penalty",
+                            penalty
+                        );
+
+
+                        addValue(
+                            values,
+                            "rpt_discount",
+                            discount
+                        );
+
+
+                        addValue(
+                            values,
                             "rpt_total",
-                            basic + sef
+                            basic +
+                            sef +
+                            penalty -
+                            discount
                         );
 
                     }

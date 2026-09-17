@@ -1,7 +1,17 @@
 "use client";
 
 export type CollectionGroupRow = {
-    values?: Record<string, number | string | null | undefined>;
+    basic?: number | string | null;
+    sef?: number | string | null;
+    penalty?: number | string | null;
+    discount?: number | string | null;
+    total?: number | string | null;
+
+    values?: Record<
+        string,
+        number | string | null | undefined
+    >;
+
     [key: string]: any;
 };
 
@@ -10,92 +20,140 @@ type Props = {
     header?: boolean;
 };
 
+
+/* ============================================================
+   GET VALUE
+============================================================ */
+
 function getValue(
     row: CollectionGroupRow,
-    key: string
+    key:
+        | "basic"
+        | "sef"
+        | "penalty"
+        | "discount"
+        | "total"
 ): number {
-    const value = row?.values?.[key];
 
-    const numberValue = Number(value ?? 0);
+    const value =
+        row?.[key];
 
-    return Number.isFinite(numberValue)
+    const numberValue =
+        Number(value ?? 0);
+
+    return Number.isFinite(
+        numberValue
+    )
         ? numberValue
         : 0;
 }
 
-function formatAmount(value: number) {
-    return value.toLocaleString("en-PH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+
+/* ============================================================
+   FORMAT AMOUNT
+============================================================ */
+
+function formatAmount(
+    value: number
+) {
+
+    return value.toLocaleString(
+        "en-PH",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }
+    );
+
 }
 
-/*
-|--------------------------------------------------------------------------
-| RPT GROUP
-|--------------------------------------------------------------------------
-|
-| REAL PROPERTY TAX
-|
-| Columns:
-|
-| BASIC
-|   - Current
-|   - Previous
-|   - Advance
-|
-| SEF
-|   - Current
-|   - Previous
-|   - Advance
-|
-| PENALTY
-| DISCOUNT
-|
-|--------------------------------------------------------------------------
-*/
+
+/* ============================================================
+   RPT GROUP
+============================================================ */
 
 export default function RPTGroup({
     row,
     header = false,
 }: Props) {
-    /*
-    |--------------------------------------------------------------------------
-    | HEADER
-    |--------------------------------------------------------------------------
-    */
+
+    /* ========================================================
+       GROUP HEADER
+    ======================================================== */
 
     if (header) {
+
         return (
-            <>
-                <th
-                    colSpan={8}
-                    className="
-                        border border-black
-                        bg-slate-100
-                        px-2
-                        py-2
-                        text-center
-                        text-xs
-                        font-bold
-                        text-slate-800
-                    "
-                >
-                    REAL PROPERTY TAX
-                </th>
-            </>
+            <th
+                colSpan={5}
+                className="
+                    border border-black
+                    bg-slate-100
+                    px-2
+                    py-2
+                    text-center
+                    text-xs
+                    font-bold
+                    text-slate-800
+                "
+            >
+                REAL PROPERTY TAX
+            </th>
         );
+
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DATA CELLS
-    |--------------------------------------------------------------------------
-    */
+
+    /* ========================================================
+       VALUES
+    ======================================================== */
+
+    const basic =
+        getValue(
+            row,
+            "basic"
+        );
+
+
+    const sef =
+        getValue(
+            row,
+            "sef"
+        );
+
+
+    const penalty =
+        getValue(
+            row,
+            "penalty"
+        );
+
+
+    const discount =
+        getValue(
+            row,
+            "discount"
+        );
+
+
+    const total =
+        getValue(
+            row,
+            "total"
+        );
+
+
+    /* ========================================================
+       DATA CELLS
+    ======================================================== */
 
     return (
         <>
-            {/* BASIC - CURRENT */}
+
+            {/* ==================================================
+                BASIC
+            ================================================== */}
+
             <td
                 className="
                     border border-black
@@ -106,12 +164,14 @@ export default function RPTGroup({
                     text-slate-700
                 "
             >
-                {formatAmount(
-                    getValue(row, "rpt_basic_current")
-                )}
+                {formatAmount(basic)}
             </td>
 
-            {/* BASIC - PREVIOUS */}
+
+            {/* ==================================================
+                SEF
+            ================================================== */}
+
             <td
                 className="
                     border border-black
@@ -122,12 +182,14 @@ export default function RPTGroup({
                     text-slate-700
                 "
             >
-                {formatAmount(
-                    getValue(row, "rpt_basic_previous")
-                )}
+                {formatAmount(sef)}
             </td>
 
-            {/* BASIC - ADVANCE */}
+
+            {/* ==================================================
+                PENALTY
+            ================================================== */}
+
             <td
                 className="
                     border border-black
@@ -138,12 +200,14 @@ export default function RPTGroup({
                     text-slate-700
                 "
             >
-                {formatAmount(
-                    getValue(row, "rpt_basic_advance")
-                )}
+                {formatAmount(penalty)}
             </td>
 
-            {/* SEF - CURRENT */}
+
+            {/* ==================================================
+                DISCOUNT
+            ================================================== */}
+
             <td
                 className="
                     border border-black
@@ -154,12 +218,14 @@ export default function RPTGroup({
                     text-slate-700
                 "
             >
-                {formatAmount(
-                    getValue(row, "rpt_sef_current")
-                )}
+                {formatAmount(discount)}
             </td>
 
-            {/* SEF - PREVIOUS */}
+
+            {/* ==================================================
+                TOTAL
+            ================================================== */}
+
             <td
                 className="
                     border border-black
@@ -167,90 +233,31 @@ export default function RPTGroup({
                     py-2
                     text-right
                     text-xs
-                    text-slate-700
+                    font-semibold
+                    text-slate-800
                 "
             >
-                {formatAmount(
-                    getValue(row, "rpt_sef_previous")
-                )}
+                {formatAmount(total)}
             </td>
 
-            {/* SEF - ADVANCE */}
-            <td
-                className="
-                    border border-black
-                    px-2
-                    py-2
-                    text-right
-                    text-xs
-                    text-slate-700
-                "
-            >
-                {formatAmount(
-                    getValue(row, "rpt_sef_advance")
-                )}
-            </td>
-
-            {/* PENALTY */}
-            <td
-                className="
-                    border border-black
-                    px-2
-                    py-2
-                    text-right
-                    text-xs
-                    text-slate-700
-                "
-            >
-                {formatAmount(
-                    getValue(row, "rpt_penalty")
-                )}
-            </td>
-
-            {/* DISCOUNT */}
-            <td
-                className="
-                    border border-black
-                    px-2
-                    py-2
-                    text-right
-                    text-xs
-                    text-slate-700
-                "
-            >
-                {formatAmount(
-                    getValue(row, "rpt_discount")
-                )}
-            </td>
         </>
     );
+
 }
 
-/*
-|--------------------------------------------------------------------------
-| SECOND HEADER ROW
-|--------------------------------------------------------------------------
-*/
+
+/* ============================================================
+   SECOND HEADER ROW
+============================================================ */
 
 export function RPTGroupColumns() {
+
     return (
         <>
-            <th
-                className="
-                    border border-black
-                    bg-white
-                    px-2
-                    py-2
-                    text-center
-                    text-xs
-                    font-semibold
-                "
-            >
+
+            {/* ==================================================
                 BASIC
-                <div className="text-[10px] font-normal text-slate-500">
-                    CURRENT
-                </div>
-            </th>
+            ================================================== */}
 
             <th
                 className="
@@ -264,27 +271,12 @@ export function RPTGroupColumns() {
                 "
             >
                 BASIC
-                <div className="text-[10px] font-normal text-slate-500">
-                    PREVIOUS
-                </div>
             </th>
 
-            <th
-                className="
-                    border border-black
-                    bg-white
-                    px-2
-                    py-2
-                    text-center
-                    text-xs
-                    font-semibold
-                "
-            >
-                BASIC
-                <div className="text-[10px] font-normal text-slate-500">
-                    ADVANCE
-                </div>
-            </th>
+
+            {/* ==================================================
+                SEF
+            ================================================== */}
 
             <th
                 className="
@@ -298,44 +290,12 @@ export function RPTGroupColumns() {
                 "
             >
                 SEF
-                <div className="text-[10px] font-normal text-slate-500">
-                    CURRENT
-                </div>
             </th>
 
-            <th
-                className="
-                    border border-black
-                    bg-white
-                    px-2
-                    py-2
-                    text-center
-                    text-xs
-                    font-semibold
-                "
-            >
-                SEF
-                <div className="text-[10px] font-normal text-slate-500">
-                    PREVIOUS
-                </div>
-            </th>
 
-            <th
-                className="
-                    border border-black
-                    bg-white
-                    px-2
-                    py-2
-                    text-center
-                    text-xs
-                    font-semibold
-                "
-            >
-                SEF
-                <div className="text-[10px] font-normal text-slate-500">
-                    ADVANCE
-                </div>
-            </th>
+            {/* ==================================================
+                PENALTY
+            ================================================== */}
 
             <th
                 className="
@@ -351,6 +311,11 @@ export function RPTGroupColumns() {
                 PENALTY
             </th>
 
+
+            {/* ==================================================
+                DISCOUNT
+            ================================================== */}
+
             <th
                 className="
                     border border-black
@@ -364,6 +329,27 @@ export function RPTGroupColumns() {
             >
                 DISCOUNT
             </th>
+
+
+            {/* ==================================================
+                TOTAL
+            ================================================== */}
+
+            <th
+                className="
+                    border border-black
+                    bg-white
+                    px-2
+                    py-2
+                    text-center
+                    text-xs
+                    font-semibold
+                "
+            >
+                TOTAL
+            </th>
+
         </>
     );
+
 }
