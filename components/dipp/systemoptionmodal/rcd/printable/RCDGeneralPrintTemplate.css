@@ -1,0 +1,679 @@
+/*
+======================================================================
+RCD GENERAL PRINT TEMPLATE
+======================================================================
+
+Paper:
+    8.5in x 13in
+
+Used by:
+    RCDPrintTemplate.tsx
+
+The template is rendered in a dedicated print window by RCDReport.tsx.
+======================================================================
+*/
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #000000;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.rcd-print-root {
+    width: 8.5in;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+}
+
+.rcd-print-group {
+    width: 8.5in;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+}
+
+.rcd-print-page {
+    width: 8.5in;
+    min-width: 8.5in;
+    max-width: 8.5in;
+    min-height: 13in;
+
+    margin: 0;
+    padding: 0;
+
+    background: #ffffff;
+
+    break-after: page;
+    page-break-after: always;
+}
+
+.rcd-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+}
+
+.rcd-print-page-break {
+    width: 100%;
+    height: 0;
+    margin: 0;
+    padding: 0;
+
+    break-after: page;
+    page-break-after: always;
+}
+
+/*
+======================================================================
+FLOATING PRINT BUTTON
+======================================================================
+*/
+
+.rcd-floating-print {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 99999;
+
+    border: 0;
+    border-radius: 9999px;
+
+    padding: 12px 20px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.18);
+}
+
+@media print {
+    .rcd-floating-print {
+        display: none !important;
+    }
+}
+
+/*
+======================================================================
+PAPER
+======================================================================
+*/
+
+.rcd-paper {
+    position: relative;
+
+    width: 8.5in;
+    min-width: 8.5in;
+    max-width: 8.5in;
+
+    min-height: 13in;
+
+    margin: 0;
+    padding: 0.30in;
+
+    background: #ffffff;
+    color: #000000;
+
+    overflow: visible;
+}
+
+/*
+======================================================================
+HEADER
+======================================================================
+*/
+
+.rcd-header {
+    width: 100%;
+    text-align: center;
+}
+
+.header-line-1,
+.header-line-2,
+.header-line-3,
+.header-line-4 {
+    width: 100%;
+    text-align: center;
+    line-height: 1.15;
+}
+
+.header-line-1 {
+    font-size: 10pt;
+    font-weight: 700;
+}
+
+.header-line-2 {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.header-line-3,
+.header-line-4 {
+    margin-top: 2px;
+    font-size: 9pt;
+    font-weight: 700;
+}
+
+.header-rule {
+    width: 100%;
+    margin: 7px 0 8px;
+    border-top: 1px solid #000000;
+}
+
+/*
+======================================================================
+REPORT INFORMATION
+======================================================================
+*/
+
+.report-title {
+    margin: 4px 0 8px;
+
+    text-align: center;
+
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.report-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.info-left,
+.info-right {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.info-row {
+    display: flex;
+    align-items: baseline;
+
+    width: 100%;
+    min-height: 16px;
+}
+
+.info-label {
+    min-width: 125px;
+
+    font-size: 8.5pt;
+    font-weight: 700;
+}
+
+.info-value {
+    flex: 1;
+
+    min-height: 16px;
+
+    border-bottom: 1px solid #000000;
+
+    font-size: 8.5pt;
+}
+
+/*
+======================================================================
+SECTIONS
+======================================================================
+*/
+
+.section-a,
+.section-b,
+.section-c,
+.section-d {
+    width: 100%;
+    margin-top: 7px;
+}
+
+.section-title {
+    width: 100%;
+    margin-bottom: 3px;
+
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+
+    break-after: avoid;
+    page-break-after: avoid;
+}
+
+.liquidation-title {
+    margin: 5px 0 3px;
+
+    font-size: 8.5pt;
+    font-weight: 700;
+}
+
+/*
+======================================================================
+TABLES
+======================================================================
+*/
+
+.collections-table,
+.liquidation-table,
+.remittance-table,
+.accountability-table {
+    width: 100%;
+
+    border-collapse: collapse;
+    table-layout: fixed;
+
+    font-size: 8pt;
+}
+
+.collections-table th,
+.collections-table td,
+.liquidation-table th,
+.liquidation-table td,
+.remittance-table th,
+.remittance-table td,
+.accountability-table th,
+.accountability-table td {
+    border: 1px solid #000000;
+    padding: 4px 5px;
+
+    vertical-align: middle;
+}
+
+.collections-table th,
+.liquidation-table th,
+.remittance-table th,
+.accountability-table th {
+    text-align: center;
+    font-weight: 700;
+}
+
+.collections-table thead,
+.liquidation-table thead,
+.remittance-table thead,
+.accountability-table thead {
+    display: table-header-group;
+}
+
+.collections-table tfoot,
+.liquidation-table tfoot,
+.remittance-table tfoot,
+.accountability-table tfoot {
+    display: table-row-group;
+}
+
+.collections-table tr,
+.liquidation-table tr,
+.remittance-table tr,
+.accountability-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/*
+======================================================================
+COLLECTIONS
+======================================================================
+*/
+
+.collections-table .col-form {
+    width: 23%;
+}
+
+.collections-table .col-from {
+    width: 23%;
+}
+
+.collections-table .col-to {
+    width: 23%;
+}
+
+.collections-table .col-amount {
+    width: 31%;
+}
+
+/*
+======================================================================
+LIQUIDATION
+======================================================================
+*/
+
+.liquidation-table .liq-name {
+    width: 45%;
+}
+
+.liquidation-table .liq-report {
+    width: 25%;
+}
+
+.liquidation-table .liq-amount {
+    width: 30%;
+}
+
+/*
+======================================================================
+REMITTANCE
+======================================================================
+*/
+
+.remittance-table .rem-name {
+    width: 38%;
+}
+
+.remittance-table .rem-reference {
+    width: 37%;
+}
+
+.remittance-table .rem-amount {
+    width: 25%;
+}
+
+/*
+======================================================================
+ACCOUNTABILITY
+======================================================================
+*/
+
+.accountability-table {
+    font-size: 7pt;
+}
+
+.accountability-table th,
+.accountability-table td {
+    padding: 3px 2px;
+}
+
+.accountability-table .af-form {
+    width: 11%;
+}
+
+.accountability-table .af-qty {
+    width: 6%;
+}
+
+.accountability-table .af-serial {
+    width: 8%;
+}
+
+/*
+======================================================================
+ALIGNMENT
+======================================================================
+*/
+
+.center {
+    text-align: center;
+}
+
+.right {
+    text-align: right;
+}
+
+.bold {
+    font-weight: 700;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.center.bold {
+    text-align: center;
+    font-weight: 700;
+}
+
+.right.bold {
+    text-align: right;
+    font-weight: 700;
+}
+
+.center.bold,
+.right.bold {
+    white-space: nowrap;
+}
+
+.total-label {
+    text-align: right;
+    font-weight: 700;
+}
+
+.empty-row td {
+    height: 24px;
+}
+
+/*
+======================================================================
+SUMMARY
+======================================================================
+*/
+
+.summary-content {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.summary-line {
+    display: flex;
+    justify-content: flex-end;
+
+    width: 100%;
+    margin-top: 2px;
+
+    font-size: 8.5pt;
+}
+
+.summary-less {
+    padding-right: 8px;
+}
+
+.summary-blank {
+    width: 220px;
+}
+
+.amount-words {
+    margin-top: 7px;
+
+    font-size: 8pt;
+    font-style: italic;
+}
+
+/*
+======================================================================
+CERTIFICATION / VERIFICATION
+======================================================================
+*/
+
+.certification {
+    width: 78%;
+    margin-top: 15px;
+
+    font-size: 8pt;
+    line-height: 1.25;
+
+    text-align: justify;
+}
+
+.verification {
+    width: 100%;
+    margin-top: 12px;
+
+    font-size: 8pt;
+}
+
+.verification-signature {
+    margin-top: 40px;
+    text-align: center;
+}
+
+/*
+======================================================================
+SIGNATURES / FOOTER
+======================================================================
+*/
+
+.signature-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 70px;
+
+    width: 100%;
+    margin-top: 38px;
+
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.signature-block > div {
+    text-align: center;
+}
+
+.signature-date {
+    margin-top: 4px;
+    font-size: 8pt;
+}
+
+.signature-label {
+    font-size: 8pt;
+}
+
+.signature-name {
+    margin-top: 2px;
+
+    font-size: 8.5pt;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+.footer-area {
+    width: 100%;
+    margin-top: 12px;
+
+    font-size: 8pt;
+}
+
+.footer-heading {
+    font-weight: 700;
+}
+
+.system-footer {
+    width: 100%;
+    margin-top: 8px;
+
+    font-size: 7pt;
+    font-style: italic;
+    font-weight: 700;
+}
+
+/*
+======================================================================
+PRINT
+======================================================================
+*/
+
+@page {
+    size: 8.5in 13in;
+    margin: 0;
+}
+
+@media print {
+    html,
+    body {
+        width: 8.5in !important;
+        min-width: 8.5in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+    }
+
+    .rcd-floating-print {
+        display: none !important;
+    }
+
+    .rcd-print-root,
+    .rcd-print-group {
+        width: 8.5in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+    }
+
+    .rcd-print-page {
+        width: 8.5in !important;
+        min-width: 8.5in !important;
+        max-width: 8.5in !important;
+
+        min-height: 13in !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        break-after: page !important;
+        page-break-after: always !important;
+    }
+
+    .rcd-print-page:last-child {
+        break-after: auto !important;
+        page-break-after: auto !important;
+    }
+
+    .rcd-print-page-break {
+        display: block !important;
+
+        width: 100% !important;
+        height: 0 !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        break-after: page !important;
+        page-break-after: always !important;
+    }
+
+    .rcd-paper {
+        width: 8.5in !important;
+        min-width: 8.5in !important;
+        max-width: 8.5in !important;
+
+        min-height: 13in !important;
+
+        margin: 0 !important;
+
+        background: #ffffff !important;
+        box-shadow: none !important;
+
+        overflow: visible !important;
+    }
+
+    .collections-table tr,
+    .liquidation-table tr,
+    .remittance-table tr,
+    .accountability-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .signature-block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

@@ -5,25 +5,50 @@ declare global {
   var pgPool: Pool | undefined;
 }
 
-console.log(
-  "DATABASE_URL:",
-  process.env.DATABASE_URL?.replace(/:(.*?)@/, ":******@")
-);
+/* ============================================================
+   DATABASE CONFIG
+============================================================ */
+
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not defined");
+}
+
+/* ============================================================
+   SINGLETON POSTGRES POOL
+============================================================ */
 
 export const pool =
   global.pgPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
+
+    // Maximum number of simultaneous DB connections
     max: 10,
+
+    // Close idle connections after 30 seconds
     idleTimeoutMillis: 30000,
+
+    // Don't wait forever when DB has no available connection
     connectionTimeoutMillis: 5000,
+
+    // Optional but useful for Neon / hosted PostgreSQL
+    keepAlive: true,
   });
 
-pool
-  .query("SELECT current_user, current_database()")
-  .then((r) => console.log("DB Connected:", r.rows[0]))
-  .catch((err) => console.error("DB Connection Error:", err));
+/* ============================================================
+   SAVE POOL GLOBALLY
+   Prevents multiple pools during Next.js reloads / HMR.
+============================================================ */
 
-if (process.env.NODE_ENV !== "production") {
-  global.pgPool = pool;
-}
+global.pgPool = pool;
+
+/* ============================================================
+   ERROR HANDLER
+   Prevents unhandled pool-level errors.
+============================================================ */
+
+pool.on("error", (err) => {
+  console.error("Unexpected PostgreSQL pool error:", err);
+});

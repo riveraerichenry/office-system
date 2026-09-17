@@ -23,18 +23,20 @@ export default function AbstractSummaryByAccounts({
             : [];
 
     const grandTotal =
-        grandTotalOverride ??
-        rows.reduce(
-            (
-                total: number,
-                item: any
-            ) =>
-                total +
-                Number(
-                    item?.amount ?? 0
-                ),
-            0
-        );
+        typeof grandTotalOverride === "number" &&
+        Number.isFinite(grandTotalOverride)
+            ? grandTotalOverride
+            : rows.reduce(
+                (
+                    total: number,
+                    item: any
+                ) =>
+                    total +
+                    Number(
+                        item?.amount ?? 0
+                    ),
+                0
+            );
 
     return (
         <div className="abstract-by-summary-section">

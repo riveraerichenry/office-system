@@ -6,6 +6,142 @@ type Props = {
     rcd: any;
 };
 
+function PrintButton() {
+    const handlePrint = () => {
+        const printAreas = Array.from(
+            document.querySelectorAll<HTMLElement>(".rcd-print-area")
+        );
+
+        if (printAreas.length === 0) {
+            console.error("No RCD print area found.");
+            return;
+        }
+
+        // Print from a clean window so the application's layout/CSS
+        // cannot make the browser print preview appear blank.
+        const printWindow = window.open(
+            "",
+            "RCD_PRINT_WINDOW",
+            "width=1000,height=1000"
+        );
+
+        if (!printWindow) {
+            alert(
+                "The print window was blocked by your browser. Please allow pop-ups for this site and try again."
+            );
+            return;
+        }
+
+        // Copy all styles currently loaded by the application.
+        const styles = Array.from(
+            document.querySelectorAll('link[rel="stylesheet"], style')
+        )
+            .map((element) => element.outerHTML)
+            .join("\n");
+
+        // Clone all RCD pages. Fund Source 106 will therefore print
+        // BASIC and SEF as two physical pages.
+        const reportsHtml = printAreas
+            .map(
+                (area, index) => `
+                    <div class="rcd-print-report ${
+                        index < printAreas.length - 1
+                            ? "rcd-print-report-break"
+                            : ""
+                    }">
+                        ${area.outerHTML}
+                    </div>
+                `
+            )
+            .join("\n");
+
+        printWindow.document.open();
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="UTF-8" />
+                    <title>RCD Report</title>
+                    ${styles}
+                    <style>
+                        @page {
+                            size: 8.5in 13in;
+                            margin: 0;
+                        }
+
+                        html,
+                        body {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            width: 8.5in !important;
+                            background: #ffffff !important;
+                        }
+
+                        body {
+                            overflow: visible !important;
+                        }
+
+                        .rcd-print-report {
+                            width: 8.5in !important;
+                            height: 13in !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            break-inside: avoid !important;
+                            page-break-inside: avoid !important;
+                        }
+
+                        .rcd-print-report-break {
+                            break-after: page !important;
+                            page-break-after: always !important;
+                        }
+
+                        .rcd-print-area {
+                            width: 8.5in !important;
+                            height: 13in !important;
+                            min-width: 8.5in !important;
+                            min-height: 13in !important;
+                            max-width: 8.5in !important;
+                            max-height: 13in !important;
+                            margin: 0 !important;
+                            box-sizing: border-box !important;
+                            background: #ffffff !important;
+                            box-shadow: none !important;
+                            overflow: hidden !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            position: relative !important;
+                            transform: none !important;
+                            zoom: 1 !important;
+                        }
+                    </style>
+                </head>
+                <body>${reportsHtml}</body>
+            </html>
+        `);
+        printWindow.document.close();
+
+        // Allow copied stylesheets and layout to finish loading.
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+        }, 700);
+    };
+
+    return (
+        <div className="rcd-print-toolbar">
+            <button
+                type="button"
+                onClick={handlePrint}
+                className="rcd-print-button"
+                aria-label="Print RCD report"
+            >
+                <span aria-hidden="true">🖨</span>
+                Print RCD
+            </button>
+        </div>
+    );
+}
+
 export default function RCDReport({
     rcd,
 }: Props) {
@@ -82,15 +218,18 @@ export default function RCDReport({
 
     if (!isRPT) {
         return (
-            <RCDPreview
-                rcd={rcd}
-                items={rcd.items ?? []}
-                fundSource={fundSource}
-                user={rcd.user ?? null}
-                previousFormRows={
-                    rcd.previousFormRows ?? []
-                }
-            />
+            <>
+                <PrintButton />
+                <RCDPreview
+                    rcd={rcd}
+                    items={rcd.items ?? []}
+                    fundSource={fundSource}
+                    user={rcd.user ?? null}
+                    previousFormRows={
+                        rcd.previousFormRows ?? []
+                    }
+                />
+            </>
         );
     }
 
@@ -387,7 +526,9 @@ export default function RCDReport({
     */
 
     return (
-        <div className="flex w-full flex-col items-center">
+        <>
+            <PrintButton />
+            <div className="flex w-full flex-col items-center">
             {/* ====================================================
                 REPORT 1
             ==================================================== */}
@@ -439,5 +580,6 @@ export default function RCDReport({
                 />
             </div>
         </div>
+        </>
     );
 }

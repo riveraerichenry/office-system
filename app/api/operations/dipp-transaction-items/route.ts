@@ -352,10 +352,10 @@ export async function GET(req: NextRequest) {
                 consolidated.approved_at
                     AS consolidated_approved_at,
 
-                consolidated.prepared_by_name
+                consolidated_users.prepared_by_name
                     AS consolidated_prepared_by_name,
 
-                consolidated.approved_by_name
+                consolidated_users.approved_by_name
                     AS consolidated_approved_by_name,
 
                 consolidated_item.id

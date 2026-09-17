@@ -1,4 +1,4 @@
-"use client";
+
 
 import {
     useEffect,
@@ -455,6 +455,18 @@ export default function AbstractSummary({
     );
 
 
+    /* ========================================================
+       GRAND TOTAL FROM API
+    ======================================================== */
+
+    const [
+        apiGrandTotal,
+        setApiGrandTotal,
+    ] = useState<number | null>(
+        null
+    );
+
+
     /* ============================================================
        LOAD ABSTRACT SUMMARY
     ============================================================ */
@@ -479,6 +491,10 @@ export default function AbstractSummary({
                 Array.isArray(items)
                     ? items
                     : []
+            );
+
+            setApiGrandTotal(
+                null
             );
 
             return;
@@ -559,6 +575,19 @@ export default function AbstractSummary({
                     rows
                 );
 
+                const parsedGrandTotal =
+                    Number(
+                        data?.grand_total
+                    );
+
+                setApiGrandTotal(
+                    Number.isFinite(
+                        parsedGrandTotal
+                    )
+                        ? parsedGrandTotal
+                        : null
+                );
+
             }
             catch (
                 err: any
@@ -578,6 +607,10 @@ export default function AbstractSummary({
 
                     setAccountRows(
                         []
+                    );
+
+                    setApiGrandTotal(
+                        null
                     );
                 }
 
@@ -680,26 +713,100 @@ export default function AbstractSummary({
        GRAND TOTAL
     ============================================================ */
 
-    const grandTotal =
+    const calculatedGrandTotal =
         accountRows.reduce(
             (
-                total: number,
+                totals: {
+                    basic: number;
+                    sef: number;
+                    penalty: number;
+                    discount: number;
+                },
                 item: any
             ) => {
 
-                const amount =
+                const basic =
                     Number(
-                        item?.amount ??
-                        item?.total ??
-                        item?.value ??
+                        item?.basic ??
+                        item?.basic_amount ??
+                        item?.rpt_basic ??
+                        item?.rpt_basic_amount ??
                         0
                     );
 
-                return total + amount;
+                const sef =
+                    Number(
+                        item?.sef ??
+                        item?.sef_amount ??
+                        item?.rpt_sef ??
+                        item?.rpt_sef_amount ??
+                        0
+                    );
+
+                const penalty =
+                    Number(
+                        item?.penalty ??
+                        item?.penalty_amount ??
+                        0
+                    );
+
+                const discount =
+                    Number(
+                        item?.discount ??
+                        item?.discount_amount ??
+                        0
+                    );
+
+                totals.basic +=
+                    Number.isFinite(basic)
+                        ? basic
+                        : 0;
+
+                totals.sef +=
+                    Number.isFinite(sef)
+                        ? sef
+                        : 0;
+
+                totals.penalty +=
+                    Number.isFinite(penalty)
+                        ? penalty
+                        : 0;
+
+                totals.discount +=
+                    Number.isFinite(discount)
+                        ? discount
+                        : 0;
+
+                return totals;
 
             },
-            0
+            {
+                basic: 0,
+                sef: 0,
+                penalty: 0,
+                discount: 0,
+            }
         );
+
+    /* ============================================================
+       CORRECT GRAND TOTAL FORMULA
+
+       BASIC + SEF + PENALTY - DISCOUNT
+    ============================================================ */
+
+    const fallbackGrandTotal: number =
+        calculatedGrandTotal.basic +
+        calculatedGrandTotal.sef +
+        calculatedGrandTotal.penalty -
+        calculatedGrandTotal.discount;
+
+    const grandTotalValue: number =
+        typeof apiGrandTotal === "number" &&
+        Number.isFinite(
+            apiGrandTotal
+        )
+            ? apiGrandTotal
+            : fallbackGrandTotal;
 
 
     /* ============================================================
@@ -826,7 +933,7 @@ export default function AbstractSummary({
                                     }
 
                                     grandTotalOverride={
-                                        grandTotal
+                                        grandTotalValue
                                     }
 
                                 />

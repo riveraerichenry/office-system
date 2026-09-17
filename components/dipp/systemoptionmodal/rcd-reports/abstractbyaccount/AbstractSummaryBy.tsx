@@ -518,18 +518,100 @@ export default function AbstractSummaryByAccount({
 
     }
 
-    const overallGrandTotal =
-        accountRows.reduce(
-            (
-                total: number,
-                item: any
-            ) =>
-                total +
+    /*
+     * ============================================================
+     * GRAND TOTAL
+     *
+     * Keep ALL account rows in the total.
+     *
+     * Rule:
+     *   - Normal account/collection rows are ADDED.
+     *   - Discount rows are SUBTRACTED.
+     *
+     * This keeps other fund sources/accounts included while
+     * applying the correct:
+     *
+     *   BASIC + SEF + PENALTY - DISCOUNT
+     *
+     * for RPT-related rows.
+     *
+     * Fund source 106 is NOT treated separately here; its
+     * already-aggregated account rows are preserved exactly as
+     * returned by the API.
+     * ============================================================
+     */
+
+    const overallGrandTotal = accountRows.reduce(
+        (
+            total: number,
+            item: any
+        ) => {
+
+            const rawAmount =
                 Number(
-                    item?.amount ?? 0
-                ),
-            0
-        );
+                    item?.amount ??
+                    item?.total ??
+                    item?.value ??
+                    0
+                );
+
+            if (!Number.isFinite(rawAmount)) {
+                return total;
+            }
+
+            const accountCode = String(
+                item?.account_code ??
+                item?.accountCode ??
+                ""
+            ).toLowerCase();
+
+            const accountName = String(
+                item?.account_name ??
+                item?.accountName ??
+                ""
+            ).toLowerCase();
+
+            const particulars = String(
+                item?.particulars ??
+                item?.description ??
+                ""
+            ).toLowerCase();
+
+            const type = String(
+                item?.type ??
+                item?.category ??
+                item?.transaction_type ??
+                ""
+            ).toLowerCase();
+
+            const combinedLabel = [
+                accountCode,
+                accountName,
+                particulars,
+                type,
+            ].join(" ");
+
+            const isDiscount =
+                combinedLabel.includes("discount");
+
+            /*
+             * If the API already sends a discount as a negative
+             * amount, keep the negative sign.
+             *
+             * If the API sends discount as a positive amount,
+             * subtract it.
+             */
+            if (isDiscount) {
+                return (
+                    total -
+                    Math.abs(rawAmount)
+                );
+            }
+
+            return total + rawAmount;
+        },
+        0
+    );
 
 
     return (
@@ -604,7 +686,7 @@ export default function AbstractSummaryByAccount({
                                     }
                                     grandTotalOverride={
                                         isLastPage
-                                            ? overallGrandTotal
+                                            ? Number(overallGrandTotal)
                                             : undefined
                                     }
                                 />

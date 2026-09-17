@@ -11,6 +11,7 @@ import type {
 type Props = {
   items: ConsolidatedItem[];
   totalAmount: number;
+  splitAmount?: boolean;
 };
 
 /* ============================================================
@@ -28,12 +29,32 @@ function formatAmount(value: number) {
 }
 
 /* ============================================================
+   DISPLAY AMOUNT
+============================================================ */
+
+function getDisplayAmount(
+  value: number | string | null | undefined,
+  shouldSplit: boolean
+): number {
+  const amount = Number(value ?? 0);
+
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+
+  return shouldSplit
+    ? amount / 2
+    : amount;
+}
+
+/* ============================================================
    COMPONENT
 ============================================================ */
 
 export default function ConsolidatedRCDCollections({
   items,
   totalAmount,
+  splitAmount = false,
 }: Props) {
   return (
     <section
@@ -448,7 +469,12 @@ export default function ConsolidatedRCDCollections({
                     pageBreakInside: "avoid",
                   }}
                 >
-                  {formatAmount(item.amount)}
+                  {formatAmount(
+                    getDisplayAmount(
+                      item.amount,
+                      splitAmount
+                    )
+                  )}
                 </td>
               </tr>
             ))
@@ -560,7 +586,12 @@ export default function ConsolidatedRCDCollections({
                 pageBreakInside: "avoid",
               }}
             >
-              {formatAmount(totalAmount)}
+              {formatAmount(
+                getDisplayAmount(
+                  totalAmount,
+                  splitAmount
+                )
+              )}
             </td>
           </tr>
         </tbody>

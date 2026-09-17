@@ -534,6 +534,23 @@ export async function GET(
 
         /*
         ================================================================
+        RPT GRAND TOTAL COMPONENTS
+
+        GRAND TOTAL = BASIC + SEF + PENALTY - DISCOUNT
+
+        Keep these values separate from the display rows so that the
+        visible discount rows are not accidentally added to the total.
+        ================================================================
+        */
+
+        let basicTotal = 0;
+        let sefTotal = 0;
+        let penaltyTotal = 0;
+        let discountTotal = 0;
+
+
+        /*
+        ================================================================
         ADD RPT GROUP
         ================================================================
         */
@@ -877,6 +894,18 @@ export async function GET(
                         toNumber(
                             rpt.discount
                         );
+
+
+                    /*
+                    ----------------------------------------------------
+                    ACCUMULATE RPT GRAND TOTAL COMPONENTS
+                    ----------------------------------------------------
+                    */
+
+                    basicTotal += basic;
+                    sefTotal += sef;
+                    penaltyTotal += penalty;
+                    discountTotal += discount;
 
 
                     /*
@@ -2142,6 +2171,30 @@ if (
 
         /*
         ================================================================
+        NON-RPT GRAND TOTAL
+        ================================================================
+
+        Keep every non-RPT transaction in the Grand Total exactly
+        as displayed. This preserves totals for all other fund sources.
+        ================================================================
+        */
+
+        const nonRptTotal =
+            nonRptRows.reduce(
+                (
+                    total,
+                    row
+                ) =>
+                    total +
+                    toNumber(
+                        row.amount
+                    ),
+                0
+            );
+
+
+        /*
+        ================================================================
         COMBINE RPT + NON-RPT
         ================================================================
         */
@@ -2170,19 +2223,33 @@ if (
         ================================================================
         GRAND TOTAL
         ================================================================
+
+        REQUIRED FORMULA:
+
+            GRAND TOTAL =
+                BASIC
+              + SEF
+              + PENALTY
+              - DISCOUNT
+
+        Do NOT calculate this from finalItems.amount because the
+        discount is displayed as a positive row in the Abstract Summary.
+        Summing finalItems would therefore ADD the discount instead of
+        deducting it.
+        ================================================================
         */
 
+        const rptGrandTotal =
+            basicTotal +
+            sefTotal +
+            penaltyTotal -
+            discountTotal;
+
+
         const grandTotal =
-            finalItems.reduce(
-                (
-                    total,
-                    row
-                ) =>
-                    total +
-                    toNumber(
-                        row.amount
-                    ),
-                0
+            money(
+                rptGrandTotal +
+                nonRptTotal
             );
 
 
@@ -2274,6 +2341,35 @@ if (
 
             items:
                 finalItems,
+
+
+            /*
+            ------------------------------------------------------------
+            RPT TOTAL COMPONENTS
+            ------------------------------------------------------------
+            */
+
+            rpt_totals: {
+                basic:
+                    money(
+                        basicTotal
+                    ),
+
+                sef:
+                    money(
+                        sefTotal
+                    ),
+
+                penalty:
+                    money(
+                        penaltyTotal
+                    ),
+
+                discount:
+                    money(
+                        discountTotal
+                    ),
+            },
 
 
             /*
