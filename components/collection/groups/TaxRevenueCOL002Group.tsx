@@ -1,106 +1,367 @@
 "use client";
 
+import {
+    useEffect,
+    useState,
+} from "react";
+
+
+/* ============================================================
+   TYPES
+============================================================ */
+
 export type TaxRevenueCOL002Row = {
-    values?: Record<string, number | string | null | undefined>;
+    id?: string;
+
+    remittance_id?: string | null;
+
+    remittance_no?: string | null;
+
+    values?: Record<
+        string,
+        number | string | null | undefined
+    >;
+
     [key: string]: any;
 };
+
 
 type Props = {
     row: TaxRevenueCOL002Row;
     header?: boolean;
 };
 
-function getValue(
-    row: TaxRevenueCOL002Row,
-    key: string
+
+type TaxRevenueAPIItem = {
+    id: string;
+
+    remittance_no: string | null;
+
+    remittance_date: string | null;
+
+    total_amount: number;
+
+    values?: {
+        ctc_corporation?: number | string | null;
+        ctc_individual?: number | string | null;
+        ctc_penalty?: number | string | null;
+    };
+};
+
+
+type TaxRevenueAPIResponse = {
+    success: boolean;
+
+    data?: TaxRevenueAPIItem[];
+
+    message?: string;
+};
+
+
+/* ============================================================
+   SHARED FETCH CACHE
+
+   The group API is fetched once and reused by all rows.
+============================================================ */
+
+let taxRevenueRequest:
+    Promise<TaxRevenueAPIItem[]> | null = null;
+
+
+let taxRevenueCache:
+    TaxRevenueAPIItem[] | null = null;
+
+
+async function loadTaxRevenueData(): Promise<
+    TaxRevenueAPIItem[]
+> {
+    if (taxRevenueCache) {
+        return taxRevenueCache;
+    }
+
+    if (taxRevenueRequest) {
+        return taxRevenueRequest;
+    }
+
+    taxRevenueRequest = fetch(
+        "/api/collection/tax-revenue-col002",
+        {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+        }
+    )
+        .then(async (response) => {
+            const result =
+                (await response.json()) as TaxRevenueAPIResponse;
+
+            if (
+                !response.ok ||
+                !result.success
+            ) {
+                throw new Error(
+                    result.message ??
+                        "Failed to load Tax Revenue-COL002."
+                );
+            }
+
+            const data =
+                Array.isArray(result.data)
+                    ? result.data
+                    : [];
+
+            taxRevenueCache = data;
+
+            return data;
+        })
+        .finally(() => {
+            taxRevenueRequest = null;
+        });
+
+    return taxRevenueRequest;
+}
+
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function toNumber(
+    value: unknown
 ): number {
-    const value = row?.values?.[key];
+    const numberValue =
+        Number(value ?? 0);
 
-    const numberValue = Number(value ?? 0);
-
-    return Number.isFinite(numberValue)
+    return Number.isFinite(
+        numberValue
+    )
         ? numberValue
         : 0;
 }
 
-function formatAmount(value: number) {
-    return value.toLocaleString("en-PH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+
+function formatAmount(
+    value: unknown
+): string {
+    return toNumber(
+        value
+    ).toLocaleString(
+        "en-PH",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }
+    );
 }
 
-/*
-|--------------------------------------------------------------------------
-| TAX REVENUE - COL002
-|--------------------------------------------------------------------------
-|
-| CTC COLLECTION
-|
-| Accounts:
-|
-| 4-01-01-050-1
-| Individual
-|
-| 4-01-01-050-2
-| Individual - Barangay
-|
-| 4-01-01-050-3
-| Corporation
-|
-| 4-01-01-050-4
-| Individual Penalty
-|
-| 4-01-01-050-5
-| Corporation Penalty
-|
-|--------------------------------------------------------------------------
-*/
+
+/* ============================================================
+   GET REMITTANCE ID
+============================================================ */
+
+function getRemittanceId(
+    row: TaxRevenueCOL002Row
+): string {
+    return String(
+        row.id ??
+            row.remittance_id ??
+            ""
+    );
+}
+
+
+/* ============================================================
+   GET GROUP DATA FOR CURRENT ROW
+============================================================ */
+
+function getGroupData(
+    data: TaxRevenueAPIItem[],
+    row: TaxRevenueCOL002Row
+): TaxRevenueAPIItem | null {
+    const remittanceId =
+        getRemittanceId(row);
+
+    if (!remittanceId) {
+        return null;
+    }
+
+    return (
+        data.find(
+            (item) =>
+                String(item.id) ===
+                remittanceId
+        ) ?? null
+    );
+}
+
+
+/* ============================================================
+   TAX REVENUE-COL002 GROUP
+===============================================================
+   COLUMNS
+
+   1. DUE TO-LGU 50%      → DISREGARD FOR NOW
+   2. CTC-brgy(50%)       → DISREGARD FOR NOW
+   3. CTC-corp.           → GET FROM API
+   4. CTC-indv.           → GET FROM API
+   5. CTC-PEN.            → GET FROM API
+============================================================ */
 
 export default function TaxRevenueCOL002Group({
     row,
     header = false,
 }: Props) {
-    /*
-    |--------------------------------------------------------------------------
-    | GROUP HEADER
-    |--------------------------------------------------------------------------
-    */
+    const [
+        apiItem,
+        setApiItem,
+    ] = useState<
+        TaxRevenueAPIItem | null
+    >(null);
+
+
+    /* ========================================================
+       LOAD SEPARATE API
+    ======================================================== */
+
+    useEffect(() => {
+        if (header) {
+            return;
+        }
+
+        let cancelled = false;
+
+        loadTaxRevenueData()
+            .then((data) => {
+                if (cancelled) {
+                    return;
+                }
+
+                const current =
+                    getGroupData(
+                        data,
+                        row
+                    );
+
+                setApiItem(
+                    current
+                );
+            })
+            .catch((error) => {
+                console.error(
+                    "TAX REVENUE-COL002 GROUP LOAD ERROR:",
+                    error
+                );
+
+                if (!cancelled) {
+                    setApiItem(null);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [header, row]);
+
+
+    /* ========================================================
+       GROUP HEADER
+    ======================================================== */
 
     if (header) {
         return (
-            <>
-                <th
-                    colSpan={5}
-                    className="
-                        border border-black
-                        bg-slate-100
-                        px-2
-                        py-2
-                        text-center
-                        text-xs
-                        font-bold
-                        text-slate-800
-                    "
-                >
-                    TAX REVENUE-COL002
-                </th>
-            </>
+            <th
+                colSpan={5}
+                className="
+                    border
+                    border-black
+                    bg-slate-100
+                    px-2
+                    py-2
+                    text-center
+                    text-xs
+                    font-bold
+                    text-slate-800
+                "
+            >
+                TAX REVENUE-COL002
+            </th>
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DATA
-    |--------------------------------------------------------------------------
-    */
+
+    /* ========================================================
+       GET VALUES
+    ======================================================== */
+
+    const corporation =
+        apiItem?.values
+            ?.ctc_corporation ?? 0;
+
+    const individual =
+        apiItem?.values
+            ?.ctc_individual ?? 0;
+
+    const penalty =
+        apiItem?.values
+            ?.ctc_penalty ?? 0;
+
+
+    /* ========================================================
+       RENDER
+    ======================================================== */
 
     return (
         <>
-            {/* INDIVIDUAL */}
+            {/* ==================================================
+                DUE TO-LGU 50%
+
+                DISREGARDED FOR NOW
+            ================================================== */}
+
             <td
                 className="
-                    border border-black
+                    border
+                    border-black
+                    px-2
+                    py-2
+                    text-right
+                    text-xs
+                    text-slate-400
+                "
+            >
+                —
+            </td>
+
+
+            {/* ==================================================
+                CTC-brgy(50%)
+
+                DISREGARDED FOR NOW
+            ================================================== */}
+
+            <td
+                className="
+                    border
+                    border-black
+                    px-2
+                    py-2
+                    text-right
+                    text-xs
+                    text-slate-400
+                "
+            >
+                —
+            </td>
+
+
+            {/* ==================================================
+                CTC-corp.
+            ================================================== */}
+
+            <td
+                className="
+                    border
+                    border-black
                     px-2
                     py-2
                     text-right
@@ -109,14 +370,19 @@ export default function TaxRevenueCOL002Group({
                 "
             >
                 {formatAmount(
-                    getValue(row, "tax_revenue_col002_individual")
+                    corporation
                 )}
             </td>
 
-            {/* INDIVIDUAL - BARANGAY */}
+
+            {/* ==================================================
+                CTC-indv.
+            ================================================== */}
+
             <td
                 className="
-                    border border-black
+                    border
+                    border-black
                     px-2
                     py-2
                     text-right
@@ -125,55 +391,19 @@ export default function TaxRevenueCOL002Group({
                 "
             >
                 {formatAmount(
-                    getValue(
-                        row,
-                        "tax_revenue_col002_individual_barangay"
-                    )
+                    individual
                 )}
             </td>
 
-            {/* CORPORATION */}
-            <td
-                className="
-                    border border-black
-                    px-2
-                    py-2
-                    text-right
-                    text-xs
-                    text-slate-700
-                "
-            >
-                {formatAmount(
-                    getValue(
-                        row,
-                        "tax_revenue_col002_corporation"
-                    )
-                )}
-            </td>
 
-            {/* INDIVIDUAL PENALTY */}
-            <td
-                className="
-                    border border-black
-                    px-2
-                    py-2
-                    text-right
-                    text-xs
-                    text-slate-700
-                "
-            >
-                {formatAmount(
-                    getValue(
-                        row,
-                        "tax_revenue_col002_individual_penalty"
-                    )
-                )}
-            </td>
+            {/* ==================================================
+                CTC-PEN.
+            ================================================== */}
 
-            {/* CORPORATION PENALTY */}
             <td
                 className="
-                    border border-black
+                    border
+                    border-black
                     px-2
                     py-2
                     text-right
@@ -182,102 +412,113 @@ export default function TaxRevenueCOL002Group({
                 "
             >
                 {formatAmount(
-                    getValue(
-                        row,
-                        "tax_revenue_col002_corporation_penalty"
-                    )
+                    penalty
                 )}
             </td>
         </>
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| SECOND HEADER ROW
-|--------------------------------------------------------------------------
-*/
+
+/* ============================================================
+   SECOND HEADER ROW
+============================================================ */
 
 export function TaxRevenueCOL002GroupColumns() {
     return (
         <>
-            <th
-                className="
-                    border border-black
-                    bg-white
-                    px-2
-                    py-2
-                    text-center
-                    text-xs
-                    font-semibold
-                "
-            >
-                INDIVIDUAL
-            </th>
+            {/* DUE TO-LGU 50% */}
 
             <th
                 className="
-                    border border-black
+                    border
+                    border-black
                     bg-white
                     px-2
                     py-2
                     text-center
                     text-xs
                     font-semibold
+                    text-slate-800
                 "
             >
-                INDIVIDUAL
-                <div className="text-[10px] font-normal text-slate-500">
-                    BARANGAY
-                </div>
+                DUE TO-LGU 50%
             </th>
+
+
+            {/* CTC-brgy(50%) */}
 
             <th
                 className="
-                    border border-black
+                    border
+                    border-black
                     bg-white
                     px-2
                     py-2
                     text-center
                     text-xs
                     font-semibold
+                    text-slate-800
                 "
             >
-                CORPORATION
+                CTC-brgy(50%)
             </th>
+
+
+            {/* CTC-corp. */}
 
             <th
                 className="
-                    border border-black
+                    border
+                    border-black
                     bg-white
                     px-2
                     py-2
                     text-center
                     text-xs
                     font-semibold
+                    text-slate-800
                 "
             >
-                INDIVIDUAL
-                <div className="text-[10px] font-normal text-slate-500">
-                    PENALTY
-                </div>
+                CTC-corp.
             </th>
+
+
+            {/* CTC-indv. */}
 
             <th
                 className="
-                    border border-black
+                    border
+                    border-black
                     bg-white
                     px-2
                     py-2
                     text-center
                     text-xs
                     font-semibold
+                    text-slate-800
                 "
             >
-                CORPORATION
-                <div className="text-[10px] font-normal text-slate-500">
-                    PENALTY
-                </div>
+                CTC-indv.
+            </th>
+
+
+            {/* CTC-PEN. */}
+
+            <th
+                className="
+                    border
+                    border-black
+                    bg-white
+                    px-2
+                    py-2
+                    text-center
+                    text-xs
+                    font-semibold
+                    text-slate-800
+                "
+            >
+                CTC-PEN.
             </th>
         </>
     );

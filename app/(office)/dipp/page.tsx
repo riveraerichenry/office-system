@@ -25,6 +25,9 @@ import AF58ReceiptModal
 import AF54ReceiptModal
     from "@/components/dipp/af54/AF54ReceiptModal";
 
+import AF53ReceiptModal
+    from "@/components/dipp/af53/AF53ReceiptModal";
+
 import GenerateRCDModal
     from "@/components/dipp/systemoptionmodal/GenerateRCDModal";
 
@@ -135,6 +138,18 @@ export default function DIPPPage() {
     const [
         openAF54Modal,
         setOpenAF54Modal,
+    ] = useState(false);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AF53
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openAF53Modal,
+        setOpenAF53Modal,
     ] = useState(false);
 
 
@@ -787,6 +802,10 @@ export default function DIPPPage() {
             false
         );
 
+        setOpenAF53Modal(
+            false
+        );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -912,6 +931,26 @@ export default function DIPPPage() {
         ) {
 
             setOpenAF54Modal(
+                true
+            );
+
+            return;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AF53
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formCode ===
+            "AF53"
+        ) {
+
+            setOpenAF53Modal(
                 true
             );
 
@@ -1470,6 +1509,51 @@ export default function DIPPPage() {
                     async () => {
 
                         setOpenAF54Modal(
+                            false
+                        );
+
+                        setSelectedBooklet(
+                            null
+                        );
+
+                        await refreshDashboard();
+
+                    }
+                }
+
+            />
+
+
+            {/* ==============================================================
+                AF53
+            ============================================================== */}
+
+            <AF53ReceiptModal
+
+                open={
+                    openAF53Modal
+                }
+
+                booklet={
+                    selectedBooklet
+                }
+
+                onClose={() => {
+
+                    setOpenAF53Modal(
+                        false
+                    );
+
+                    setSelectedBooklet(
+                        null
+                    );
+
+                }}
+
+                onSuccess={
+                    async () => {
+
+                        setOpenAF53Modal(
                             false
                         );
 

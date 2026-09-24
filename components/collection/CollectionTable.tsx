@@ -16,6 +16,11 @@ import {
     X,
 } from "lucide-react";
 
+
+/* ============================================================
+   GROUP COMPONENTS
+============================================================ */
+
 import RPTGroup, {
     RPTGroupColumns,
 } from "@/components/collection/groups/RPTGroup";
@@ -23,6 +28,26 @@ import RPTGroup, {
 import TaxRevenueCOL002Group, {
     TaxRevenueCOL002GroupColumns,
 } from "@/components/collection/groups/TaxRevenueCOL002Group";
+
+import TaxGoodsCOL004Group, {
+    TaxGoodsCOL004GroupColumns,
+} from "@/components/collection/groups/TaxGoodsCOL004Group";
+
+import PermitFeesGroup, {
+    PermitFeesGroupColumns,
+} from "@/components/collection/groups/PermitFeesGroup";
+
+import RegistrationGroup, {
+    RegistrationGroupColumns,
+} from "@/components/collection/groups/RegistrationGroup";
+
+import ClearanceCertificationFeesGroup, {
+    ClearanceCertificationFeesGroupColumns,
+} from "@/components/collection/groups/ClearanceCertificationFeesGroup";
+
+import BusinessIncomeCOL012Group, {
+    BusinessIncomeCOL012GroupColumns,
+} from "@/components/collection/groups/BusinessIncomeCOL12Group";
 
 
 /* ============================================================
@@ -32,11 +57,9 @@ import TaxRevenueCOL002Group, {
 type CollectionRow = {
     id: string;
 
-    /*
-    |--------------------------------------------------------------------------
-    | RCD
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       RCD
+    ======================================================== */
 
     rcd_transaction_id?:
         | string
@@ -59,11 +82,9 @@ type CollectionRow = {
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | REMITTANCE
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       REMITTANCE
+    ======================================================== */
 
     remittance_id?:
         | string
@@ -83,22 +104,18 @@ type CollectionRow = {
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | COLLECTOR
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       COLLECTOR
+    ======================================================== */
 
     collector_name?:
         | string
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | FUND
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       FUND
+    ======================================================== */
 
     fund_source_id?:
         | string
@@ -117,11 +134,9 @@ type CollectionRow = {
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | AMOUNT
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       AMOUNT
+    ======================================================== */
 
     amount?:
         | number
@@ -134,11 +149,9 @@ type CollectionRow = {
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | RPT
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       RPT
+    ======================================================== */
 
     basic?:
         | number
@@ -166,11 +179,9 @@ type CollectionRow = {
         | null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | DYNAMIC GROUP VALUES
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       GROUP VALUES
+    ======================================================== */
 
     values?: Record<
         string,
@@ -178,11 +189,9 @@ type CollectionRow = {
     >;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ALLOW OTHER API FIELDS
-    |--------------------------------------------------------------------------
-    */
+    /* ========================================================
+       ALLOW OTHER API FIELDS
+    ======================================================== */
 
     [key: string]: any;
 };
@@ -209,7 +218,7 @@ const ROWS_PER_PAGE = 15;
 
 
 /* ============================================================
-   FORMAT AMOUNT
+   FORMAT CURRENCY
 ============================================================ */
 
 function formatAmount(
@@ -217,13 +226,21 @@ function formatAmount(
 ) {
 
     const amount =
-        Number(value ?? 0);
+        Number(
+            value ?? 0
+        );
+
 
     if (
-        Number.isNaN(amount)
+        Number.isNaN(
+            amount
+        )
     ) {
+
         return "₱0.00";
+
     }
+
 
     return new Intl.NumberFormat(
         "en-PH",
@@ -233,7 +250,9 @@ function formatAmount(
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }
-    ).format(amount);
+    ).format(
+        amount
+    );
 }
 
 
@@ -246,13 +265,21 @@ function formatTableAmount(
 ) {
 
     const amount =
-        Number(value ?? 0);
+        Number(
+            value ?? 0
+        );
+
 
     if (
-        Number.isNaN(amount)
+        Number.isNaN(
+            amount
+        )
     ) {
+
         return "0.00";
+
     }
+
 
     return amount.toLocaleString(
         "en-PH",
@@ -275,23 +302,18 @@ function formatDate(
 ) {
 
     if (!value) {
+
         return "—";
+
     }
 
 
     /*
-    |--------------------------------------------------------------------------
-    | DATE-ONLY VALUES
-    |--------------------------------------------------------------------------
-    |
-    | PostgreSQL DATE:
-    |
-    | 2026-09-15
-    |
-    | Append T00:00:00 so the browser does not shift
-    | the date because of UTC conversion.
-    |
-    */
+     * PostgreSQL DATE values are date-only.
+     *
+     * Append midnight so the browser does not
+     * shift the date because of UTC conversion.
+     */
 
     const date =
         /^\d{4}-\d{2}-\d{2}$/.test(
@@ -300,7 +322,9 @@ function formatDate(
             ? new Date(
                   `${value}T00:00:00`
               )
-            : new Date(value);
+            : new Date(
+                  value
+              );
 
 
     if (
@@ -308,7 +332,9 @@ function formatDate(
             date.getTime()
         )
     ) {
+
         return "—";
+
     }
 
 
@@ -332,34 +358,40 @@ function getRowAmount(
 ) {
 
     /*
-    |--------------------------------------------------------------------------
-    | Prefer REMITTANCE TOTAL
-    |--------------------------------------------------------------------------
-    |
-    | Since this table is now based on remittance rows,
-    | AMOUNT should represent the remittance amount.
-    |
-    */
+     * AMOUNT must represent the overall
+     * remittance amount.
+     */
 
     const candidates = [
+
         row.remittance_total_amount,
+
         row.total_amount,
+
         row.amount,
+
     ];
 
 
     for (
-        const value of candidates
+        const value
+        of candidates
     ) {
 
         const number =
-            Number(value ?? NaN);
+            Number(
+                value ?? NaN
+            );
 
 
         if (
-            Number.isFinite(number)
+            Number.isFinite(
+                number
+            )
         ) {
+
             return number;
+
         }
 
     }
@@ -443,6 +475,36 @@ export default function CollectionTable() {
     ] = useState(true);
 
 
+    const [
+        showTaxGoodsCOL004,
+        setShowTaxGoodsCOL004,
+    ] = useState(true);
+
+
+    const [
+        showPermitFees,
+        setShowPermitFees,
+    ] = useState(true);
+
+
+    const [
+        showRegistration,
+        setShowRegistration,
+    ] = useState(true);
+
+
+    const [
+        showClearanceCertificationFees,
+        setShowClearanceCertificationFees,
+    ] = useState(true);
+
+
+    const [
+        showBusinessIncomeCOL012,
+        setShowBusinessIncomeCOL012,
+    ] = useState(true);
+
+
     /* ========================================================
        PAGINATION
     ======================================================== */
@@ -463,51 +525,56 @@ export default function CollectionTable() {
 
         try {
 
-            if (showRefresh) {
+            if (
+                showRefresh
+            ) {
 
-                setRefreshing(true);
+                setRefreshing(
+                    true
+                );
 
             } else {
 
-                setLoading(true);
+                setLoading(
+                    true
+                );
 
             }
 
 
-            setError("");
+            setError(
+                ""
+            );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | LOAD ALL COLLECTIONS
-            |--------------------------------------------------------------------------
-            |
-            | The main collection API returns ONE ROW PER REMITTANCE.
-            | Group amounts are stored inside row.values.
-            |
-            | RPT values are:
-            |   rpt_basic
-            |   rpt_sef
-            |   rpt_penalty
-            |   rpt_discount
-            |   rpt_total
-            |
-            | The AMOUNT column remains the overall remittance amount.
-            */
+            /* ==================================================
+               MAIN COLLECTION API
+               
+               Returns ONE ROW PER REMITTANCE.
+               
+               Group-specific APIs are loaded by their
+               respective group components.
+            ================================================== */
 
             const response =
                 await fetch(
                     "/api/collection",
                     {
                         method: "GET",
-                        credentials: "include",
-                        cache: "no-store",
+
+                        credentials:
+                            "include",
+
+                        cache:
+                            "no-store",
                     }
                 );
 
 
             const result =
-                (await response.json()) as CollectionResponse;
+                (
+                    await response.json()
+                ) as CollectionResponse;
 
 
             if (
@@ -517,54 +584,70 @@ export default function CollectionTable() {
 
                 throw new Error(
                     result.message ??
-                        "Failed to load collection data."
+                    "Failed to load collection data."
                 );
 
             }
 
 
+            /* ==================================================
+               MAP DATA
+            ================================================== */
+
             const data =
                 Array.isArray(
                     result.data
                 )
-                    ? result.data.map((row) => ({
-                        ...row,
+                    ? result.data.map(
+                          (
+                              row
+                          ) => ({
 
-                        /*
-                         * The main API stores group amounts in values.
-                         * Map them to the fields expected by RPTGroup.
-                         */
-                        basic:
-                            row.values?.rpt_basic ??
-                            row.basic ??
-                            0,
+                              ...row,
 
-                        sef:
-                            row.values?.rpt_sef ??
-                            row.sef ??
-                            0,
+                              /*
+                               * RPT fields are kept available
+                               * for RPTGroup.
+                               */
 
-                        penalty:
-                            row.values?.rpt_penalty ??
-                            row.penalty ??
-                            0,
+                              basic:
+                                  row.values?.rpt_basic ??
+                                  row.basic ??
+                                  0,
 
-                        discount:
-                            row.values?.rpt_discount ??
-                            row.discount ??
-                            0,
+                              sef:
+                                  row.values?.rpt_sef ??
+                                  row.sef ??
+                                  0,
 
-                        total:
-                            row.values?.rpt_total ??
-                            row.total ??
-                            0,
-                    }))
+                              penalty:
+                                  row.values?.rpt_penalty ??
+                                  row.penalty ??
+                                  0,
+
+                              discount:
+                                  row.values?.rpt_discount ??
+                                  row.discount ??
+                                  0,
+
+                              total:
+                                  row.values?.rpt_total ??
+                                  row.total ??
+                                  0,
+
+                          })
+                      )
                     : [];
 
 
-            setRows(data);
+            setRows(
+                data
+            );
 
-            setCurrentPage(1);
+
+            setCurrentPage(
+                1
+            );
 
         } catch (
             err: any
@@ -578,17 +661,23 @@ export default function CollectionTable() {
 
             setError(
                 err?.message ??
-                    "Failed to load collection data."
+                "Failed to load collection data."
             );
 
 
-            setRows([]);
+            setRows(
+                []
+            );
 
         } finally {
 
-            setLoading(false);
+            setLoading(
+                false
+            );
 
-            setRefreshing(false);
+            setRefreshing(
+                false
+            );
 
         }
 
@@ -599,11 +688,14 @@ export default function CollectionTable() {
        INITIAL LOAD
     ======================================================== */
 
-    useEffect(() => {
+    useEffect(
+        () => {
 
-        loadData();
+            loadData();
 
-    }, []);
+        },
+        []
+    );
 
 
     /* ========================================================
@@ -611,69 +703,81 @@ export default function CollectionTable() {
     ======================================================== */
 
     const availableYears =
-        useMemo(() => {
+        useMemo(
+            () => {
 
-            const years =
-                new Set<string>();
-
-
-            rows.forEach(
-                (row) => {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | RPT COLLECTION IS BASED ON REMITTANCE DATE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const rawDate =
-                        row.remittance_date;
+                const years =
+                    new Set<string>();
 
 
-                    if (!rawDate) {
-                        return;
-                    }
+                rows.forEach(
+                    (
+                        row
+                    ) => {
+
+                        const rawDate =
+                            row.remittance_date;
 
 
-                    const date =
-                        /^\d{4}-\d{2}-\d{2}$/.test(
-                            rawDate
-                        )
-                            ? new Date(
-                                  `${rawDate}T00:00:00`
-                              )
-                            : new Date(rawDate);
+                        if (
+                            !rawDate
+                        ) {
+
+                            return;
+
+                        }
 
 
-                    if (
-                        !Number.isNaN(
-                            date.getTime()
-                        )
-                    ) {
-
-                        years.add(
-                            String(
-                                date.getFullYear()
+                        const date =
+                            /^\d{4}-\d{2}-\d{2}$/.test(
+                                rawDate
                             )
-                        );
+                                ? new Date(
+                                      `${rawDate}T00:00:00`
+                                  )
+                                : new Date(
+                                      rawDate
+                                  );
+
+
+                        if (
+                            !Number.isNaN(
+                                date.getTime()
+                            )
+                        ) {
+
+                            years.add(
+                                String(
+                                    date.getFullYear()
+                                )
+                            );
+
+                        }
 
                     }
-
-                }
-            );
+                );
 
 
-            return Array.from(
-                years
-            ).sort(
-                (a, b) =>
-                    Number(b) -
-                    Number(a)
-            );
+                return Array.from(
+                    years
+                ).sort(
+                    (
+                        a,
+                        b
+                    ) =>
+                        Number(
+                            b
+                        ) -
+                        Number(
+                            a
+                        )
+                );
 
-        }, [
-            rows,
-        ]);
+            },
+            [
+                rows,
+            ]
+        );
 
 
     /* ========================================================
@@ -681,293 +785,268 @@ export default function CollectionTable() {
     ======================================================== */
 
     const filteredRows =
-        useMemo(() => {
+        useMemo(
+            () => {
 
-            const keyword =
-                search
-                    .trim()
-                    .toLowerCase();
-
-
-            return rows.filter(
-                (row) => {
-
-                    /* ==========================================
-                       SEARCH
-                    ========================================== */
-
-                    if (keyword) {
-
-                        const searchable = [
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | REMITTANCE
-                            |--------------------------------------------------------------------------
-                            */
-
-                            row.remittance_no,
-
-                            row.remittance_date,
-
-                            row.remittance_id,
+                const keyword =
+                    search
+                        .trim()
+                        .toLowerCase();
 
 
-                            /*
-                            |--------------------------------------------------------------------------
-                            | COLLECTOR
-                            |--------------------------------------------------------------------------
-                            */
+                return rows.filter(
+                    (
+                        row
+                    ) => {
 
-                            row.collector_name,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | FUND
-                            |--------------------------------------------------------------------------
-                            */
-
-                            row.fund_code,
-
-                            row.fund_name,
-
-                            row.fund_acronym,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | AMOUNT
-                            |--------------------------------------------------------------------------
-                            */
-
-                            row.amount,
-
-                            row.total_amount,
-
-                            row.remittance_total_amount,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | RCD INTERNAL FIELDS
-                            |--------------------------------------------------------------------------
-                            */
-
-                            row.report_no,
-
-                            row.report_date,
-
-                            row.date_from,
-
-                            row.date_to,
-
-                            row.rcd_transaction_id,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | RPT
-                            |--------------------------------------------------------------------------
-                            */
-
-                            row.basic,
-
-                            row.sef,
-
-                            row.penalty,
-
-                            row.discount,
-
-                            row.total,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | OTHER VALUES
-                            |--------------------------------------------------------------------------
-                            */
-
-                            ...Object.values(
-                                row.values ?? {}
-                            ),
-
-                        ]
-                            .filter(
-                                (value) =>
-                                    value !==
-                                        null &&
-                                    value !==
-                                        undefined
-                            )
-                            .join(" ")
-                            .toLowerCase();
-
+                        /* ======================================
+                           SEARCH
+                        ====================================== */
 
                         if (
-                            !searchable.includes(
-                                keyword
-                            )
+                            keyword
                         ) {
 
-                            return false;
+                            const searchable = [
+
+                                row.remittance_no,
+
+                                row.remittance_date,
+
+                                row.remittance_id,
+
+                                row.collector_name,
+
+                                row.fund_code,
+
+                                row.fund_name,
+
+                                row.fund_acronym,
+
+                                row.amount,
+
+                                row.total_amount,
+
+                                row.remittance_total_amount,
+
+                                row.report_no,
+
+                                row.report_date,
+
+                                row.date_from,
+
+                                row.date_to,
+
+                                row.rcd_transaction_id,
+
+                                row.basic,
+
+                                row.sef,
+
+                                row.penalty,
+
+                                row.discount,
+
+                                row.total,
+
+                                ...Object.values(
+                                    row.values ??
+                                    {}
+                                ),
+
+                            ]
+                                .filter(
+                                    (
+                                        value
+                                    ) =>
+                                        value !==
+                                            null &&
+                                        value !==
+                                            undefined
+                                )
+                                .join(
+                                    " "
+                                )
+                                .toLowerCase();
+
+
+                            if (
+                                !searchable.includes(
+                                    keyword
+                                )
+                            ) {
+
+                                return false;
+
+                            }
 
                         }
+
+
+                        /* ======================================
+                           DATE
+                        ====================================== */
+
+                        const rawDate =
+                            row.remittance_date;
+
+
+                        /* ======================================
+                           YEAR FILTER
+                        ====================================== */
+
+                        if (
+                            selectedYear !==
+                            "ALL"
+                        ) {
+
+                            if (
+                                !rawDate
+                            ) {
+
+                                return false;
+
+                            }
+
+
+                            const date =
+                                /^\d{4}-\d{2}-\d{2}$/.test(
+                                    rawDate
+                                )
+                                    ? new Date(
+                                          `${rawDate}T00:00:00`
+                                      )
+                                    : new Date(
+                                          rawDate
+                                      );
+
+
+                            if (
+                                Number.isNaN(
+                                    date.getTime()
+                                )
+                            ) {
+
+                                return false;
+
+                            }
+
+
+                            if (
+                                String(
+                                    date.getFullYear()
+                                ) !==
+                                selectedYear
+                            ) {
+
+                                return false;
+
+                            }
+
+                        }
+
+
+                        /* ======================================
+                           MONTH FILTER
+                        ====================================== */
+
+                        if (
+                            selectedMonth !==
+                            "ALL"
+                        ) {
+
+                            if (
+                                !rawDate
+                            ) {
+
+                                return false;
+
+                            }
+
+
+                            const date =
+                                /^\d{4}-\d{2}-\d{2}$/.test(
+                                    rawDate
+                                )
+                                    ? new Date(
+                                          `${rawDate}T00:00:00`
+                                      )
+                                    : new Date(
+                                          rawDate
+                                      );
+
+
+                            if (
+                                Number.isNaN(
+                                    date.getTime()
+                                )
+                            ) {
+
+                                return false;
+
+                            }
+
+
+                            if (
+                                String(
+                                    date.getMonth() +
+                                        1
+                                ) !==
+                                selectedMonth
+                            ) {
+
+                                return false;
+
+                            }
+
+                        }
+
+
+                        return true;
 
                     }
+                );
 
-
-                    /* ==========================================
-                       DATE USED FOR FILTERING
-                    ========================================== */
-
-                    const rawDate =
-                        row.remittance_date;
-
-
-                    /* ==========================================
-                       YEAR
-                    ========================================== */
-
-                    if (
-                        selectedYear !==
-                        "ALL"
-                    ) {
-
-                        if (!rawDate) {
-                            return false;
-                        }
-
-
-                        const date =
-                            /^\d{4}-\d{2}-\d{2}$/.test(
-                                rawDate
-                            )
-                                ? new Date(
-                                      `${rawDate}T00:00:00`
-                                  )
-                                : new Date(
-                                      rawDate
-                                  );
-
-
-                        if (
-                            Number.isNaN(
-                                date.getTime()
-                            )
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        if (
-                            String(
-                                date.getFullYear()
-                            ) !==
-                            selectedYear
-                        ) {
-
-                            return false;
-
-                        }
-
-                    }
-
-
-                    /* ==========================================
-                       MONTH
-                    ========================================== */
-
-                    if (
-                        selectedMonth !==
-                        "ALL"
-                    ) {
-
-                        if (!rawDate) {
-                            return false;
-                        }
-
-
-                        const date =
-                            /^\d{4}-\d{2}-\d{2}$/.test(
-                                rawDate
-                            )
-                                ? new Date(
-                                      `${rawDate}T00:00:00`
-                                  )
-                                : new Date(
-                                      rawDate
-                                  );
-
-
-                        if (
-                            Number.isNaN(
-                                date.getTime()
-                            )
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        if (
-                            String(
-                                date.getMonth() +
-                                    1
-                            ) !==
-                            selectedMonth
-                        ) {
-
-                            return false;
-
-                        }
-
-                    }
-
-
-                    return true;
-
-                }
-            );
-
-        }, [
-            rows,
-            search,
-            selectedYear,
-            selectedMonth,
-        ]);
+            },
+            [
+                rows,
+                search,
+                selectedYear,
+                selectedMonth,
+            ]
+        );
 
 
     /* ========================================================
-       TOTAL
+       TOTAL AMOUNT
     ======================================================== */
 
     const totalAmount =
-        useMemo(() => {
+        useMemo(
+            () => {
 
-            return filteredRows.reduce(
-                (
-                    total,
-                    row
-                ) => {
+                return filteredRows.reduce(
+                    (
+                        total,
+                        row
+                    ) => {
 
-                    return (
-                        total +
-                        getRowAmount(
-                            row
-                        )
-                    );
+                        return (
+                            total +
+                            getRowAmount(
+                                row
+                            )
+                        );
 
-                },
-                0
-            );
+                    },
+                    0
+                );
 
-        }, [
-            filteredRows,
-        ]);
+            },
+            [
+                filteredRows,
+            ]
+        );
 
 
     /* ========================================================
@@ -979,32 +1058,35 @@ export default function CollectionTable() {
             1,
             Math.ceil(
                 filteredRows.length /
-                    ROWS_PER_PAGE
+                ROWS_PER_PAGE
             )
         );
 
 
     /* ========================================================
-       KEEP CURRENT PAGE VALID
+       KEEP PAGE VALID
     ======================================================== */
 
-    useEffect(() => {
+    useEffect(
+        () => {
 
-        if (
-            currentPage >
-            totalPages
-        ) {
-
-            setCurrentPage(
+            if (
+                currentPage >
                 totalPages
-            );
+            ) {
 
-        }
+                setCurrentPage(
+                    totalPages
+                );
 
-    }, [
-        currentPage,
-        totalPages,
-    ]);
+            }
+
+        },
+        [
+            currentPage,
+            totalPages,
+        ]
+    );
 
 
     /* ========================================================
@@ -1012,26 +1094,29 @@ export default function CollectionTable() {
     ======================================================== */
 
     const paginatedRows =
-        useMemo(() => {
+        useMemo(
+            () => {
 
-            const start =
-                (
-                    currentPage -
-                    1
-                ) *
-                ROWS_PER_PAGE;
+                const start =
+                    (
+                        currentPage -
+                        1
+                    ) *
+                    ROWS_PER_PAGE;
 
 
-            return filteredRows.slice(
-                start,
-                start +
-                    ROWS_PER_PAGE
-            );
+                return filteredRows.slice(
+                    start,
+                    start +
+                        ROWS_PER_PAGE
+                );
 
-        }, [
-            filteredRows,
-            currentPage,
-        ]);
+            },
+            [
+                filteredRows,
+                currentPage,
+            ]
+        );
 
 
     /* ========================================================
@@ -1040,7 +1125,9 @@ export default function CollectionTable() {
 
     function handleClearFilter() {
 
-        setSearch("");
+        setSearch(
+            ""
+        );
 
         setSelectedYear(
             "ALL"
@@ -1050,7 +1137,9 @@ export default function CollectionTable() {
             "ALL"
         );
 
-        setCurrentPage(1);
+        setCurrentPage(
+            1
+        );
 
     }
 
@@ -1066,31 +1155,53 @@ export default function CollectionTable() {
 
 
     /* ========================================================
-       COLUMN COUNT
-    ======================================================== */
+       VISIBLE COLUMN COUNT
+       
+       FIXED COLUMNS:
+       1. REMITTANCE NO.
+       2. COLLECTOR
+       3. AMOUNT
 
-    /*
-    |--------------------------------------------------------------------------
-    | Fixed columns:
-    |
-    | REMITTANCE NO.
-    | COLLECTOR
-    | AMOUNT
-    |
-    | RPT:
-    | BASIC
-    | SEF
-    | TOTAL
-    |
-    | TAX REVENUE:
-    | existing component columns
-    |--------------------------------------------------------------------------
-    */
+       GROUPS:
+       RPT                  = 5
+       TAX REVENUE-COL002  = 5
+       TAX GOODS-COL004    = 3
+       PERMIT FEES         = 6
+       REGISTRATION         = 1
+       CLEARANCE            = 1
+       BUSINESS INCOME      = 1
+    ======================================================== */
 
     const visibleColumnCount =
         3 +
-        (showRPT ? 5 : 0) +
-        (showTaxRevenueCOL002 ? 5 : 0);
+
+        (showRPT
+            ? 5
+            : 0) +
+
+        (showTaxRevenueCOL002
+            ? 5
+            : 0) +
+
+        (showTaxGoodsCOL004
+            ? 3
+            : 0) +
+
+        (showPermitFees
+            ? 6
+            : 0) +
+
+        (showRegistration
+            ? 1
+            : 0) +
+
+        (showClearanceCertificationFees
+            ? 1
+            : 0) +
+
+        (showBusinessIncomeCOL012
+            ? 1
+            : 0);
 
 
     /* ========================================================
@@ -1098,6 +1209,7 @@ export default function CollectionTable() {
     ======================================================== */
 
     return (
+
         <div className="flex flex-col">
 
             {/* ==================================================
@@ -1115,6 +1227,7 @@ export default function CollectionTable() {
                         <h2 className="text-lg font-bold text-slate-800">
                             Collection
                         </h2>
+
 
                         <p className="mt-1 text-xs text-slate-500">
                             Collection distribution by remittance,
@@ -1147,9 +1260,12 @@ export default function CollectionTable() {
                                     Records
                                 </p>
 
+
                                 <p className="text-sm font-bold text-slate-700">
 
-                                    {filteredRows.length.toLocaleString()}
+                                    {
+                                        filteredRows.length.toLocaleString()
+                                    }
 
                                 </p>
 
@@ -1177,11 +1293,14 @@ export default function CollectionTable() {
                                     Collection Total
                                 </p>
 
+
                                 <p className="text-sm font-bold text-slate-700">
 
-                                    {formatAmount(
-                                        totalAmount
-                                    )}
+                                    {
+                                        formatAmount(
+                                            totalAmount
+                                        )
+                                    }
 
                                 </p>
 
@@ -1213,16 +1332,22 @@ export default function CollectionTable() {
 
                     <button
                         type="button"
+
                         onClick={() => {
 
                             setShowRPT(
-                                (value) =>
+                                (
+                                    value
+                                ) =>
                                     !value
                             );
 
-                            setCurrentPage(1);
+                            setCurrentPage(
+                                1
+                            );
 
                         }}
+
                         className={`
                             rounded-lg
                             border
@@ -1231,6 +1356,7 @@ export default function CollectionTable() {
                             text-xs
                             font-semibold
                             transition
+
                             ${
                                 showRPT
                                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
@@ -1242,20 +1368,26 @@ export default function CollectionTable() {
                     </button>
 
 
-                    {/* TAX REVENUE-COL002 */}
+                    {/* TAX REVENUE */}
 
                     <button
                         type="button"
+
                         onClick={() => {
 
                             setShowTaxRevenueCOL002(
-                                (value) =>
+                                (
+                                    value
+                                ) =>
                                     !value
                             );
 
-                            setCurrentPage(1);
+                            setCurrentPage(
+                                1
+                            );
 
                         }}
+
                         className={`
                             rounded-lg
                             border
@@ -1264,6 +1396,7 @@ export default function CollectionTable() {
                             text-xs
                             font-semibold
                             transition
+
                             ${
                                 showTaxRevenueCOL002
                                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
@@ -1272,6 +1405,206 @@ export default function CollectionTable() {
                         `}
                     >
                         TAX REVENUE-COL002
+                    </button>
+
+
+                    {/* TAX GOODS */}
+
+                    <button
+                        type="button"
+
+                        onClick={() => {
+
+                            setShowTaxGoodsCOL004(
+                                (
+                                    value
+                                ) =>
+                                    !value
+                            );
+
+                            setCurrentPage(
+                                1
+                            );
+
+                        }}
+
+                        className={`
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            text-xs
+                            font-semibold
+                            transition
+
+                            ${
+                                showTaxGoodsCOL004
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                            }
+                        `}
+                    >
+                        TAX GOODS-COL004
+                    </button>
+
+
+                    {/* PERMIT FEES */}
+
+                    <button
+                        type="button"
+
+                        onClick={() => {
+
+                            setShowPermitFees(
+                                (
+                                    value
+                                ) =>
+                                    !value
+                            );
+
+                            setCurrentPage(
+                                1
+                            );
+
+                        }}
+
+                        className={`
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            text-xs
+                            font-semibold
+                            transition
+
+                            ${
+                                showPermitFees
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                            }
+                        `}
+                    >
+                        PERMIT FEES
+                    </button>
+
+
+                    {/* REGISTRATION */}
+
+                    <button
+                        type="button"
+
+                        onClick={() => {
+
+                            setShowRegistration(
+                                (
+                                    value
+                                ) =>
+                                    !value
+                            );
+
+                            setCurrentPage(
+                                1
+                            );
+
+                        }}
+
+                        className={`
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            text-xs
+                            font-semibold
+                            transition
+
+                            ${
+                                showRegistration
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                            }
+                        `}
+                    >
+                        REGISTRATION
+                    </button>
+
+
+                    {/* CLEARANCE */}
+
+                    <button
+                        type="button"
+
+                        onClick={() => {
+
+                            setShowClearanceCertificationFees(
+                                (
+                                    value
+                                ) =>
+                                    !value
+                            );
+
+                            setCurrentPage(
+                                1
+                            );
+
+                        }}
+
+                        className={`
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            text-xs
+                            font-semibold
+                            transition
+
+                            ${
+                                showClearanceCertificationFees
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                            }
+                        `}
+                    >
+                        CLEARANCE & CERTIFICATION FEES
+                    </button>
+
+
+                    {/* BUSINESS INCOME */}
+
+                    <button
+                        type="button"
+
+                        onClick={() => {
+
+                            setShowBusinessIncomeCOL012(
+                                (
+                                    value
+                                ) =>
+                                    !value
+                            );
+
+                            setCurrentPage(
+                                1
+                            );
+
+                        }}
+
+                        className={`
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            text-xs
+                            font-semibold
+                            transition
+
+                            ${
+                                showBusinessIncomeCOL012
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                            }
+                        `}
+                    >
+                        BUSINESS INCOME-COL012
                     </button>
 
                 </div>
@@ -1299,8 +1632,14 @@ export default function CollectionTable() {
 
                         <input
                             type="text"
-                            value={search}
-                            onChange={(e) => {
+
+                            value={
+                                search
+                            }
+
+                            onChange={(
+                                e
+                            ) => {
 
                                 setSearch(
                                     e.target.value
@@ -1311,7 +1650,9 @@ export default function CollectionTable() {
                                 );
 
                             }}
+
                             placeholder="Search remittance, collector, fund..."
+
                             className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
 
@@ -1320,6 +1661,7 @@ export default function CollectionTable() {
 
                             <button
                                 type="button"
+
                                 onClick={() => {
 
                                     setSearch(
@@ -1331,6 +1673,7 @@ export default function CollectionTable() {
                                     );
 
                                 }}
+
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                             >
 
@@ -1351,7 +1694,10 @@ export default function CollectionTable() {
                         value={
                             selectedYear
                         }
-                        onChange={(e) => {
+
+                        onChange={(
+                            e
+                        ) => {
 
                             setSelectedYear(
                                 e.target.value
@@ -1362,6 +1708,7 @@ export default function CollectionTable() {
                             );
 
                         }}
+
                         className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     >
 
@@ -1371,12 +1718,15 @@ export default function CollectionTable() {
 
 
                         {availableYears.map(
-                            (year) => (
+                            (
+                                year
+                            ) => (
 
                                 <option
                                     key={
                                         year
                                     }
+
                                     value={
                                         year
                                     }
@@ -1396,7 +1746,10 @@ export default function CollectionTable() {
                         value={
                             selectedMonth
                         }
-                        onChange={(e) => {
+
+                        onChange={(
+                            e
+                        ) => {
 
                             setSelectedMonth(
                                 e.target.value
@@ -1407,6 +1760,7 @@ export default function CollectionTable() {
                             );
 
                         }}
+
                         className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     >
 
@@ -1471,9 +1825,11 @@ export default function CollectionTable() {
 
                         <button
                             type="button"
+
                             onClick={
                                 handleClearFilter
                             }
+
                             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
                         >
 
@@ -1492,12 +1848,17 @@ export default function CollectionTable() {
 
                     <button
                         type="button"
+
                         onClick={() =>
-                            loadData(true)
+                            loadData(
+                                true
+                            )
                         }
+
                         disabled={
                             refreshing
                         }
+
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
 
@@ -1538,9 +1899,15 @@ export default function CollectionTable() {
                 TABLE
             ================================================== */}
 
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
 
-                <table className="min-w-[1800px] w-full border-collapse">
+                <table
+                    className="
+                        min-w-[2500px]
+                        w-full
+                        border-collapse
+                    "
+                >
 
                     {/* ==================================================
                         TABLE HEADER
@@ -1548,7 +1915,9 @@ export default function CollectionTable() {
 
                     <thead>
 
-                        {/* GROUP HEADER */}
+                        {/* ==================================================
+                            GROUP HEADER
+                        ================================================== */}
 
                         <tr>
 
@@ -1556,7 +1925,22 @@ export default function CollectionTable() {
 
                             <th
                                 rowSpan={2}
-                                className="border border-black bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-800"
+
+                                className="
+                                    sticky
+                                    left-0
+                                    z-30
+                                    min-w-[190px]
+                                    border
+                                    border-black
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-center
+                                    text-xs
+                                    font-bold
+                                    text-slate-800
+                                "
                             >
                                 REMITTANCE NO.
                             </th>
@@ -1566,7 +1950,22 @@ export default function CollectionTable() {
 
                             <th
                                 rowSpan={2}
-                                className="border border-black bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-800"
+
+                                className="
+                                    sticky
+                                    left-[190px]
+                                    z-30
+                                    min-w-[190px]
+                                    border
+                                    border-black
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-center
+                                    text-xs
+                                    font-bold
+                                    text-slate-800
+                                "
                             >
                                 COLLECTOR
                             </th>
@@ -1576,13 +1975,30 @@ export default function CollectionTable() {
 
                             <th
                                 rowSpan={2}
-                                className="border border-black bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-800"
+
+                                className="
+                                    sticky
+                                    left-[380px]
+                                    z-30
+                                    min-w-[130px]
+                                    border
+                                    border-black
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-center
+                                    text-xs
+                                    font-bold
+                                    text-slate-800
+                                "
                             >
                                 AMOUNT
                             </th>
 
 
-                            {/* RPT */}
+                            {/* ==================================================
+                                RPT
+                            ================================================== */}
 
                             {showRPT && (
 
@@ -1594,7 +2010,9 @@ export default function CollectionTable() {
                             )}
 
 
-                            {/* TAX REVENUE */}
+                            {/* ==================================================
+                                TAX REVENUE
+                            ================================================== */}
 
                             {showTaxRevenueCOL002 && (
 
@@ -1605,20 +2023,131 @@ export default function CollectionTable() {
 
                             )}
 
+
+                            {/* ==================================================
+                                TAX GOODS
+                            ================================================== */}
+
+                            {showTaxGoodsCOL004 && (
+
+                                <TaxGoodsCOL004Group
+                                    row={{}}
+                                    header
+                                />
+
+                            )}
+
+
+                            {/* ==================================================
+                                PERMIT FEES
+                            ================================================== */}
+
+                            {showPermitFees && (
+
+                                <PermitFeesGroup
+                                    row={{}}
+                                    header
+                                />
+
+                            )}
+
+
+                            {/* ==================================================
+                                REGISTRATION
+                            ================================================== */}
+
+                            {showRegistration && (
+
+                                <RegistrationGroup
+                                    row={{}}
+                                    header
+                                />
+
+                            )}
+
+
+                            {/* ==================================================
+                                CLEARANCE
+                            ================================================== */}
+
+                            {showClearanceCertificationFees && (
+
+                                <ClearanceCertificationFeesGroup
+                                    row={{}}
+                                    header
+                                />
+
+                            )}
+
+
+                            {/* ==================================================
+                                BUSINESS INCOME
+                            ================================================== */}
+
+                            {showBusinessIncomeCOL012 && (
+
+                                <BusinessIncomeCOL012Group
+                                    row={{}}
+                                    header
+                                />
+
+                            )}
+
                         </tr>
 
 
-                        {/* ACCOUNT HEADER */}
+                        {/* ==================================================
+                            ACCOUNT HEADER
+                        ================================================== */}
 
                         <tr>
 
                             {showRPT && (
+
                                 <RPTGroupColumns />
+
                             )}
 
 
                             {showTaxRevenueCOL002 && (
+
                                 <TaxRevenueCOL002GroupColumns />
+
+                            )}
+
+
+                            {showTaxGoodsCOL004 && (
+
+                                <TaxGoodsCOL004GroupColumns />
+
+                            )}
+
+
+                            {showPermitFees && (
+
+                                <PermitFeesGroupColumns />
+
+                            )}
+
+
+                            {showRegistration && (
+
+                                <RegistrationGroupColumns />
+
+                            )}
+
+
+                            {showClearanceCertificationFees && (
+
+                                <ClearanceCertificationFeesGroupColumns />
+
+                            )}
+
+
+                            {showBusinessIncomeCOL012 && (
+
+                                <BusinessIncomeCOL012GroupColumns />
+
                             )}
 
                         </tr>
@@ -1632,7 +2161,9 @@ export default function CollectionTable() {
 
                     <tbody>
 
-                        {/* LOADING */}
+                        {/* ==================================================
+                            LOADING
+                        ================================================== */}
 
                         {loading ? (
 
@@ -1642,6 +2173,7 @@ export default function CollectionTable() {
                                     colSpan={
                                         visibleColumnCount
                                     }
+
                                     className="px-4 py-12 text-center"
                                 >
 
@@ -1665,7 +2197,9 @@ export default function CollectionTable() {
 
                         ) : paginatedRows.length === 0 ? (
 
-                            /* EMPTY */
+                            /* ==================================================
+                               EMPTY
+                            ================================================== */
 
                             <tr>
 
@@ -1673,6 +2207,7 @@ export default function CollectionTable() {
                                     colSpan={
                                         visibleColumnCount
                                     }
+
                                     className="px-4 py-12 text-center"
                                 >
 
@@ -1700,23 +2235,44 @@ export default function CollectionTable() {
 
                         ) : (
 
-                            /* DATA */
+                            /* ==================================================
+                               DATA
+                            ================================================== */
 
                             paginatedRows.map(
-                                (row) => (
+                                (
+                                    row
+                                ) => (
 
                                     <tr
                                         key={
                                             row.id
                                         }
-                                        className="transition hover:bg-blue-50/40"
+
+                                        className="
+                                            transition
+                                            hover:bg-blue-50/40
+                                        "
                                     >
 
                                         {/* ==================================================
                                             REMITTANCE NO.
                                         ================================================== */}
 
-                                        <td className="border border-black px-3 py-2 align-top">
+                                        <td
+                                            className="
+                                                sticky
+                                                left-0
+                                                z-20
+                                                min-w-[190px]
+                                                border
+                                                border-black
+                                                bg-white
+                                                px-3
+                                                py-2
+                                                align-top
+                                            "
+                                        >
 
                                             <div className="text-sm font-semibold text-slate-800">
 
@@ -1736,6 +2292,7 @@ export default function CollectionTable() {
                                                         size={12}
                                                     />
 
+
                                                     {
                                                         formatDate(
                                                             row.remittance_date
@@ -1753,7 +2310,21 @@ export default function CollectionTable() {
                                             COLLECTOR
                                         ================================================== */}
 
-                                        <td className="max-w-[200px] border border-black px-3 py-2 align-top">
+                                        <td
+                                            className="
+                                                sticky
+                                                left-[190px]
+                                                z-20
+                                                min-w-[190px]
+                                                max-w-[190px]
+                                                border
+                                                border-black
+                                                bg-white
+                                                px-3
+                                                py-2
+                                                align-top
+                                            "
+                                        >
 
                                             <div className="truncate text-sm font-medium text-slate-700">
 
@@ -1771,15 +2342,31 @@ export default function CollectionTable() {
                                             AMOUNT
                                         ================================================== */}
 
-                                        <td className="whitespace-nowrap border border-black px-3 py-2 text-right align-top">
+                                        <td
+                                            className="
+                                                sticky
+                                                left-[380px]
+                                                z-20
+                                                min-w-[130px]
+                                                border
+                                                border-black
+                                                bg-white
+                                                px-3
+                                                py-2
+                                                text-right
+                                                align-top
+                                            "
+                                        >
 
                                             <span className="text-sm font-bold text-slate-800">
 
-                                                {formatTableAmount(
-                                                    getRowAmount(
-                                                        row
+                                                {
+                                                    formatTableAmount(
+                                                        getRowAmount(
+                                                            row
+                                                        )
                                                     )
-                                                )}
+                                                }
 
                                             </span>
 
@@ -1787,7 +2374,7 @@ export default function CollectionTable() {
 
 
                                         {/* ==================================================
-                                            RPT GROUP
+                                            RPT
                                         ================================================== */}
 
                                         {showRPT && (
@@ -1802,12 +2389,87 @@ export default function CollectionTable() {
 
 
                                         {/* ==================================================
-                                            TAX REVENUE-COL002 GROUP
+                                            TAX REVENUE-COL002
                                         ================================================== */}
 
                                         {showTaxRevenueCOL002 && (
 
                                             <TaxRevenueCOL002Group
+                                                row={
+                                                    row
+                                                }
+                                            />
+
+                                        )}
+
+
+                                        {/* ==================================================
+                                            TAX GOODS-COL004
+                                        ================================================== */}
+
+                                        {showTaxGoodsCOL004 && (
+
+                                            <TaxGoodsCOL004Group
+                                                row={
+                                                    row
+                                                }
+                                            />
+
+                                        )}
+
+
+                                        {/* ==================================================
+                                            PERMIT FEES
+                                        ================================================== */}
+
+                                        {showPermitFees && (
+
+                                            <PermitFeesGroup
+                                                row={
+                                                    row
+                                                }
+                                            />
+
+                                        )}
+
+
+                                        {/* ==================================================
+                                            REGISTRATION
+                                        ================================================== */}
+
+                                        {showRegistration && (
+
+                                            <RegistrationGroup
+                                                row={
+                                                    row
+                                                }
+                                            />
+
+                                        )}
+
+
+                                        {/* ==================================================
+                                            CLEARANCE & CERTIFICATION
+                                        ================================================== */}
+
+                                        {showClearanceCertificationFees && (
+
+                                            <ClearanceCertificationFeesGroup
+                                                row={
+                                                    row
+                                                }
+                                            />
+
+                                        )}
+
+
+                                        {/* ==================================================
+                                            BUSINESS INCOME-COL012
+                                        ================================================== */}
+
+                                        {showBusinessIncomeCOL012 && (
+
+                                            <BusinessIncomeCOL012Group
                                                 row={
                                                     row
                                                 }
@@ -1835,7 +2497,9 @@ export default function CollectionTable() {
 
             <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
 
-                {/* INFORMATION */}
+                {/* ==================================================
+                    INFORMATION
+                ================================================== */}
 
                 <div className="text-xs text-slate-500">
 
@@ -1851,14 +2515,16 @@ export default function CollectionTable() {
 
                             <span className="font-semibold text-slate-700">
 
-                                {(
+                                {
                                     (
-                                        currentPage -
+                                        (
+                                            currentPage -
+                                            1
+                                        ) *
+                                            ROWS_PER_PAGE +
                                         1
-                                    ) *
-                                        ROWS_PER_PAGE +
-                                    1
-                                ).toLocaleString()}
+                                    ).toLocaleString()
+                                }
 
                             </span>
 
@@ -1868,11 +2534,13 @@ export default function CollectionTable() {
 
                             <span className="font-semibold text-slate-700">
 
-                                {Math.min(
-                                    currentPage *
-                                        ROWS_PER_PAGE,
-                                    filteredRows.length
-                                ).toLocaleString()}
+                                {
+                                    Math.min(
+                                        currentPage *
+                                            ROWS_PER_PAGE,
+                                        filteredRows.length
+                                    ).toLocaleString()
+                                }
 
                             </span>
 
@@ -1882,7 +2550,9 @@ export default function CollectionTable() {
 
                             <span className="font-semibold text-slate-700">
 
-                                {filteredRows.length.toLocaleString()}
+                                {
+                                    filteredRows.length.toLocaleString()
+                                }
 
                             </span>
 
@@ -1896,7 +2566,9 @@ export default function CollectionTable() {
                 </div>
 
 
-                {/* CONTROLS */}
+                {/* ==================================================
+                    CONTROLS
+                ================================================== */}
 
                 <div className="flex items-center gap-2">
 
@@ -1904,20 +2576,27 @@ export default function CollectionTable() {
 
                     <button
                         type="button"
+
                         disabled={
                             currentPage <=
                             1
                         }
+
                         onClick={() =>
+
                             setCurrentPage(
-                                (page) =>
+                                (
+                                    page
+                                ) =>
                                     Math.max(
                                         1,
                                         page -
                                             1
                                     )
                             )
+
                         }
+
                         className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
 
@@ -1951,20 +2630,27 @@ export default function CollectionTable() {
 
                     <button
                         type="button"
+
                         disabled={
                             currentPage >=
                             totalPages
                         }
+
                         onClick={() =>
+
                             setCurrentPage(
-                                (page) =>
+                                (
+                                    page
+                                ) =>
                                     Math.min(
                                         totalPages,
                                         page +
                                             1
                                     )
                             )
+
                         }
+
                         className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
 
@@ -1979,5 +2665,6 @@ export default function CollectionTable() {
             </div>
 
         </div>
+
     );
 }

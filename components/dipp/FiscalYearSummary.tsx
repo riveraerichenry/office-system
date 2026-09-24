@@ -1,15 +1,10 @@
 "use client";
 
 type Props = {
-
     forms: string[];
-
     rows: any[];
-
     years: number[];
-
     loading: boolean;
-
     fiscalYear: number;
 
     onFiscalYearChange: (
@@ -23,57 +18,35 @@ type Props = {
     onMonthClick: (
         month: number
     ) => void;
-
 };
 
 
 const MONTHS = [
-
     "January",
-
     "February",
-
     "March",
-
     "April",
-
     "May",
-
     "June",
-
     "July",
-
     "August",
-
     "September",
-
     "October",
-
     "November",
-
     "December",
-
 ];
 
 
 export default function FiscalYearSummary({
 
     forms,
-
     rows,
-
     years,
-
     loading,
-
     fiscalYear,
-
     onFiscalYearChange,
-
     onRefresh,
-
     onDailyCollection,
-
     onMonthClick,
 
 }: Props) {
@@ -84,16 +57,35 @@ export default function FiscalYearSummary({
         forms
     );
 
+
     console.log(
         "Rows:",
         rows
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Ensure AF53 is displayed
+    |--------------------------------------------------------------------------
+    |
+    | The parent/API may not yet include AF53 in the forms array.
+    | We add it here so the UI always has an AF53 column.
+    |
+    */
+
+    const displayForms =
+        Array.from(
+            new Set([
+                ...forms,
+                "AF53",
+            ])
+        );
+
+
     return (
 
         <div className="rounded-xl border bg-white shadow-sm">
-
 
             {/* ======================================================
                 Header
@@ -227,22 +219,38 @@ export default function FiscalYearSummary({
 
                 <table className="w-full border-collapse">
 
-
                     <thead className="sticky top-0 bg-slate-100">
 
                         <tr>
 
-
-                            <th className="sticky left-0 z-10 border-b bg-slate-100 px-3 py-2 text-left text-xs font-bold uppercase">
+                            <th
+                                className="
+                                    sticky
+                                    left-0
+                                    z-10
+                                    border-b
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-left
+                                    text-xs
+                                    font-bold
+                                    uppercase
+                                "
+                            >
 
                                 Fiscal Month
 
                             </th>
 
 
+                            {/* ==========================================
+                                ACCOUNTABLE FORMS
+                            ========================================== */}
+
                             {
 
-                                forms.map(
+                                displayForms.map(
 
                                     (
                                         form
@@ -254,7 +262,16 @@ export default function FiscalYearSummary({
                                                 form
                                             }
 
-                                            className="whitespace-nowrap border-b px-3 py-2 text-right text-xs font-bold uppercase"
+                                            className="
+                                                whitespace-nowrap
+                                                border-b
+                                                px-3
+                                                py-2
+                                                text-right
+                                                text-xs
+                                                font-bold
+                                                uppercase
+                                            "
 
                                         >
 
@@ -269,12 +286,21 @@ export default function FiscalYearSummary({
                             }
 
 
-                            <th className="border-b px-3 py-2 text-right text-xs font-bold uppercase">
+                            <th
+                                className="
+                                    border-b
+                                    px-3
+                                    py-2
+                                    text-right
+                                    text-xs
+                                    font-bold
+                                    uppercase
+                                "
+                            >
 
                                 Total
 
                             </th>
-
 
                         </tr>
 
@@ -282,7 +308,6 @@ export default function FiscalYearSummary({
 
 
                     <tbody>
-
 
                         {/* ==================================================
                             LOADING
@@ -297,10 +322,14 @@ export default function FiscalYearSummary({
                                     <td
 
                                         colSpan={
-                                            forms.length + 2
+                                            displayForms.length + 2
                                         }
 
-                                        className="py-10 text-center text-slate-500"
+                                        className="
+                                            py-10
+                                            text-center
+                                            text-slate-500
+                                        "
 
                                     >
 
@@ -366,16 +395,30 @@ export default function FiscalYearSummary({
 
                                             }
 
-                                            className="cursor-pointer transition hover:bg-blue-50"
+                                            className="
+                                                cursor-pointer
+                                                transition
+                                                hover:bg-blue-50
+                                            "
 
                                         >
-
 
                                             {/* ==================================
                                                 MONTH
                                             ================================== */}
 
-                                            <td className="sticky left-0 border-b bg-white px-3 py-2 text-xs font-semibold">
+                                            <td
+                                                className="
+                                                    sticky
+                                                    left-0
+                                                    border-b
+                                                    bg-white
+                                                    px-3
+                                                    py-2
+                                                    text-xs
+                                                    font-semibold
+                                                "
+                                            >
 
                                                 {month}
 
@@ -388,7 +431,7 @@ export default function FiscalYearSummary({
 
                                             {
 
-                                                forms.map(
+                                                displayForms.map(
 
                                                     (
                                                         form
@@ -417,7 +460,14 @@ export default function FiscalYearSummary({
                                                                     form
                                                                 }
 
-                                                                className="border-b px-3 py-2 text-right text-xs tabular-nums"
+                                                                className="
+                                                                    border-b
+                                                                    px-3
+                                                                    py-2
+                                                                    text-right
+                                                                    text-xs
+                                                                    tabular-nums
+                                                                "
 
                                                             >
 
@@ -456,7 +506,17 @@ export default function FiscalYearSummary({
                                                 ROW TOTAL
                                             ================================== */}
 
-                                            <td className="border-b bg-slate-50 px-3 py-2 text-right text-xs font-bold">
+                                            <td
+                                                className="
+                                                    border-b
+                                                    bg-slate-50
+                                                    px-3
+                                                    py-2
+                                                    text-right
+                                                    text-xs
+                                                    font-bold
+                                                "
+                                            >
 
                                                 {
 
@@ -480,7 +540,6 @@ export default function FiscalYearSummary({
 
                                             </td>
 
-
                                         </tr>
 
                                     );
@@ -490,7 +549,6 @@ export default function FiscalYearSummary({
                             )
 
                         }
-
 
                     </tbody>
 
@@ -503,17 +561,32 @@ export default function FiscalYearSummary({
 
                         <tr>
 
-
-                            <td className="sticky left-0 border-t bg-slate-100 px-3 py-2 text-xs font-bold uppercase">
+                            <td
+                                className="
+                                    sticky
+                                    left-0
+                                    border-t
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-xs
+                                    font-bold
+                                    uppercase
+                                "
+                            >
 
                                 Total
 
                             </td>
 
 
+                            {/* ==========================================
+                                FORM TOTALS
+                            ========================================== */}
+
                             {
 
-                                forms.map(
+                                displayForms.map(
 
                                     (
                                         form
@@ -554,7 +627,14 @@ export default function FiscalYearSummary({
                                                     form
                                                 }
 
-                                                className="border-t px-3 py-2 text-right text-xs font-bold"
+                                                className="
+                                                    border-t
+                                                    px-3
+                                                    py-2
+                                                    text-right
+                                                    text-xs
+                                                    font-bold
+                                                "
 
                                             >
 
@@ -589,7 +669,22 @@ export default function FiscalYearSummary({
                             }
 
 
-                            <td className="border-t bg-blue-50 px-3 py-2 text-right text-sm font-extrabold text-blue-700">
+                            {/* ==========================================
+                                GRAND TOTAL
+                            ========================================== */}
+
+                            <td
+                                className="
+                                    border-t
+                                    bg-blue-50
+                                    px-3
+                                    py-2
+                                    text-right
+                                    text-sm
+                                    font-extrabold
+                                    text-blue-700
+                                "
+                            >
 
                                 {
 
@@ -605,7 +700,7 @@ export default function FiscalYearSummary({
 
                                             grand +
 
-                                            forms.reduce(
+                                            displayForms.reduce(
 
                                                 (
 
@@ -651,16 +746,13 @@ export default function FiscalYearSummary({
 
                             </td>
 
-
                         </tr>
 
                     </tfoot>
 
-
                 </table>
 
             </div>
-
 
         </div>
 

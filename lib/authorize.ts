@@ -24,10 +24,20 @@ export async function authorize(
     
 
 
-console.log("MODULES:", modules);
-
-console.log("LOOKING FOR:", modulePath);
-console.log("PERMISSION:", permission);
+console.log(
+  "AUTH DEBUG:",
+  JSON.stringify(
+    {
+      userId: user.id,
+      username: user.username,
+      modules,
+      lookingFor: modulePath,
+      permission,
+    },
+    null,
+    2
+  )
+);
 
   if (
     !hasPermission(
