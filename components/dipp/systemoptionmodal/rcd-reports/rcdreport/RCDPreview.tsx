@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -486,7 +487,11 @@ export default function RCDPreview({
 
                 /*
                 ================================================
-                GROUP ITEMS BY ACCOUNTABLE FORM
+                GROUP ITEMS BY ACCOUNTABLE FORM AND BOOKLET
+                ================================================
+
+                Keep separate booklets as separate rows,
+                even when they have the same form code.
                 ================================================
                 */
 
@@ -501,22 +506,37 @@ export default function RCDPreview({
                             "—"
                         ).trim();
 
+                    const bookletId =
+                        item.booklet_registration_id?.trim();
+
+                    const bookletKey =
+                        bookletId
+                            ? `BOOKLET:${bookletId}`
+                            : `RANGE:${String(
+                                item.booklet_beginning_or ?? ""
+                            )}:${String(
+                                item.booklet_ending_or ?? ""
+                            )}`;
+
+                    const groupKey =
+                        `${formCode.toUpperCase()}::${bookletKey}`;
+
 
                     if (
                         !groups[
-                            formCode
+                            groupKey
                         ]
                     ) {
 
                         groups[
-                            formCode
+                            groupKey
                         ] = [];
 
                     }
 
 
                     groups[
-                        formCode
+                        groupKey
                     ].push(
                         item
                     );
@@ -535,10 +555,17 @@ export default function RCDPreview({
                 ).map(
                     (
                         [
-                            formCode,
+                            ,
                             groupItems,
                         ]
                     ) => {
+
+                        const formCode =
+                            (
+                                groupItems[0]?.form_code ??
+                                "—"
+                            ).trim();
+
 
                         /*
                         ========================================
@@ -693,11 +720,10 @@ export default function RCDPreview({
                         /*
                         ========================================
                         FIND BOOKLET
+                        ========================================
 
-                        Every transaction in the group should
-                        have the same booklet.
-
-                        We use the first transaction.
+                        All transactions in this group belong
+                        to the same booklet.
                         ========================================
                         */
 
@@ -740,11 +766,6 @@ export default function RCDPreview({
                         /*
                         ========================================
                         PREVIOUS ROW FALLBACK
-
-                        This is only used if the API already
-                        supplied accountability data.
-
-                        Booklet data takes priority.
                         ========================================
                         */
 
@@ -764,8 +785,6 @@ export default function RCDPreview({
                         /*
                         ========================================
                         WIDTH
-
-                        Preserve leading zeros where possible.
                         ========================================
                         */
 
@@ -787,16 +806,6 @@ export default function RCDPreview({
                         /*
                         ========================================
                         BEGINNING BALANCE
-
-                        FIRST OR IN CURRENT RCD
-                        TO BOOKLET ENDING OR
-
-                        Example:
-
-                        RCD OR = 103
-                        Booklet = 101 - 150
-
-                        Beginning = 103 - 150
                         ========================================
                         */
 
@@ -852,15 +861,6 @@ export default function RCDPreview({
                         /*
                         ========================================
                         ENDING BALANCE
-
-                        LAST ISSUED OR + 1
-                        TO BOOKLET ENDING OR
-
-                        Example:
-
-                        Issued = 103
-
-                        Ending = 104 - 150
                         ========================================
                         */
 
@@ -937,9 +937,7 @@ export default function RCDPreview({
                                     bookletItem
                                         ?.booklet_beginning_or,
 
-                                bookletEnding:
-
-                                    bookletEnding,
+                                bookletEnding,
 
                                 beginningFrom,
 
@@ -977,11 +975,9 @@ export default function RCDPreview({
 
                             amount,
 
-
                             beginningFrom,
 
                             beginningTo,
-
 
                             endingFrom,
 
@@ -1110,6 +1106,7 @@ export default function RCDPreview({
                         totalCollections={totalCollections}
                         formatCurrency={formatCurrency}
                     />
+
 
                     {/* LIQUIDATION */}
 
