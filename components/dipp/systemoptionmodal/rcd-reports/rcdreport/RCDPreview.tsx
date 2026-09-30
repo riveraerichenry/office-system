@@ -1106,17 +1106,10 @@ export default function RCDPreview({
                     {/* COLLECTIONS */}
 
                     <RCDCollections
-                        formRows={
-                            formRows
-                        }
-                        totalCollections={
-                            totalCollections
-                        }
-                        formatCurrency={
-                            formatCurrency
-                        }
+                        items={items}
+                        totalCollections={totalCollections}
+                        formatCurrency={formatCurrency}
                     />
-
 
                     {/* LIQUIDATION */}
 
