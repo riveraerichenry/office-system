@@ -1,14 +1,31 @@
+
 "use client";
 
-import {
-    RCDFormRow,
-} from "./RCDTypes";
-
+import { RCDFormRow } from "./RCDTypes";
 
 type Props = {
     formRows: RCDFormRow[];
 };
 
+/*
+=========================================================
+DISPLAY VALUE
+=========================================================
+*/
+
+function displayValue(
+    value?: string | number | null
+): string {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "-";
+    }
+
+    return String(value);
+}
 
 /*
 =========================================================
@@ -20,75 +37,23 @@ function getQuantity(
     from?: string | null,
     to?: string | null
 ): number {
+    if (!from || !to) {
+        return 0;
+    }
+
+    const fromNumber = Number(from);
+    const toNumber = Number(to);
 
     if (
-        !from ||
-        !to
+        Number.isNaN(fromNumber) ||
+        Number.isNaN(toNumber) ||
+        toNumber < fromNumber
     ) {
         return 0;
     }
 
-
-    const fromNumber =
-        Number(from);
-
-
-    const toNumber =
-        Number(to);
-
-
-    if (
-        Number.isNaN(
-            fromNumber
-        ) ||
-        Number.isNaN(
-            toNumber
-        )
-    ) {
-        return 0;
-    }
-
-
-    if (
-        toNumber <
-        fromNumber
-    ) {
-        return 0;
-    }
-
-
-    return (
-        toNumber -
-        fromNumber +
-        1
-    );
+    return toNumber - fromNumber + 1;
 }
-
-
-/*
-=========================================================
-DISPLAY VALUE
-=========================================================
-*/
-
-function displayValue(
-    value?:
-        | string
-        | null
-): string {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return "—";
-    }
-
-
-    return value;
-}
-
 
 /*
 =========================================================
@@ -99,336 +64,200 @@ COMPONENT
 export default function RCDAccountability({
     formRows,
 }: Props) {
-
     return (
-
         <section className="rcd-section mb-15">
-
             <div className="rcd-section-title">
                 C. ACCOUNTABILITY FOR ACCOUNTABLE FORMS
             </div>
 
-
-            <table className="rcd-table accountability">
-
-                <thead>
-
-                    <tr>
-
-                        <th rowSpan={2}>
-                            Name of
-                            <br />
-                            Form &amp; No
-                        </th>
-
-
-                        <th rowSpan={2}>
-                            QTY
-                        </th>
-
-
-                        <th colSpan={2}>
-                            Beginning Balance
-                            <br />
-                            Inclusive Serial Nos
-                        </th>
-
-
-                        <th rowSpan={2}>
-                            QTY
-                        </th>
-
-
-                        <th colSpan={2}>
-                            Receipts
-                            <br />
-                            Inclusive Serial Nos
-                        </th>
-
-
-                        <th rowSpan={2}>
-                            QTY
-                        </th>
-
-
-                        <th colSpan={2}>
-                            Issued
-                            <br />
-                            Inclusive Serial Nos
-                        </th>
-
-
-                        <th rowSpan={2}>
-                            QTY
-                        </th>
-
-
-                        <th colSpan={2}>
-                            Ending Balance
-                            <br />
-                            Inclusive Serial Nos
-                        </th>
-
-                    </tr>
-
-
-                    <tr>
-
-                        <th>
-                            From
-                        </th>
-
-                        <th>
-                            To
-                        </th>
-
-
-                        <th>
-                            From
-                        </th>
-
-                        <th>
-                            To
-                        </th>
-
-
-                        <th>
-                            From
-                        </th>
-
-                        <th>
-                            To
-                        </th>
-
-
-                        <th>
-                            From
-                        </th>
-
-                        <th>
-                            To
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    {formRows.length === 0 ? (
-
+            <div className="w-full overflow-x-auto">
+                <table className="rcd-table accountability w-full">
+                    <thead>
                         <tr>
+                            <th rowSpan={2}>
+                                Name of
+                                <br />
+                                Form &amp; No
+                            </th>
 
-                            <td colSpan={13}>
-                                —
-                            </td>
+                            <th rowSpan={2}>
+                                QTY
+                            </th>
 
+                            <th colSpan={2}>
+                                Beginning Balance
+                                <br />
+                                Inclusive Serial Nos
+                            </th>
+
+                            <th rowSpan={2}>
+                                QTY
+                            </th>
+
+                            <th colSpan={2}>
+                                Receipts
+                                <br />
+                                Inclusive Serial Nos
+                            </th>
+
+                            <th rowSpan={2}>
+                                QTY
+                            </th>
+
+                            <th colSpan={2}>
+                                Issued
+                                <br />
+                                Inclusive Serial Nos
+                            </th>
+
+                            <th rowSpan={2}>
+                                QTY
+                            </th>
+
+                            <th colSpan={2}>
+                                Ending Balance
+                                <br />
+                                Inclusive Serial Nos
+                            </th>
                         </tr>
 
-                    ) : (
+                        <tr>
+                            <th>From</th>
+                            <th>To</th>
 
-                        formRows.map(
-                            (
-                                row,
-                                index
-                            ) => {
+                            <th>From</th>
+                            <th>To</th>
 
-                                /*
-                                ==================================
-                                BEGINNING QTY
+                            <th>From</th>
+                            <th>To</th>
 
-                                Example:
-                                103 - 150 = 48
-                                ==================================
-                                */
+                            <th>From</th>
+                            <th>To</th>
+                        </tr>
+                    </thead>
 
-                                const beginningQty =
+                    <tbody>
+                        {formRows.length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan={13}
+                                    className="text-center"
+                                >
+                                    No accountable forms found.
+                                </td>
+                            </tr>
+                        ) : (
+                            formRows.map((form, index) => {
+                                const beginningQuantity =
                                     getQuantity(
-                                        row.beginningFrom,
-                                        row.beginningTo
+                                        form.beginningFrom,
+                                        form.beginningTo
                                     );
 
-
-                                /*
-                                ==================================
-                                ISSUED QTY
-
-                                Example:
-                                103 - 120 = 18
-                                ==================================
-                                */
-
-                                const issuedQty =
-                                    row.quantity ||
+                                const endingQuantity =
                                     getQuantity(
-                                        row.from,
-                                        row.to
+                                        form.endingFrom,
+                                        form.endingTo
                                     );
-
-
-                                /*
-                                ==================================
-                                ENDING QTY
-
-                                Example:
-                                121 - 150 = 30
-                                ==================================
-                                */
-
-                                const endingQty =
-                                    getQuantity(
-                                        row.endingFrom,
-                                        row.endingTo
-                                    );
-
 
                                 return (
-
                                     <tr
-                                        key={
-                                            `accountability-${row.formCode}-${index}`
-                                        }
+                                        key={`${form.formCode}-${index}`}
                                     >
-
-                                        {/* FORM */}
-
+                                        {/* FORM NAME */}
                                         <td>
-                                            {
-                                                row.formCode
-                                            }
+                                            {form.formCode}
                                         </td>
 
-
-                                        {/* BEGINNING QTY */}
-
+                                        {/* BOOKLET QTY */}
                                         <td>
-                                            {
-                                                beginningQty ||
-                                                "—"
-                                            }
+                                            {displayValue(
+                                                form.quantity
+                                            )}
                                         </td>
 
-
-                                        {/* BEGINNING FROM */}
-
+                                        {/* BEGINNING BALANCE */}
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.beginningFrom
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.beginningFrom
+                                            )}
                                         </td>
 
-
-                                        {/* BEGINNING TO */}
-
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.beginningTo
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.beginningTo
+                                            )}
                                         </td>
-
 
                                         {/* RECEIPTS QTY */}
-
                                         <td>
-                                            &nbsp;
+                                            {displayValue(
+                                                form.quantity
+                                            )}
                                         </td>
-
 
                                         {/* RECEIPTS FROM */}
-
                                         <td>
-                                            &nbsp;
+                                            {displayValue(
+                                                form.beginningFrom
+                                            )}
                                         </td>
-
 
                                         {/* RECEIPTS TO */}
-
                                         <td>
-                                            &nbsp;
+                                            {displayValue(
+                                                form.beginningTo
+                                            )}
                                         </td>
-
 
                                         {/* ISSUED QTY */}
-
                                         <td>
-                                            {
-                                                issuedQty ||
-                                                "—"
-                                            }
+                                            {displayValue(
+                                                form.quantity
+                                            )}
                                         </td>
-
 
                                         {/* ISSUED FROM */}
-
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.from
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.from
+                                            )}
                                         </td>
-
 
                                         {/* ISSUED TO */}
-
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.to
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.to
+                                            )}
                                         </td>
 
-
-                                        {/* ENDING QTY */}
-
+                                        {/* ENDING BALANCE QTY */}
                                         <td>
-                                            {
-                                                endingQty ||
-                                                "—"
-                                            }
+                                            {endingQuantity > 0
+                                                ? endingQuantity
+                                                : 0}
                                         </td>
 
-
-                                        {/* ENDING FROM */}
-
+                                        {/* ENDING BALANCE FROM */}
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.endingFrom
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.endingFrom
+                                            )}
                                         </td>
 
-
-                                        {/* ENDING TO */}
-
+                                        {/* ENDING BALANCE TO */}
                                         <td>
-                                            {
-                                                displayValue(
-                                                    row.endingTo
-                                                )
-                                            }
+                                            {displayValue(
+                                                form.endingTo
+                                            )}
                                         </td>
-
                                     </tr>
-
                                 );
-
-                            }
-                        )
-
-                    )}
-
-                </tbody>
-
-            </table>
-
+                            })
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </section>
     );
 }
