@@ -1,15 +1,15 @@
 "use client";
 
 import {
-    useState,
+  useState,
 } from "react";
 
 import axios from "axios";
 
 import {
-    X,
-    Printer,
-    CheckCircle2,
+  X,
+  Printer,
+  CheckCircle2,
 } from "lucide-react";
 
 import RCDGenerateForm from "./rcd/RCDGenerateForm";
@@ -17,723 +17,712 @@ import RCDGenerateForm from "./rcd/RCDGenerateForm";
 import RCDPreview from "./rcd/RCDPreview";
 
 import {
-    RCD,
-    RCDItem,
-    RCDFundSource,
-    RCDUser,
-    RCDFormRow,
+  RCD,
+  RCDItem,
+  RCDFundSource,
+  RCDUser,
+  RCDFormRow,
 } from "./rcd/RCDTypes";
-
 
 // ============================================================
 // PROPS
 // ============================================================
 
 type Props = {
-    open: boolean;
-    onClose: () => void;
+  open: boolean;
+  onClose: () => void;
 };
-
 
 // ============================================================
 // GENERATED RCD RESPONSE
 // ============================================================
 
 type GeneratedRCD = {
+  rcd: RCD;
 
-    rcd: RCD;
+  items: RCDItem[];
 
-    items: RCDItem[];
+  summary: {
+    transaction_count: number;
+    total_collections: number;
+    total_remittances: number;
+    total_deposits: number;
+    balance: number;
+  };
 
-    summary: {
-        transaction_count: number;
-        total_collections: number;
-        total_remittances: number;
-        total_deposits: number;
-        balance: number;
-    };
+  fund_source: RCDFundSource;
 
-    fund_source: RCDFundSource;
+  user: RCDUser;
 
-    user: RCDUser;
-
-    previous_form_rows: RCDFormRow[];
+  previous_form_rows: RCDFormRow[];
 };
-
 
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function GenerateRCDModal({
-    open,
-    onClose,
+  open,
+  onClose,
 }: Props) {
 
-    // =========================================================
-    // FORM STATE
-    // =========================================================
+  // =========================================================
+  // FORM STATE
+  // =========================================================
 
-    const [
-        fundSourceId,
-        setFundSourceId,
-    ] = useState("");
+  const [
+    fundSourceId,
+    setFundSourceId,
+  ] = useState("");
 
+  const [
+    dateFrom,
+    setDateFrom,
+  ] = useState("");
 
-    const [
-        dateFrom,
-        setDateFrom,
-    ] = useState("");
+  const [
+    dateTo,
+    setDateTo,
+  ] = useState("");
 
+  // =========================================================
+  // SELECTED TRANSACTIONS
+  // =========================================================
 
-    const [
-        dateTo,
-        setDateTo,
-    ] = useState("");
+  const [
+    selectedTransactionIds,
+    setSelectedTransactionIds,
+  ] = useState<string[]>([]);
 
+  // =========================================================
+  // GENERATED RCD
+  // =========================================================
 
-    // =========================================================
-    // GENERATED RCD
-    // =========================================================
+  const [
+    generatedRCD,
+    setGeneratedRCD,
+  ] = useState<GeneratedRCD | null>(
+    null
+  );
 
-    const [
-        generatedRCD,
-        setGeneratedRCD,
-    ] = useState<GeneratedRCD | null>(
-        null
-    );
+  // =========================================================
+  // GENERATING
+  // =========================================================
 
+  const [
+    generating,
+    setGenerating,
+  ] = useState(false);
 
-    // =========================================================
-    // GENERATING
-    // =========================================================
+  // =========================================================
+  // ERROR
+  // =========================================================
 
-    const [
-        generating,
-        setGenerating,
-    ] = useState(false);
+  const [
+    error,
+    setError,
+  ] = useState("");
 
+  // =========================================================
+  // DON'T RENDER
+  // =========================================================
 
-    // =========================================================
-    // ERROR
-    // =========================================================
+  if (!open) {
+    return null;
+  }
 
-    const [
-        error,
-        setError,
-    ] = useState("");
+  // =========================================================
+  // GENERATE RCD
+  // =========================================================
 
+  const handleGenerateRCD =
+    async () => {
 
-    // =========================================================
-    // DON'T RENDER
-    // =========================================================
+      setError("");
 
-    if (!open) {
-        return null;
-    }
+      // -----------------------------------------------
+      // VALIDATION
+      // -----------------------------------------------
 
+      if (!fundSourceId) {
+        setError(
+          "Please select a fund source."
+        );
 
-    // =========================================================
-    // GENERATE RCD
-    // =========================================================
+        return;
+      }
 
-    const handleGenerateRCD =
-        async () => {
+      if (!dateFrom) {
+        setError(
+          "Please select the beginning date."
+        );
 
-            setError("");
+        return;
+      }
 
-            // -----------------------------------------------
-            // VALIDATION
-            // -----------------------------------------------
+      if (!dateTo) {
+        setError(
+          "Please select the ending date."
+        );
 
-            if (!fundSourceId) {
+        return;
+      }
 
-                setError(
-                    "Please select a fund source."
-                );
+      if (
+        dateFrom >
+        dateTo
+      ) {
+        setError(
+          "Beginning date cannot be later than ending date."
+        );
 
-                return;
+        return;
+      }
+
+      if (
+        selectedTransactionIds.length ===
+        0
+      ) {
+        setError(
+          "Please select at least one transaction to include in the RCD."
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // START
+      // -----------------------------------------------
+
+      setGenerating(true);
+
+      try {
+
+        // =============================================
+        // POST TO RCD API
+        // =============================================
+
+        const response =
+          await axios.post(
+            "/api/rcd",
+            {
+              fund_source_id:
+                fundSourceId,
+
+              date_from:
+                dateFrom,
+
+              date_to:
+                dateTo,
+
+              transaction_ids:
+                selectedTransactionIds,
             }
+          );
 
+        // =============================================
+        // AXIOS RESPONSE
+        // =============================================
 
-            if (!dateFrom) {
+        const data =
+          response.data;
 
-                setError(
-                    "Please select the beginning date."
-                );
+        // =============================================
+        // API ERROR
+        // =============================================
 
-                return;
-            }
+        if (
+          !data?.success
+        ) {
 
+          throw new Error(
+            data?.message ||
+            "Failed to generate RCD."
+          );
 
-            if (!dateTo) {
+        }
 
-                setError(
-                    "Please select the ending date."
-                );
+        // =============================================
+        // SAVE GENERATED RCD
+        // =============================================
 
-                return;
-            }
+        setGeneratedRCD(
+          data
+        );
 
+      } catch (
+        error: any
+      ) {
 
-            if (
-                dateFrom >
-                dateTo
-            ) {
+        console.error(
+          "GENERATE RCD ERROR:",
+          error
+        );
 
-                setError(
-                    "Beginning date cannot be later than ending date."
-                );
+        // Axios error response
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to generate RCD.";
 
-                return;
-            }
+        setError(
+          message
+        );
 
+      } finally {
 
-            // -----------------------------------------------
-            // START
-            // -----------------------------------------------
+        setGenerating(
+          false
+        );
 
-            setGenerating(true);
+      }
+    };
 
-            try {
+  // =========================================================
+  // PRINT
+  // =========================================================
 
-                // =============================================
-                // POST TO RCD API
-                // =============================================
+  const handlePrint =
+    () => {
 
-                const response =
-                    await axios.post(
-                        "/api/rcd",
-                        {
-                            fund_source_id:
-                                fundSourceId,
+      if (
+        !generatedRCD
+      ) {
+        return;
+      }
 
-                            date_from:
-                                dateFrom,
+      /*
+       * IMPORTANT:
+       *
+       * window.print() opens the browser's
+       * print dialog.
+       *
+       * It does NOT select a printer itself.
+       *
+       * The user can then choose the
+       * desired Windows printer.
+       */
 
-                            date_to:
-                                dateTo,
-                        }
-                    );
+      window.print();
+    };
 
+  // =========================================================
+  // RENDER
+  // =========================================================
 
-                // =============================================
-                // AXIOS RESPONSE
-                // =============================================
+  return (
 
-                const data =
-                    response.data;
+    <div
+      className="
+        fixed
+        inset-0
+        z-[70]
+        flex
+        items-center
+        justify-center
+        bg-black/50
+        p-4
+      "
+    >
 
+      <div
+        className="
+          flex
+          h-[95vh]
+          w-full
+          max-w-[1500px]
+          flex-col
+          overflow-hidden
+          rounded-xl
+          bg-white
+          shadow-2xl
+        "
+      >
 
-                // =============================================
-                // API ERROR
-                // =============================================
-
-                if (
-                    !data?.success
-                ) {
-
-                    throw new Error(
-                        data?.message ||
-                        "Failed to generate RCD."
-                    );
-
-                }
-
-
-                // =============================================
-                // SAVE GENERATED RCD
-                // =============================================
-
-                setGeneratedRCD(
-                    data
-                );
-
-
-            } catch (
-                error: any
-            ) {
-
-                console.error(
-                    "GENERATE RCD ERROR:",
-                    error
-                );
-
-
-                // Axios error response
-                const message =
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    "Failed to generate RCD.";
-
-
-                setError(
-                    message
-                );
-
-
-            } finally {
-
-                setGenerating(
-                    false
-                );
-
-            }
-        };
-
-
-    // =========================================================
-    // PRINT
-    // =========================================================
-
-    const handlePrint =
-        () => {
-
-            if (
-                !generatedRCD
-            ) {
-
-                return;
-            }
-
-
-            /*
-             * IMPORTANT:
-             *
-             * window.print() opens the browser's
-             * print dialog.
-             *
-             * It does NOT select a printer itself.
-             *
-             * The user can then choose the
-             * desired Windows printer.
-             */
-
-            window.print();
-        };
-
-
-    // =========================================================
-    // RENDER
-    // =========================================================
-
-    return (
+        {/* =====================================================
+            HEADER
+        ====================================================== */}
 
         <div
-            className="
-                fixed
-                inset-0
-                z-[70]
-                flex
-                items-center
-                justify-center
-                bg-black/50
-                p-4
-            "
+          className="
+            flex
+            shrink-0
+            items-center
+            justify-between
+            border-b
+            bg-white
+            px-6
+            py-4
+          "
         >
 
+          <div>
+
+            <h2
+              className="
+                text-lg
+                font-bold
+                text-slate-900
+              "
+            >
+              Generate RCD
+            </h2>
+
+            <p
+              className="
+                text-sm
+                text-slate-500
+              "
+            >
+              Report of Collections and Deposits
+            </p>
+
+          </div>
+
+          {/* =================================================
+              CLOSE X
+          ================================================== */}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="
+              rounded-lg
+              p-2
+              text-slate-500
+              transition
+              hover:bg-slate-100
+              hover:text-slate-900
+            "
+            title="Close"
+          >
+
+            <X
+              size={22}
+            />
+
+          </button>
+
+        </div>
+
+        {/* =====================================================
+            ERROR
+        ====================================================== */}
+
+        {error && (
+
+          <div
+            className="
+              shrink-0
+              border-b
+              border-red-200
+              bg-red-50
+              px-6
+              py-3
+              text-sm
+              font-semibold
+              text-red-700
+            "
+          >
+            {error}
+          </div>
+
+        )}
+
+        {/* =====================================================
+            BODY
+        ====================================================== */}
+
+        <div
+          className="
+            min-h-0
+            flex-1
+            overflow-hidden
+          "
+        >
+
+          <div
+            className="
+              grid
+              h-full
+              grid-cols-1
+              lg:grid-cols-[480px_minmax(0,1fr)]
+            "
+          >
+
+            {/* =================================================
+                LEFT
+            ================================================== */}
+
             <div
-                className="
-                    flex
-                    h-[95vh]
-                    w-full
-                    max-w-[1500px]
-                    flex-col
-                    overflow-hidden
-                    rounded-xl
-                    bg-white
-                    shadow-2xl
-                "
+              className="
+                min-h-0
+                overflow-y-auto
+                border-r
+                bg-slate-50
+                p-5
+              "
             >
 
-                {/* =====================================================
-                    HEADER
-                ====================================================== */}
+              <RCDGenerateForm
 
-                <div
-                    className="
-                        flex
-                        shrink-0
-                        items-center
-                        justify-between
-                        border-b
-                        bg-white
-                        px-6
-                        py-4
-                    "
-                >
+                fundSourceId={
+                  fundSourceId
+                }
 
-                    <div>
+                setFundSourceId={
+                  setFundSourceId
+                }
 
-                        <h2
-                            className="
-                                text-lg
-                                font-bold
-                                text-slate-900
-                            "
-                        >
+                dateFrom={
+                  dateFrom
+                }
 
-                            Generate RCD
+                setDateFrom={
+                  setDateFrom
+                }
 
-                        </h2>
+                dateTo={
+                  dateTo
+                }
 
+                setDateTo={
+                  setDateTo
+                }
 
-                        <p
-                            className="
-                                text-sm
-                                text-slate-500
-                            "
-                        >
+                selectedTransactionIds={
+                  selectedTransactionIds
+                }
 
-                            Report of Collections and Deposits
+                onSelectionChange={
+                  setSelectedTransactionIds
+                }
 
-                        </p>
-
-                    </div>
-
-
-                    {/* =================================================
-                        CLOSE X
-                    ================================================== */}
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="
-                            rounded-lg
-                            p-2
-                            text-slate-500
-                            transition
-                            hover:bg-slate-100
-                            hover:text-slate-900
-                        "
-                        title="Close"
-                    >
-
-                        <X
-                            size={22}
-                        />
-
-                    </button>
-
-                </div>
-
-
-                {/* =====================================================
-                    ERROR
-                ====================================================== */}
-
-                {error && (
-
-                    <div
-                        className="
-                            shrink-0
-                            border-b
-                            border-red-200
-                            bg-red-50
-                            px-6
-                            py-3
-                            text-sm
-                            font-semibold
-                            text-red-700
-                        "
-                    >
-
-                        {error}
-
-                    </div>
-
-                )}
-
-
-                {/* =====================================================
-                    BODY
-                ====================================================== */}
-
-                <div
-                    className="
-                        min-h-0
-                        flex-1
-                        overflow-hidden
-                    "
-                >
-
-                    <div
-                        className="
-                            grid
-                            h-full
-                            grid-cols-1
-                            lg:grid-cols-[480px_minmax(0,1fr)]
-                        "
-                    >
-
-                        {/* =================================================
-                            LEFT
-                        ================================================== */}
-
-                        <div
-                            className="
-                                min-h-0
-                                overflow-y-auto
-                                border-r
-                                bg-slate-50
-                                p-5
-                            "
-                        >
-
-                            <RCDGenerateForm
-
-                                fundSourceId={
-                                    fundSourceId
-                                }
-
-                                setFundSourceId={
-                                    setFundSourceId
-                                }
-
-                                dateFrom={
-                                    dateFrom
-                                }
-
-                                setDateFrom={
-                                    setDateFrom
-                                }
-
-                                dateTo={
-                                    dateTo
-                                }
-
-                                setDateTo={
-                                    setDateTo
-                                }
-
-                            />
-
-                        </div>
-
-
-                        {/* =================================================
-                            RIGHT - PREVIEW
-                        ================================================== */}
-
-                        <div
-                            className="
-                                min-h-0
-                                overflow-y-auto
-                                bg-slate-200
-                            "
-                        >
-
-                            <RCDPreview
-
-                                rcd={
-                                    generatedRCD?.rcd ??
-                                    null
-                                }
-
-                                items={
-                                    generatedRCD?.items ??
-                                    []
-                                }
-
-                                fundSource={
-                                    generatedRCD?.fund_source ??
-                                    null
-                                }
-
-                                user={
-                                    generatedRCD?.user ??
-                                    null
-                                }
-
-                                previousFormRows={
-                                    generatedRCD?.previous_form_rows ??
-                                    []
-                                }
-
-                            />
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {/* =====================================================
-                    FOOTER
-                ====================================================== */}
-
-                <div
-                    className="
-                        flex
-                        shrink-0
-                        items-center
-                        justify-between
-                        border-t
-                        bg-white
-                        px-6
-                        py-4
-                    "
-                >
-
-                    {/* =================================================
-                        STATUS
-                    ================================================== */}
-
-                    <div>
-
-                        {generatedRCD ? (
-
-                            <div
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    text-sm
-                                    font-semibold
-                                    text-green-700
-                                "
-                            >
-
-                                <CheckCircle2
-                                    size={18}
-                                />
-
-                                <span>
-                                    RCD Generated:
-                                </span>
-
-                                <span
-                                    className="
-                                        font-bold
-                                    "
-                                >
-
-                                    {
-                                        generatedRCD
-                                            .rcd
-                                            .report_no
-                                    }
-
-                                </span>
-
-                            </div>
-
-                        ) : (
-
-                            <span
-                                className="
-                                    text-xs
-                                    font-medium
-                                    text-slate-400
-                                "
-                            >
-
-                                Select the fund source and date range.
-
-                            </span>
-
-                        )}
-
-                    </div>
-
-
-                    {/* =================================================
-                        ACTIONS
-                    ================================================== */}
-
-                    <div
-                        className="
-                            flex
-                            items-center
-                            gap-3
-                        "
-                    >
-
-                        {/* =============================================
-                            PRINT
-
-                            Only appears after RCD generation.
-                        ============================================== */}
-
-                        {generatedRCD && (
-
-                            <button
-                                type="button"
-                                onClick={
-                                    handlePrint
-                                }
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    rounded-lg
-                                    border
-                                    border-slate-300
-                                    bg-white
-                                    px-5
-                                    py-2
-                                    text-sm
-                                    font-semibold
-                                    text-slate-700
-                                    transition
-                                    hover:bg-slate-50
-                                "
-                            >
-
-                                <Printer
-                                    size={17}
-                                />
-
-                                Print
-
-                            </button>
-
-                        )}
-
-
-                        {/* =============================================
-                            GENERATE RCD
-                        ============================================== */}
-
-                        <button
-                            type="button"
-                            onClick={
-                                handleGenerateRCD
-                            }
-                            disabled={
-                                generating
-                            }
-                            className="
-                                rounded-lg
-                                bg-blue-600
-                                px-5
-                                py-2
-                                text-sm
-                                font-semibold
-                                text-white
-                                transition
-                                hover:bg-blue-700
-                                disabled:cursor-not-allowed
-                                disabled:opacity-50
-                            "
-                        >
-
-                            {generating
-                                ? "Generating..."
-                                : generatedRCD
-                                    ? "Generate New RCD"
-                                    : "Generate RCD"}
-
-                        </button>
-
-                    </div>
-
-                </div>
+              />
 
             </div>
 
+            {/* =================================================
+                RIGHT - PREVIEW
+            ================================================== */}
+
+            <div
+              className="
+                min-h-0
+                overflow-y-auto
+                bg-slate-200
+              "
+            >
+
+              <RCDPreview
+
+                rcd={
+                  generatedRCD?.rcd ??
+                  null
+                }
+
+                items={
+                  generatedRCD?.items ??
+                  []
+                }
+
+                fundSource={
+                  generatedRCD?.fund_source ??
+                  null
+                }
+
+                user={
+                  generatedRCD?.user ??
+                  null
+                }
+
+                previousFormRows={
+                  generatedRCD?.previous_form_rows ??
+                  []
+                }
+
+              />
+
+            </div>
+
+          </div>
+
         </div>
-    );
+
+        {/* =====================================================
+            FOOTER
+        ====================================================== */}
+
+        <div
+          className="
+            flex
+            shrink-0
+            items-center
+            justify-between
+            border-t
+            bg-white
+            px-6
+            py-4
+          "
+        >
+
+          {/* =================================================
+              STATUS
+          ================================================== */}
+
+          <div>
+
+            {generatedRCD ? (
+
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  text-sm
+                  font-semibold
+                  text-green-700
+                "
+              >
+
+                <CheckCircle2
+                  size={18}
+                />
+
+                <span>
+                  RCD Generated:
+                </span>
+
+                <span
+                  className="
+                    font-bold
+                  "
+                >
+                  {
+                    generatedRCD
+                      .rcd
+                      .report_no
+                  }
+                </span>
+
+              </div>
+
+            ) : (
+
+              <span
+                className="
+                  text-xs
+                  font-medium
+                  text-slate-400
+                "
+              >
+                {selectedTransactionIds.length > 0
+                  ? `${selectedTransactionIds.length} transaction${
+                      selectedTransactionIds.length !== 1
+                        ? "s"
+                        : ""
+                    } selected.`
+                  : "Select the fund source, date range, and transactions."}
+              </span>
+
+            )}
+
+          </div>
+
+          {/* =================================================
+              ACTIONS
+          ================================================== */}
+
+          <div
+            className="
+              flex
+              items-center
+              gap-3
+            "
+          >
+
+            {/* =============================================
+                PRINT
+
+                Only appears after RCD generation.
+            ============================================== */}
+
+            {generatedRCD && (
+
+              <button
+                type="button"
+                onClick={
+                  handlePrint
+                }
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  rounded-lg
+                  border
+                  border-slate-300
+                  bg-white
+                  px-5
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-slate-700
+                  transition
+                  hover:bg-slate-50
+                "
+              >
+
+                <Printer
+                  size={17}
+                />
+
+                Print
+
+              </button>
+
+            )}
+
+            {/* =============================================
+                GENERATE RCD
+            ============================================== */}
+
+            <button
+              type="button"
+              onClick={
+                handleGenerateRCD
+              }
+              disabled={
+                generating
+              }
+              className="
+                rounded-lg
+                bg-blue-600
+                px-5
+                py-2
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-blue-700
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+              "
+            >
+
+              {generating
+                ? "Generating..."
+                : generatedRCD
+                  ? "Generate New RCD"
+                  : "Generate RCD"}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }

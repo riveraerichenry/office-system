@@ -13,26 +13,21 @@ import {
     randomUUID,
 } from "crypto";
 
-
 // =============================================================
 // JWT PAYLOAD
 // =============================================================
 
 type JwtPayload = {
     id?: string;
-
     username?: string;
-
     full_name?: string;
 };
-
 
 // =============================================================
 // PREVIOUS FORM ROW
 // =============================================================
 
 type PreviousFormRow = {
-
     formCode: string;
 
     beginningFrom:
@@ -50,9 +45,7 @@ type PreviousFormRow = {
     endingTo:
         | string
         | null;
-
 };
-
 
 // =============================================================
 // POST
@@ -65,7 +58,6 @@ export async function POST(
     const client =
         await pool.connect();
 
-
     try {
 
         // =====================================================
@@ -75,13 +67,12 @@ export async function POST(
         const body =
             await request.json();
 
-
         const {
             fund_source_id,
             date_from,
             date_to,
+            transaction_ids,
         } = body;
-
 
         // =====================================================
         // VALIDATION
@@ -94,7 +85,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Fund source is required.",
                 },
@@ -105,7 +95,6 @@ export async function POST(
 
         }
 
-
         if (
             !date_from ||
             !date_to
@@ -114,7 +103,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Date range is required.",
                 },
@@ -125,7 +113,6 @@ export async function POST(
 
         }
 
-
         if (
             date_from >
             date_to
@@ -134,7 +121,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Date From cannot be later than Date To.",
                 },
@@ -145,6 +131,80 @@ export async function POST(
 
         }
 
+        // =====================================================
+        // TRANSACTION IDS VALIDATION
+        // =====================================================
+
+        if (
+            !Array.isArray(transaction_ids)
+        ) {
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "transaction_ids must be an array.",
+                },
+                {
+                    status: 400,
+                }
+            );
+
+        }
+
+        if (
+            transaction_ids.length === 0
+        ) {
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Please select at least one transaction for the RCD.",
+                },
+                {
+                    status: 400,
+                }
+            );
+
+        }
+
+        // =====================================================
+        // CLEAN TRANSACTION IDS
+        // =====================================================
+
+        const selectedTransactionIds =
+            Array.from(
+                new Set(
+                    transaction_ids
+                        .filter(
+                            (id: unknown) =>
+                                typeof id === "string" &&
+                                id.trim() !== ""
+                        )
+                        .map(
+                            (id: string) =>
+                                id.trim()
+                        )
+                )
+            );
+
+        if (
+            selectedTransactionIds.length === 0
+        ) {
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "No valid transactions were selected.",
+                },
+                {
+                    status: 400,
+                }
+            );
+
+        }
 
         // =====================================================
         // AUTHENTICATION
@@ -155,7 +215,6 @@ export async function POST(
                 "token"
             )?.value;
 
-
         if (
             !token
         ) {
@@ -163,7 +222,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication required.",
                 },
@@ -174,10 +232,8 @@ export async function POST(
 
         }
 
-
         const jwtSecret =
             process.env.JWT_SECRET;
-
 
         if (
             !jwtSecret
@@ -187,11 +243,9 @@ export async function POST(
                 "JWT_SECRET is not configured."
             );
 
-
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Authentication configuration error.",
                 },
@@ -202,14 +256,12 @@ export async function POST(
 
         }
 
-
         // =====================================================
         // VERIFY JWT
         // =====================================================
 
         let decoded:
             JwtPayload;
-
 
         try {
 
@@ -228,11 +280,9 @@ export async function POST(
                 error
             );
 
-
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Invalid or expired session.",
                 },
@@ -243,7 +293,6 @@ export async function POST(
 
         }
 
-
         if (
             !decoded?.id
         ) {
@@ -251,7 +300,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Unable to determine logged-in user.",
                 },
@@ -262,7 +310,6 @@ export async function POST(
 
         }
 
-
         // =====================================================
         // VERIFY LOGGED-IN USER
         // =====================================================
@@ -270,25 +317,18 @@ export async function POST(
         const userResult =
             await client.query(
                 `
-                SELECT
-
-                    id,
-
-                    username,
-
-                    full_name
-
-                FROM users
-
-                WHERE id = $1
-
-                LIMIT 1
+                    SELECT
+                        id,
+                        username,
+                        full_name
+                    FROM users
+                    WHERE id = $1
+                    LIMIT 1
                 `,
                 [
                     decoded.id,
                 ]
             );
-
 
         if (
             userResult.rows.length === 0
@@ -297,7 +337,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Logged-in user was not found.",
                 },
@@ -308,10 +347,8 @@ export async function POST(
 
         }
 
-
         const loggedInUser =
             userResult.rows[0];
-
 
         // =====================================================
         // VERIFY FUND SOURCE
@@ -320,29 +357,20 @@ export async function POST(
         const fundSourceResult =
             await client.query(
                 `
-                SELECT
-
-                    id,
-
-                    fund_code,
-
-                    fund_name,
-
-                    acronym
-
-                FROM fund_sources
-
-                WHERE id = $1
-
-                AND is_active = TRUE
-
-                LIMIT 1
+                    SELECT
+                        id,
+                        fund_code,
+                        fund_name,
+                        acronym
+                    FROM fund_sources
+                    WHERE id = $1
+                    AND is_active = TRUE
+                    LIMIT 1
                 `,
                 [
                     fund_source_id,
                 ]
             );
-
 
         if (
             fundSourceResult.rows.length === 0
@@ -351,7 +379,6 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
                         "Fund source not found or inactive.",
                 },
@@ -362,10 +389,8 @@ export async function POST(
 
         }
 
-
         const fundSource =
             fundSourceResult.rows[0];
-
 
         // =====================================================
         // BEGIN DATABASE TRANSACTION
@@ -375,276 +400,318 @@ export async function POST(
             "BEGIN"
         );
 
-
         // =====================================================
         // LOCK RCD NUMBER GENERATION
         // =====================================================
 
         await client.query(
             `
-            SELECT pg_advisory_xact_lock(
-                hashtext(
-                    'RCD_REPORT_NUMBER_GENERATION'
+                SELECT pg_advisory_xact_lock(
+                    hashtext(
+                        'RCD_REPORT_NUMBER_GENERATION'
+                    )
                 )
-            )
             `
         );
 
-
         // =====================================================
-        // GET ELIGIBLE DIPP TRANSACTIONS
+        // GET SELECTED DIPP TRANSACTIONS
         //
-        // NO transaction_type = 'RPT' FILTER.
-        //
-        // AF51 can be RPT.
-        // CTC-I can be CTC-I.
-        // Both are valid accountable forms.
+        // IMPORTANT:
+        // Only transactions selected by the collector
+        // are allowed into this RCD.
         // =====================================================
 
         const transactionsResult =
             await client.query(
                 `
-                SELECT
+                    SELECT
 
-                    dt.id,
+                        dt.id,
 
-                    dt.or_number,
+                        dt.or_number,
 
-                    dt.receipt_date,
+                        dt.receipt_date,
 
-                    dt.collector_id,
+                        dt.collector_id,
 
-                    dt.payor,
+                        dt.payor,
 
-                    dt.payment_mode,
+                        dt.payment_mode,
 
-                    dt.remarks,
+                        dt.remarks,
 
-                    COALESCE(
-                        dt.grand_total,
-                        0
-                    ) AS amount,
+                        COALESCE(
+                            dt.grand_total,
+                            0
+                        ) AS amount,
 
-                    dt.accountable_form_id,
+                        dt.accountable_form_id,
 
-                    dt.booklet_registration_id,
+                        dt.booklet_registration_id,
 
+                        /*
+                        =================================================
+                        BOOKLET
+                        =================================================
+                        */
+
+                        sbr.beginning_or
+                            AS booklet_beginning_or,
+
+                        sbr.ending_or
+                            AS booklet_ending_or,
+
+                        sbr.current_or
+                            AS booklet_current_or,
+
+                        dt.lor_release_id,
+
+                        dt.encoded_by,
+
+                        dt.status,
+
+                        dt.transaction_type,
+
+                        dt.is_cancelled,
+
+                        dt.is_remitted,
+
+                        dt.remittance_id,
+
+                        /*
+                        =================================================
+                        ACCOUNTABLE FORM
+                        =================================================
+                        */
+
+                        af.form_code,
+
+                        af.form_name
+
+                    FROM dipp_transactions dt
 
                     /*
-                    =================================================
-                    BOOKLET
-                    =================================================
+                    =====================================================
+                    LOR RELEASE
+                    =====================================================
                     */
 
-                    sbr.beginning_or
-                        AS booklet_beginning_or,
-
-                    sbr.ending_or
-                        AS booklet_ending_or,
-
-                    sbr.current_or
-                        AS booklet_current_or,
-
-
-                    dt.lor_release_id,
-
-                    dt.encoded_by,
-
-                    dt.status,
-
-                    dt.transaction_type,
-
-                    dt.is_cancelled,
-
-                    dt.is_remitted,
-
-                    dt.remittance_id,
-
+                    INNER JOIN lor_releases lr
+                        ON lr.id =
+                            dt.lor_release_id
 
                     /*
-                    =================================================
+                    =====================================================
                     ACCOUNTABLE FORM
-                    =================================================
+                    =====================================================
                     */
 
-                    af.form_code,
-
-                    af.form_name
-
-                FROM dipp_transactions dt
-
-
-                /*
-                =====================================================
-                LOR RELEASE
-                =====================================================
-                */
-
-                INNER JOIN lor_releases lr
-
-                    ON lr.id =
-                        dt.lor_release_id
-
-
-                /*
-                =====================================================
-                ACCOUNTABLE FORM
-                =====================================================
-                */
-
-                LEFT JOIN accountable_forms af
-
-                    ON af.id =
-                        dt.accountable_form_id
-
-
-                /*
-                =====================================================
-                BOOKLET
-                =====================================================
-                */
-
-                LEFT JOIN smi_booklet_registration sbr
-
-                    ON sbr.id =
-                        dt.booklet_registration_id
-
-
-                WHERE
-
+                    LEFT JOIN accountable_forms af
+                        ON af.id =
+                            dt.accountable_form_id
 
                     /*
-                    =================================================
-                    FUND SOURCE
-                    =================================================
+                    =====================================================
+                    BOOKLET
+                    =====================================================
                     */
 
-                    lr.fund_source_id =
-                        $1
+                    LEFT JOIN smi_booklet_registration sbr
+                        ON sbr.id =
+                            dt.booklet_registration_id
 
+                    WHERE
 
-                    /*
-                    =================================================
-                    DATE FROM
-                    =================================================
-                    */
+                        /*
+                        =================================================
+                        FUND SOURCE
+                        =================================================
+                        */
 
-                    AND dt.receipt_date >=
-                        $2::date
+                        lr.fund_source_id =
+                            $1
 
+                        /*
+                        =================================================
+                        DATE FROM
+                        =================================================
+                        */
 
-                    /*
-                    =================================================
-                    DATE TO
-                    =================================================
-                    */
+                        AND dt.receipt_date >=
+                            $2::date
 
-                    AND dt.receipt_date <
-                        (
-                            $3::date
-                            + INTERVAL '1 day'
+                        /*
+                        =================================================
+                        DATE TO
+                        =================================================
+                        */
+
+                        AND dt.receipt_date <
+                            (
+                                $3::date
+                                + INTERVAL '1 day'
+                            )
+
+                        /*
+                        =================================================
+                        LOGGED-IN COLLECTOR
+                        =================================================
+
+                        The RCD transaction list is based on
+                        collector_id, so generation uses the
+                        same collector restriction.
+                        */
+
+                        AND dt.collector_id =
+                            $4
+
+                        /*
+                        =================================================
+                        SELECTED TRANSACTIONS ONLY
+                        =================================================
+                        */
+
+                        AND dt.id = ANY($5::uuid[])
+
+                        /*
+                        =================================================
+                        ISSUED ONLY
+                        =================================================
+                        */
+
+                        AND dt.status =
+                            'ISSUED'
+
+                        /*
+                        =================================================
+                        NOT CANCELLED
+                        =================================================
+                        */
+
+                        AND COALESCE(
+                            dt.is_cancelled,
+                            FALSE
+                        ) = FALSE
+
+                        /*
+                        =================================================
+                        NOT ALREADY IN RCD
+                        =================================================
+                        */
+
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM rcd_items ri
+                            WHERE
+                                ri.dipp_transaction_id =
+                                    dt.id
                         )
 
+                    ORDER BY
 
-                    /*
-                    =================================================
-                    LOGGED-IN USER
-                    =================================================
-                    */
+                        af.form_code ASC,
 
-                    AND dt.encoded_by =
-                        $4
+                        dt.receipt_date ASC,
 
+                        CASE
+                            WHEN
+                                NULLIF(
+                                    TRIM(
+                                        dt.or_number
+                                    ),
+                                    ''
+                                ) ~ '^[0-9]+$'
 
-                    /*
-                    =================================================
-                    ISSUED ONLY
-                    =================================================
-                    */
+                            THEN
+                                NULLIF(
+                                    TRIM(
+                                        dt.or_number
+                                    ),
+                                    ''
+                                )::BIGINT
 
-                    AND dt.status =
-                        'ISSUED'
+                            ELSE
+                                NULL
 
+                        END ASC,
 
-                    /*
-                    =================================================
-                    NOT CANCELLED
-                    =================================================
-                    */
-
-                    AND COALESCE(
-                        dt.is_cancelled,
-                        FALSE
-                    ) = FALSE
-
-
-                    /*
-                    =================================================
-                    NOT ALREADY IN RCD
-                    =================================================
-                    */
-
-                    AND NOT EXISTS (
-
-                        SELECT 1
-
-                        FROM rcd_items ri
-
-                        WHERE
-                            ri.dipp_transaction_id =
-                                dt.id
-
-                    )
-
-
-                ORDER BY
-
-                    af.form_code ASC,
-
-                    dt.receipt_date ASC,
-
-                    CASE
-
-                        WHEN
-
-                            NULLIF(
-                                TRIM(
-                                    dt.or_number
-                                ),
-                                ''
-                            ) ~ '^[0-9]+$'
-
-                        THEN
-
-                            NULLIF(
-                                TRIM(
-                                    dt.or_number
-                                ),
-                                ''
-                            )::BIGINT
-
-                        ELSE
-                            NULL
-
-                    END ASC,
-
-                    dt.or_number ASC
+                        dt.or_number ASC
                 `,
                 [
                     fund_source_id,
-
                     date_from,
-
                     date_to,
-
                     loggedInUser.id,
+                    selectedTransactionIds,
                 ]
             );
-
 
         const transactions =
             transactionsResult.rows;
 
+        // =====================================================
+        // VERIFY ALL SELECTED TRANSACTIONS WERE FOUND
+        // =====================================================
+
+        if (
+            transactions.length !==
+            selectedTransactionIds.length
+        ) {
+
+            const foundIds =
+                new Set(
+                    transactions.map(
+                        (
+                            transaction: any
+                        ) =>
+                            String(
+                                transaction.id
+                            )
+                    )
+                );
+
+            const missingIds =
+                selectedTransactionIds.filter(
+                    (
+                        id: string
+                    ) =>
+                        !foundIds.has(id)
+                );
+
+            await client.query(
+                "ROLLBACK"
+            );
+
+            console.error(
+                "RCD SELECTED TRANSACTIONS VALIDATION FAILED",
+                {
+                    selectedCount:
+                        selectedTransactionIds.length,
+
+                    foundCount:
+                        transactions.length,
+
+                    missingIds,
+                }
+            );
+
+            return NextResponse.json(
+                {
+                    success: false,
+
+                    message:
+                        "One or more selected transactions are no longer eligible for this RCD. Please refresh the transaction list and try again.",
+
+                    missing_transaction_ids:
+                        missingIds,
+                },
+                {
+                    status: 409,
+                }
+            );
+
+        }
 
         // =====================================================
         // NO TRANSACTIONS
@@ -658,13 +725,12 @@ export async function POST(
                 "ROLLBACK"
             );
 
-
             return NextResponse.json(
                 {
                     success: false,
 
                     message:
-                        "No eligible DIPP transactions were found for the selected fund source, date range, and logged-in user.",
+                        "No selected DIPP transactions were found for the RCD.",
                 },
                 {
                     status: 404,
@@ -672,7 +738,6 @@ export async function POST(
             );
 
         }
-
 
         // =====================================================
         // TOTAL COLLECTIONS
@@ -682,25 +747,20 @@ export async function POST(
             transactions.reduce(
                 (
                     total: number,
-
                     transaction: any
                 ) => {
 
                     return (
-
                         total +
-
                         Number(
                             transaction.amount ??
                                 0
                         )
-
                     );
 
                 },
                 0
             );
-
 
         // =====================================================
         // BUILD ACCOUNTABILITY DATA
@@ -709,13 +769,11 @@ export async function POST(
         const previousFormRows:
             PreviousFormRow[] = [];
 
-
         const formGroups =
             new Map<
                 string,
                 any[]
             >();
-
 
         // =====================================================
         // GROUP TRANSACTIONS BY FORM
@@ -732,7 +790,6 @@ export async function POST(
                         "—"
                 ).trim();
 
-
             if (
                 !formGroups.has(
                     formCode
@@ -746,7 +803,6 @@ export async function POST(
 
             }
 
-
             formGroups
                 .get(
                     formCode
@@ -756,7 +812,6 @@ export async function POST(
                 );
 
         }
-
 
         // =====================================================
         // BUILD ACCOUNTABILITY ROWS
@@ -777,33 +832,39 @@ export async function POST(
             const serials =
                 groupTransactions
                     .map(
-                        transaction =>
+                        (
+                            transaction: any
+                        ) =>
                             String(
                                 transaction.or_number ??
                                     ""
                             ).trim()
                     )
                     .filter(
-                        value =>
+                        (
+                            value: string
+                        ) =>
                             value !== ""
                     );
-
 
             const numericSerials =
                 serials
                     .map(
-                        value =>
+                        (
+                            value: string
+                        ) =>
                             Number(
                                 value
                             )
                     )
                     .filter(
-                        value =>
+                        (
+                            value: number
+                        ) =>
                             !Number.isNaN(
                                 value
                             )
                     );
-
 
             if (
                 numericSerials.length === 0
@@ -827,11 +888,9 @@ export async function POST(
 
                 });
 
-
                 continue;
 
             }
-
 
             // =================================================
             // FIRST OR
@@ -842,7 +901,6 @@ export async function POST(
                     ...numericSerials
                 );
 
-
             // =================================================
             // LAST OR
             // =================================================
@@ -852,31 +910,27 @@ export async function POST(
                     ...numericSerials
                 );
 
-
             // =================================================
             // FIND BOOKLET
             // =================================================
 
             const bookletTransaction =
                 groupTransactions.find(
-                    transaction =>
-
+                    (
+                        transaction: any
+                    ) =>
                         transaction
                             .booklet_ending_or !==
                             null &&
-
                         transaction
                             .booklet_ending_or !==
                             undefined &&
-
                         String(
                             transaction
                                 .booklet_ending_or
                         ).trim() !== ""
-
                 ) ??
                 groupTransactions[0];
-
 
             // =================================================
             // BOOKLET ENDING OR
@@ -886,24 +940,18 @@ export async function POST(
                 bookletTransaction
                     ?.booklet_ending_or;
 
-
             const bookletEnding =
                 bookletEndingRaw !==
                     null &&
-
                 bookletEndingRaw !==
                     undefined &&
-
                 String(
                     bookletEndingRaw
                 ).trim() !== ""
-
                     ? Number(
                         bookletEndingRaw
                     )
-
                     : null;
-
 
             // =================================================
             // SERIAL WIDTH
@@ -915,29 +963,21 @@ export async function POST(
                     currentMin
                 );
 
-
             const endingSerialString =
                 bookletEndingRaw !==
                     null &&
                 bookletEndingRaw !==
                     undefined
-
                     ? String(
                         bookletEndingRaw
                     )
-
                     : "";
-
 
             const serialWidth =
                 Math.max(
-
                     firstSerialString.length,
-
                     endingSerialString.length
-
                 );
-
 
             // =================================================
             // BEGINNING BALANCE
@@ -960,19 +1000,16 @@ export async function POST(
                     "0"
                 );
 
-
             const beginningTo =
-                bookletEnding !== null
-
+                bookletEnding !==
+                    null
                     ? String(
                         bookletEnding
                     ).padStart(
                         serialWidth,
                         "0"
                     )
-
                     : null;
-
 
             // =================================================
             // ENDING BALANCE
@@ -990,15 +1027,13 @@ export async function POST(
                 string | null =
                 null;
 
-
             let endingTo:
                 string | null =
                 null;
 
-
             if (
-                bookletEnding !== null &&
-
+                bookletEnding !==
+                    null &&
                 currentMax <
                     bookletEnding
             ) {
@@ -1011,7 +1046,6 @@ export async function POST(
                         "0"
                     );
 
-
                 endingTo =
                     String(
                         bookletEnding
@@ -1021,53 +1055,6 @@ export async function POST(
                     );
 
             }
-
-
-            // =================================================
-            // DEBUG
-            // =================================================
-
-            // console.log(
-            //     "RCD BOOKLET ACCOUNTABILITY",
-            //     {
-
-            //         formCode,
-
-            //         transactionCount:
-            //             groupTransactions.length,
-
-            //         bookletId:
-            //             bookletTransaction
-            //                 ?.booklet_registration_id,
-
-            //         bookletBeginningOR:
-            //             bookletTransaction
-            //                 ?.booklet_beginning_or,
-
-            //         bookletEndingOR:
-            //             bookletEnding,
-
-            //         bookletCurrentOR:
-            //             bookletTransaction
-            //                 ?.booklet_current_or,
-
-            //         currentRCDFirstOR:
-            //             currentMin,
-
-            //         currentRCDLastOR:
-            //             currentMax,
-
-            //         beginningFrom,
-
-            //         beginningTo,
-
-            //         endingFrom,
-
-            //         endingTo,
-
-            //     }
-            // );
-
 
             // =================================================
             // SAVE
@@ -1089,16 +1076,24 @@ export async function POST(
 
         }
 
-
         // =====================================================
         // DEBUG
         // =====================================================
 
         console.log(
+            "RCD SELECTED TRANSACTIONS",
+            {
+                selectedTransactionIds,
+                transactionCount:
+                    transactions.length,
+                totalCollections,
+            }
+        );
+
+        console.log(
             "RCD PREVIOUS FORM ROWS",
             previousFormRows
         );
-
 
         // =====================================================
         // REPORT NUMBER
@@ -1110,21 +1105,15 @@ export async function POST(
         // Example:
         //
         // 26081700001-GF
-        //
-        // Instead of:
-        //
-        // 26081700001-RPT
         // =====================================================
 
         const reportDate =
             new Date();
 
-
         const yy =
             String(
                 reportDate.getFullYear()
             ).slice(-2);
-
 
         const mm =
             String(
@@ -1134,7 +1123,6 @@ export async function POST(
                 "0"
             );
 
-
         const dd =
             String(
                 reportDate.getDate()
@@ -1143,10 +1131,8 @@ export async function POST(
                 "0"
             );
 
-
         const datePrefix =
             `${yy}${mm}${dd}`;
-
 
         // =====================================================
         // GET NEXT DAILY SEQUENCE
@@ -1155,18 +1141,14 @@ export async function POST(
         const sequenceResult =
             await client.query(
                 `
-                SELECT
-
-                    COUNT(*) + 1
-                        AS sequence
-
-                FROM rcd_transaction
-
-                WHERE report_date =
-                    CURRENT_DATE
+                    SELECT
+                        COUNT(*) + 1
+                            AS sequence
+                    FROM rcd_transaction
+                    WHERE report_date =
+                        CURRENT_DATE
                 `
             );
-
 
         const sequence =
             String(
@@ -1177,7 +1159,6 @@ export async function POST(
                 5,
                 "0"
             );
-
 
         // =====================================================
         // FUND SOURCE ACRONYM
@@ -1191,18 +1172,13 @@ export async function POST(
                 .trim()
                 .toUpperCase();
 
-
         // =====================================================
         // FALLBACK
-        //
-        // If the selected fund source has no acronym,
-        // use RPT so the report number is never malformed.
         // =====================================================
 
         const reportSuffix =
             fundSourceAcronym ||
             "RPT";
-
 
         // =====================================================
         // FINAL REPORT NUMBER
@@ -1211,22 +1187,15 @@ export async function POST(
         const reportNo =
             `${datePrefix}${sequence}-${reportSuffix}`;
 
-
         console.log(
             "RCD REPORT NUMBER",
             {
-
                 reportNo,
-
                 datePrefix,
-
                 sequence,
-
                 fundSourceAcronym,
-
             }
         );
-
 
         // =====================================================
         // CREATE RCD
@@ -1235,78 +1204,76 @@ export async function POST(
         const rcdId =
             randomUUID();
 
-
         const rcdResult =
             await client.query(
                 `
-                INSERT INTO rcd_transaction (
+                    INSERT INTO rcd_transaction (
 
-                    id,
+                        id,
 
-                    report_no,
+                        report_no,
 
-                    report_date,
+                        report_date,
 
-                    fund_source_id,
+                        fund_source_id,
 
-                    date_from,
+                        date_from,
 
-                    date_to,
+                        date_to,
 
-                    total_collections,
+                        total_collections,
 
-                    total_remittances,
+                        total_remittances,
 
-                    total_deposits,
+                        total_deposits,
 
-                    balance,
+                        balance,
 
-                    status,
+                        status,
 
-                    rcd_by,
+                        rcd_by,
 
-                    created_at,
+                        created_at,
 
-                    updated_at
+                        updated_at
 
-                )
+                    )
 
-                VALUES (
+                    VALUES (
 
-                    $1,
+                        $1,
 
-                    $2,
+                        $2,
 
-                    CURRENT_DATE,
+                        CURRENT_DATE,
 
-                    $3,
+                        $3,
 
-                    $4,
+                        $4,
 
-                    $5,
+                        $5,
 
-                    $6,
+                        $6,
 
-                    0,
+                        0,
 
-                    0,
+                        0,
 
-                    $6,
+                        $6,
 
-                    'FOR REMITTANCE',
+                        'FOR REMITTANCE',
 
-                    $7,
+                        $7,
 
-                    CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP,
 
-                    CURRENT_TIMESTAMP
+                        CURRENT_TIMESTAMP
 
-                )
+                    )
 
-                RETURNING *
+                    RETURNING *
                 `,
                 [
-
                     rcdId,
 
                     reportNo,
@@ -1320,17 +1287,14 @@ export async function POST(
                     totalCollections,
 
                     loggedInUser.id,
-
                 ]
             );
-
 
         const rcd =
             rcdResult.rows[0];
 
-
         // =====================================================
-        // INSERT ALL RCD ITEMS
+        // INSERT ONLY SELECTED RCD ITEMS
         // =====================================================
 
         for (
@@ -1340,53 +1304,53 @@ export async function POST(
 
             await client.query(
                 `
-                INSERT INTO rcd_items (
+                    INSERT INTO rcd_items (
 
-                    id,
+                        id,
 
-                    rcd_transaction_id,
+                        rcd_transaction_id,
 
-                    dipp_transaction_id,
+                        dipp_transaction_id,
 
-                    or_number,
+                        or_number,
 
-                    receipt_date,
+                        receipt_date,
 
-                    collector_id,
+                        collector_id,
 
-                    payor,
+                        payor,
 
-                    payment_mode,
+                        payment_mode,
 
-                    amount,
+                        amount,
 
-                    created_at
+                        created_at
 
-                )
+                    )
 
-                VALUES (
+                    VALUES (
 
-                    $1,
+                        $1,
 
-                    $2,
+                        $2,
 
-                    $3,
+                        $3,
 
-                    $4,
+                        $4,
 
-                    $5,
+                        $5,
 
-                    $6,
+                        $6,
 
-                    $7,
+                        $7,
 
-                    $8,
+                        $8,
 
-                    $9,
+                        $9,
 
-                    CURRENT_TIMESTAMP
+                        CURRENT_TIMESTAMP
 
-                )
+                    )
                 `,
                 [
 
@@ -1411,18 +1375,17 @@ export async function POST(
                 ]
             );
 
-
-            // =====================================================
+            // =================================================
             // CLEAR DIPP REMITTANCE DETAILS
-            // =====================================================
+            // =================================================
 
             await client.query(
                 `
-                UPDATE dipp_transactions
-                SET
-                    remittance_id = NULL,
-                    is_remitted = FALSE
-                WHERE id = $1
+                    UPDATE dipp_transactions
+                    SET
+                        remittance_id = NULL,
+                        is_remitted = FALSE
+                    WHERE id = $1
                 `,
                 [
                     transaction.id,
@@ -1431,15 +1394,12 @@ export async function POST(
 
         }
 
-
         // =====================================================
         // REMITTANCE DETAILS CLEARED
         //
-        // RCD generation does not mark DIPP transactions as remitted.
-        // remittance_id is cleared and is_remitted is reset to FALSE
-        // for the transactions included in this RCD.
+        // RCD generation does not mark DIPP transactions
+        // as remitted.
         // =====================================================
-
 
         // =====================================================
         // COMMIT
@@ -1448,7 +1408,6 @@ export async function POST(
         await client.query(
             "COMMIT"
         );
-
 
         // =====================================================
         // FORMAT RCD
@@ -1483,7 +1442,6 @@ export async function POST(
                 ),
 
         };
-
 
         // =====================================================
         // FORMAT ITEMS FOR PREVIEW
@@ -1530,7 +1488,6 @@ export async function POST(
                         form_name:
                             transaction.form_name,
 
-
                         // =====================================
                         // BOOKLET
                         // =====================================
@@ -1556,7 +1513,6 @@ export async function POST(
                 }
             );
 
-
         // =====================================================
         // RESPONSE
         // =====================================================
@@ -1569,14 +1525,12 @@ export async function POST(
                 message:
                     "RCD generated successfully.",
 
-
                 // =================================================
                 // RCD
                 // =================================================
 
                 rcd:
                     formattedRCD,
-
 
                 // =================================================
                 // ITEMS
@@ -1585,14 +1539,12 @@ export async function POST(
                 items:
                     formattedItems,
 
-
                 // =================================================
                 // ACCOUNTABILITY
                 // =================================================
 
                 previous_form_rows:
                     previousFormRows,
-
 
                 // =================================================
                 // SUMMARY
@@ -1617,7 +1569,6 @@ export async function POST(
 
                 },
 
-
                 // =================================================
                 // FUND SOURCE
                 // =================================================
@@ -1637,7 +1588,6 @@ export async function POST(
                         fundSource.acronym,
 
                 },
-
 
                 // =================================================
                 // USER
@@ -1661,7 +1611,6 @@ export async function POST(
                 status: 201,
             }
         );
-
 
     } catch (
         error: any
@@ -1688,7 +1637,6 @@ export async function POST(
 
         }
 
-
         // =====================================================
         // ERROR
         // =====================================================
@@ -1697,7 +1645,6 @@ export async function POST(
             "RCD GENERATION ERROR:",
             error
         );
-
 
         return NextResponse.json(
             {
@@ -1713,7 +1660,6 @@ export async function POST(
                 status: 500,
             }
         );
-
 
     } finally {
 
