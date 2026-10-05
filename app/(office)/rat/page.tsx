@@ -253,6 +253,15 @@ export default function RATPage() {
             setSelectedRAT(null);
 
           }}
+          onSuccess={async () => {
+
+            setOpenRATModal(false);
+
+            setSelectedRAT(null);
+
+            await loadRATs();
+
+          }}
         />
 
       </div>
