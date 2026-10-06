@@ -299,7 +299,7 @@ export default function Home() {
                   </p>
 
                   <h3 className="mt-2 text-2xl font-bold text-[#0B4EA2]">
-                    Office Management System
+                    Treasury Management System
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">

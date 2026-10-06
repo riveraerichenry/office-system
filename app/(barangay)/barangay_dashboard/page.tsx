@@ -13,7 +13,7 @@ import {
     X,
 } from "lucide-react";
 
-import CreateTransaction from "@/components/dipp/barangay/CreateTransaction";
+import CreateTransaction from "@/components/dipp/ctc/barangay/CreateTransaction";
 import CTCTransactionHistory from "@/components/dipp/ctc/barangay/CTCTransactionHistory";
 
 interface BarangayInfo {
