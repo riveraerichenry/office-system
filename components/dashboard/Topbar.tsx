@@ -222,7 +222,7 @@ export default function Topbar() {
             );
 
             router.push(
-                "/login"
+                "/"
             );
 
         } catch (err) {
