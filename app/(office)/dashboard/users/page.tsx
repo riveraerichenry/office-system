@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import axios from "axios";
 
 import UserTable from "@/components/users/UserTable";
 import UserDetails from "@/components/users/UserDetails";
-import UserSummary from "@/components/users/UserSummary";
 import AddUserModal from "@/components/users/AddUserModal";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any>(null);
+  const [users, setUsers] =
+    useState<any[]>([]);
+
+  const [roles, setRoles] =
+    useState<any[]>([]);
+
+  const [selected, setSelected] =
+    useState<any>(null);
 
   const [loading, setLoading] =
     useState(true);
@@ -19,9 +27,11 @@ export default function UsersPage() {
   const [openAdd, setOpenAdd] =
     useState(false);
 
+
   useEffect(() => {
     fetchData();
   }, []);
+
 
   async function fetchData() {
     try {
@@ -36,49 +46,84 @@ export default function UsersPage() {
       ]);
 
       const userData =
-        usersRes.data.data || [];
+        usersRes.data?.data || [];
+
+      const roleData =
+        rolesRes.data?.data || [];
 
       setUsers(userData);
+      setRoles(roleData);
 
-      setRoles(
-        rolesRes.data.data || []
+      if (userData.length > 0) {
+        setSelected(userData[0]);
+      } else {
+        setSelected(null);
+      }
+
+    } catch (err) {
+
+      console.error(
+        "Failed to fetch users:",
+        err
       );
 
-      if (
-        userData.length > 0
-      ) {
-        setSelected(userData[0]);
-      }
-    } catch (err) {
-      console.log(err);
     } finally {
+
       setLoading(false);
+
     }
   }
+
 
   return (
     <>
       <div className="grid grid-cols-12 gap-6">
 
-    <div className="col-span-4">
-        <UserTable
+        {/* USER TABLE */}
+
+        <div className="col-span-12 lg:col-span-4">
+
+          <UserTable
             users={users}
             selected={selected}
             onSelect={setSelected}
             loading={loading}
-            onAdd={() => setOpenAdd(true)}
-        />
-    </div>
+            onAdd={() =>
+              setOpenAdd(true)
+            }
+          />
 
-    <div className="col-span-8">
-        <UserDetails
+        </div>
+
+
+        {/* USER DETAILS */}
+
+        <div className="col-span-12 lg:col-span-8">
+
+          <UserDetails
             selected={selected}
             roles={roles}
             onRefresh={fetchData}
-        />
-    </div>
+          />
 
-</div>
-</>
+        </div>
+
+      </div>
+
+
+      {/* ADD USER MODAL */}
+
+      <AddUserModal
+        open={openAdd}
+        onClose={() =>
+          setOpenAdd(false)
+        }
+        roles={roles}
+        onSuccess={async () => {
+          setOpenAdd(false);
+          await fetchData();
+        }}
+      />
+    </>
   );
 }

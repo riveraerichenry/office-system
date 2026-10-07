@@ -1,300 +1,425 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
-    Search,
-    ChevronLeft,
-    ChevronRight,
-    User,
-    CheckCircle2,
-    XCircle,
+  Search,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
-interface UserTableProps {
-    users: any[];
-    loading: boolean;
-    onSelect: (user: any) => void;
-}
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-const ITEMS_PER_PAGE = 10;
+
+
+type UserTableProps = {
+  users: any[];
+  selected: any;
+  onSelect: (user: any) => void;
+  loading: boolean;
+  onAdd: () => void;
+};
+
+
 
 export default function UserTable({
-    users,
-    loading,
-    onSelect,
+  users,
+  selected,
+  onSelect,
+  loading,
+  onAdd,
 }: UserTableProps) {
-    const [search, setSearch] = useState("");
-    const [page, setPage] = useState(1);
 
-    const filteredUsers = useMemo(() => {
-        const keyword = search.trim().toLowerCase();
+  const [search, setSearch] =
+    useState("");
 
-        if (!keyword) {
-            return users;
+  const [page, setPage] =
+    useState(1);
+
+
+  const ITEMS_PER_PAGE = 10;
+
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | FILTER USERS
+  |--------------------------------------------------------------------------
+  */
+
+  const filtered =
+    useMemo(() => {
+
+      const keyword =
+        search
+          .trim()
+          .toLowerCase();
+
+
+      if (!keyword) {
+        return users;
+      }
+
+
+      return users.filter(
+        (user: any) => {
+
+          return (
+            user.username
+              ?.toLowerCase()
+              .includes(keyword) ||
+
+            user.role
+              ?.toLowerCase()
+              .includes(keyword) ||
+
+            user.full_name
+              ?.toLowerCase()
+              .includes(keyword) ||
+
+            user.email
+              ?.toLowerCase()
+              .includes(keyword)
+          );
+
         }
+      );
 
-        return users.filter((user) => {
-            return (
-                String(user.username || "")
-                    .toLowerCase()
-                    .includes(keyword) ||
-                String(user.full_name || "")
-                    .toLowerCase()
-                    .includes(keyword)
-            );
-        });
-    }, [users, search]);
+    }, [
+      users,
+      search,
+    ]);
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | PAGINATION
+  |--------------------------------------------------------------------------
+  */
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filtered.length /
+          ITEMS_PER_PAGE
+      )
     );
 
-    const currentPage = Math.min(page, totalPages);
 
-    const paginatedUsers = useMemo(() => {
-        const start =
-            (currentPage - 1) * ITEMS_PER_PAGE;
+  const rows =
+    filtered.slice(
+      (page - 1) *
+        ITEMS_PER_PAGE,
 
-        return filteredUsers.slice(
-            start,
-            start + ITEMS_PER_PAGE
-        );
-    }, [filteredUsers, currentPage]);
+      page *
+        ITEMS_PER_PAGE
+    );
 
-    function handleSearch(value: string) {
-        setSearch(value);
-        setPage(1);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | RESET PAGE WHEN SEARCH CHANGES
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+
+    setPage(1);
+
+  }, [
+    search,
+  ]);
+
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | KEEP PAGE VALID
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+
+    if (
+      page >
+      totalPages
+    ) {
+
+      setPage(
+        totalPages
+      );
+
     }
 
-    function formatDate(value: string) {
-        if (!value) {
-            return "—";
-        }
+  }, [
+    page,
+    totalPages,
+  ]);
 
-        const date = new Date(value);
 
-        if (Number.isNaN(date.getTime())) {
-            return "—";
-        }
 
-        return date.toLocaleDateString("en-PH", {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-        });
-    }
+  /*
+  |--------------------------------------------------------------------------
+  | RENDER
+  |--------------------------------------------------------------------------
+  */
 
-    return (
-        <div className="space-y-4">
+  return (
 
-            {/* SEARCH */}
-            <div className="relative max-w-md">
+    <div className="rounded-[40px] bg-white px-6 py-7 shadow-xl">
 
-                <Search
-                    size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
+      {/* HEADER */}
 
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) =>
-                        handleSearch(e.target.value)
-                    }
-                    placeholder="Search name or username..."
-                    className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+      <div className="mb-8 flex items-center justify-between">
 
-            </div>
+        <h1 className="text-4xl font-extrabold text-gray-900">
+          Users
+        </h1>
 
-            {/* TABLE */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
 
-                <table className="min-w-full divide-y divide-slate-200">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-500 text-white shadow-lg transition hover:scale-105"
+        >
 
-                    <thead className="bg-slate-50">
+          <Plus size={20} />
 
-                        <tr>
+        </button>
 
-                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Full Name
-                            </th>
+      </div>
 
-                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Username
-                            </th>
 
-                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Status
-                            </th>
 
-                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Created
-                            </th>
+      {/* SEARCH */}
 
-                        </tr>
+      <div className="mb-7">
 
-                    </thead>
+        <div className="flex items-center gap-3 border-b border-gray-300 pb-3">
 
-                    <tbody className="divide-y divide-slate-100 bg-white">
+          <Search
+            size={18}
+            className="text-gray-400"
+          />
 
-                        {loading ? (
 
-                            <tr>
-                                <td
-                                    colSpan={4}
-                                    className="px-5 py-12 text-center text-sm text-slate-500"
-                                >
-                                    Loading users...
-                                </td>
-                            </tr>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
 
-                        ) : paginatedUsers.length === 0 ? (
+              setSearch(
+                e.target.value
+              );
 
-                            <tr>
-                                <td
-                                    colSpan={4}
-                                    className="px-5 py-12 text-center text-sm text-slate-500"
-                                >
-                                    No users found.
-                                </td>
-                            </tr>
+              setPage(1);
 
-                        ) : (
-
-                            paginatedUsers.map((user) => (
-
-                                <tr
-                                    key={user.id}
-                                    onClick={() =>
-                                        onSelect(user)
-                                    }
-                                    className="cursor-pointer transition hover:bg-slate-50"
-                                >
-
-                                    <td className="px-5 py-4">
-
-                                        <div className="flex items-center gap-3">
-
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                                                <User size={17} />
-                                            </div>
-
-                                            <span className="font-medium text-slate-800">
-                                                {user.full_name}
-                                            </span>
-
-                                        </div>
-
-                                    </td>
-
-                                    <td className="px-5 py-4 text-sm text-slate-600">
-                                        {user.username}
-                                    </td>
-
-                                    <td className="px-5 py-4">
-
-                                        {user.is_active ? (
-
-                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                <CheckCircle2
-                                                    size={14}
-                                                />
-                                                Active
-                                            </span>
-
-                                        ) : (
-
-                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                                <XCircle
-                                                    size={14}
-                                                />
-                                                Inactive
-                                            </span>
-
-                                        )}
-
-                                    </td>
-
-                                    <td className="px-5 py-4 text-sm text-slate-500">
-                                        {formatDate(
-                                            user.created_at
-                                        )}
-                                    </td>
-
-                                </tr>
-
-                            ))
-
-                        )}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-            {/* PAGINATION */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-                <p className="text-sm text-slate-500">
-                    Showing{" "}
-                    {filteredUsers.length === 0
-                        ? 0
-                        : (currentPage - 1) *
-                              ITEMS_PER_PAGE +
-                          1}{" "}
-                    to{" "}
-                    {Math.min(
-                        currentPage *
-                            ITEMS_PER_PAGE,
-                        filteredUsers.length
-                    )}{" "}
-                    of {filteredUsers.length}
-                </p>
-
-                <div className="flex items-center gap-2">
-
-                    <button
-                        type="button"
-                        disabled={currentPage <= 1}
-                        onClick={() =>
-                            setPage((value) =>
-                                Math.max(1, value - 1)
-                            )
-                        }
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        <ChevronLeft size={17} />
-                    </button>
-
-                    <span className="min-w-[80px] text-center text-sm font-medium text-slate-600">
-                        {currentPage} / {totalPages}
-                    </span>
-
-                    <button
-                        type="button"
-                        disabled={
-                            currentPage >= totalPages
-                        }
-                        onClick={() =>
-                            setPage((value) =>
-                                Math.min(
-                                    totalPages,
-                                    value + 1
-                                )
-                            )
-                        }
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        <ChevronRight size={17} />
-                    </button>
-
-                </div>
-
-            </div>
+            }}
+            placeholder="Search user"
+            className="w-full bg-transparent text-sm outline-none"
+          />
 
         </div>
-    );
+
+      </div>
+
+
+
+      {/* USERS */}
+
+      <div className="min-h-[600px] space-y-3">
+
+        {/* LOADING */}
+
+        {loading && (
+
+          <div className="flex min-h-[400px] items-center justify-center">
+
+            <span className="text-sm text-gray-500">
+              Loading users...
+            </span>
+
+          </div>
+
+        )}
+
+
+
+        {/* EMPTY */}
+
+        {!loading &&
+          rows.length === 0 && (
+
+            <div className="flex min-h-[400px] items-center justify-center">
+
+              <span className="text-sm text-gray-500">
+                No users found.
+              </span>
+
+            </div>
+
+          )}
+
+
+
+        {/* ROWS */}
+
+        {!loading &&
+          rows.map(
+            (user: any) => {
+
+              const isSelected =
+                selected?.id ===
+                user.id;
+
+
+              return (
+
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() =>
+                    onSelect(user)
+                  }
+                  className={`w-full rounded-[28px] px-5 py-5 text-left transition ${
+                    isSelected
+                      ? "bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-500 text-white shadow-lg"
+                      : "bg-[#f8f8f8] text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+
+                  <div className="flex items-center justify-between gap-3">
+
+                    <div className="min-w-0">
+
+                      <p className="truncate font-bold">
+                        {user.username ||
+                          "Unnamed User"}
+                      </p>
+
+
+                      <p
+                        className={`mt-1 truncate text-sm ${
+                          isSelected
+                            ? "text-white/80"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {user.full_name ||
+                          user.email ||
+                          "No additional information"}
+                      </p>
+
+                    </div>
+
+
+                    {user.role && (
+
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                          isSelected
+                            ? "bg-white/20 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+
+                        {user.role}
+
+                      </span>
+
+                    )}
+
+                  </div>
+
+                </button>
+
+              );
+
+            }
+          )}
+
+      </div>
+
+
+
+      {/* PAGINATION */}
+
+      <div className="mt-6 flex items-center justify-between">
+
+        {/* PREVIOUS */}
+
+        <button
+          type="button"
+          disabled={
+            page === 1
+          }
+          onClick={() =>
+            setPage(
+              (prev) =>
+                Math.max(
+                  prev - 1,
+                  1
+                )
+            )
+          }
+          className="rounded-full p-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+
+          <ChevronLeft
+            size={22}
+          />
+
+        </button>
+
+
+
+        {/* PAGE */}
+
+        <span className="text-sm font-medium text-gray-600">
+
+          Page {page} of{" "}
+          {totalPages}
+
+        </span>
+
+
+
+        {/* NEXT */}
+
+        <button
+          type="button"
+          disabled={
+            page ===
+            totalPages
+          }
+          onClick={() =>
+            setPage(
+              (prev) =>
+                Math.min(
+                  prev + 1,
+                  totalPages
+                )
+            )
+          }
+          className="rounded-full p-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+
+          <ChevronRight
+            size={22}
+          />
+
+        </button>
+
+      </div>
+
+    </div>
+
+  );
+
 }
