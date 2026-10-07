@@ -1,34 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
-    const response = NextResponse.json({
-        success: true,
-        message: "Logged out successfully.",
-    });
+export async function POST(req: NextRequest) {
+    try {
+        // Check if the browser sent the Barangay token
+        const existingToken = req.cookies.get("barangay_token");
 
-    // Clear Barangay JWT
-    response.cookies.set("barangay_token", "", {
-        expires: new Date(0),
-        maxAge: 0,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-    });
+        console.log("========== BARANGAY LOGOUT ==========");
+        console.log(
+            "BARANGAY TOKEN EXISTS:",
+            !!existingToken
+        );
+        console.log(
+            "BARANGAY TOKEN LENGTH:",
+            existingToken?.value?.length ?? 0
+        );
+        console.log("=====================================");
 
-    // Clear PHP session
-    response.cookies.set("PHPSESSID", "", {
-        expires: new Date(0),
-        maxAge: 0,
-        path: "/",
-    });
+        const response = NextResponse.json({
+            success: true,
+            message: "Logged out successfully.",
+            tokenFound: !!existingToken,
+        });
 
-    // Clear PHP remember-me cookie
-    response.cookies.set("REMEMBERME", "", {
-        expires: new Date(0),
-        maxAge: 0,
-        path: "/",
-    });
+        // Clear Barangay authentication cookie
+        response.cookies.set("barangay_token", "", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            path: "/",
+            expires: new Date(0),
+            maxAge: 0,
+        });
 
-    return response;
+        return response;
+
+    } catch (error) {
+        console.error(
+            "BARANGAY LOGOUT ERROR:",
+            error
+        );
+
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Logout failed.",
+            },
+            {
+                status: 500,
+            }
+        );
+    }
 }
