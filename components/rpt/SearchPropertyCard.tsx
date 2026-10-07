@@ -7,23 +7,12 @@ import {
     Loader2,
     X,
 } from "lucide-react";
-import CreateBillingDialog from "./CreateBillingDialog";
 
-type Property = {
-    objid: string;
-    tdno: string;
-    prevtdno: string | null;
-    owner_name: string;
-    owner_address: string;
-    fullpin: string;
-    barangay_name: string;
-    classification_name: string;
-    rputype: string;
-    totalareasqm: number;
-    totalmv: number;
-    totalav: number;
-    state: string;
-};
+import CreateBillingDialog from "./CreateBillingDialog";
+import PropertyDetailsCard, {
+    Property,
+} from "./PropertyDetailsCard";
+import PaymentHistoryCard from "./PaymentHistoryCard";
 
 type Props = {
     onBillingCreated: (data: any) => void;
@@ -35,26 +24,22 @@ export default function SearchPropertyCard({
     const [keyword, setKeyword] = useState("");
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<Property[]>([]);
-
     const [selectedProperty, setSelectedProperty] =
         useState<Property | null>(null);
 
     const [openBilling, setOpenBilling] = useState(false);
 
-    const wrapperRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement | null>(null);
 
-    /*
-     * ============================================================
-     * SEARCH PROPERTIES
-     * ============================================================
-     */
+    /* ================================================================
+        SEARCH PROPERTY
+    ================================================================ */
 
     useEffect(() => {
-        const searchKeyword = keyword.trim();
+        const trimmedKeyword = keyword.trim();
 
-        if (searchKeyword.length < 2) {
+        if (!trimmedKeyword) {
             setResults([]);
-            setLoading(false);
             return;
         }
 
@@ -62,20 +47,22 @@ export default function SearchPropertyCard({
             try {
                 setLoading(true);
 
-                const res = await axios.get(
+                const response = await axios.get(
                     "/api/rpt/faas/search",
                     {
                         params: {
-                            q: searchKeyword,
+                            q: trimmedKeyword,
                         },
                     }
                 );
 
-                setResults(
-                    Array.isArray(res.data?.results)
-                        ? res.data.results
-                        : []
-                );
+                if (response.data?.success) {
+                    setResults(
+                        response.data.results || []
+                    );
+                } else {
+                    setResults([]);
+                }
             } catch (error) {
                 console.error(
                     "PROPERTY SEARCH ERROR:",
@@ -86,21 +73,19 @@ export default function SearchPropertyCard({
             } finally {
                 setLoading(false);
             }
-        }, 300);
+        }, 350);
 
         return () => clearTimeout(timer);
     }, [keyword]);
 
-    /*
-     * ============================================================
-     * CLOSE RESULTS WHEN CLICKING OUTSIDE
-     * ============================================================
-     */
+    /* ================================================================
+        CLOSE SEARCH RESULTS WHEN CLICKING OUTSIDE
+    ================================================================ */
 
     useEffect(() => {
-        const handleClickOutside = (
+        function handleClickOutside(
             event: MouseEvent
-        ) => {
+        ) {
             if (
                 wrapperRef.current &&
                 !wrapperRef.current.contains(
@@ -109,7 +94,7 @@ export default function SearchPropertyCard({
             ) {
                 setResults([]);
             }
-        };
+        }
 
         document.addEventListener(
             "mousedown",
@@ -124,401 +109,406 @@ export default function SearchPropertyCard({
         };
     }, []);
 
-    /*
-     * ============================================================
-     * CLEAR SEARCH
-     * ============================================================
-     */
+    /* ================================================================
+        SELECT PROPERTY
+    ================================================================ */
 
-    const clearSearch = () => {
-        setKeyword("");
-        setResults([]);
-    };
-
-    /*
-     * ============================================================
-     * SELECT PROPERTY
-     * ============================================================
-     */
-
-    const handleSelectProperty = (
+    function handleSelectProperty(
         property: Property
-    ) => {
+    ) {
         setSelectedProperty(property);
         setResults([]);
-        setOpenBilling(true);
-    };
+    }
 
-    /*
-     * ============================================================
-     * RETURN
-     * ============================================================
-     */
+    /* ================================================================
+        CLEAR SEARCH
+    ================================================================ */
+
+    function clearSearch() {
+        setKeyword("");
+        setResults([]);
+        setSelectedProperty(null);
+    }
+
+    /* ================================================================
+        CREATE BILLING
+    ================================================================ */
+
+    function handleCreateBilling() {
+        if (!selectedProperty) {
+            return;
+        }
+
+        setOpenBilling(true);
+    }
+
+    /* ================================================================
+        BILLING CREATED
+    ================================================================ */
+
+    function handleBillingCreated(data: any) {
+        setOpenBilling(false);
+
+        onBillingCreated(data);
+    }
 
     return (
-        <>
-            <section
-                ref={wrapperRef}
+        <div className="w-full">
+
+            {/* ========================================================
+                SEARCH CARD
+            ======================================================== */}
+
+            <div
                 className="
-                    relative
-                    w-full
+                    rounded-2xl
+                    border
+                    border-slate-200
+                    bg-white
+                    p-5
+                    shadow-[0_10px_35px_rgba(0,0,0,0.06)]
                 "
             >
-                {/* =====================================================
-                    SEARCH CARD
-                ====================================================== */}
-
-                <div
-                    className="
-                        rounded-xl
-                        border
-                        border-slate-200
-                        bg-white
-                        shadow-sm
-                    "
-                >
-                    {/* =================================================
-                        HEADER
-                    ================================================== */}
-
-                    <div
+                <div className="mb-4">
+                    <h2
                         className="
-                            px-4
-                            py-5
-                            sm:px-6
-                            sm:py-6
+                            text-lg
+                            font-bold
+                            text-slate-900
                         "
                     >
-                        {/* =============================================
-                            TITLE
-                        ============================================== */}
+                        Search Property
+                    </h2>
 
-                       
-
-                        {/* =============================================
-                            SEARCH BAR
-                        ============================================== */}
-
-                        <div className="mx-auto w-full md:w-1/2">
-                            <div className="relative">
-                                {/* Search icon */}
-
-                                <Search
-                                    size={18}
-                                    className="
-                                        pointer-events-none
-                                        absolute
-                                        left-3.5
-                                        top-1/2
-                                        -translate-y-1/2
-                                        text-slate-500
-                                    "
-                                />
-
-                                {/* Input */}
-
-                                <input
-                                    id="property-search"
-                                    type="text"
-                                    value={keyword}
-                                    onChange={(e) =>
-                                        setKeyword(
-                                            e.target.value
-                                        )
-                                    }
-                                    placeholder="Search owner, TD number, PIN, or barangay..."
-                                    autoComplete="off"
-                                    className="
-                                        h-11
-                                        w-full
-                                        rounded-lg
-                                        border
-                                        border-slate-300
-                                        bg-white
-                                        pl-10
-                                        pr-10
-                                        text-sm
-                                        text-slate-900
-                                        outline-none
-                                        transition
-                                        placeholder:text-slate-400
-                                        hover:border-slate-400
-                                        focus:border-blue-600
-                                        focus:ring-2
-                                        focus:ring-blue-600/10
-                                    "
-                                />
-
-                                {/* Loading */}
-
-                                {loading && (
-                                    <Loader2
-                                        size={18}
-                                        className="
-                                            absolute
-                                            right-3.5
-                                            top-1/2
-                                            -translate-y-1/2
-                                            animate-spin
-                                            text-blue-600
-                                        "
-                                    />
-                                )}
-
-                                {/* Clear */}
-
-                                {keyword && !loading && (
-                                    <button
-                                        type="button"
-                                        onClick={clearSearch}
-                                        className="
-                                            absolute
-                                            right-2.5
-                                            top-1/2
-                                            -translate-y-1/2
-                                            rounded-md
-                                            p-1.5
-                                            text-slate-400
-                                            transition
-                                            hover:bg-slate-100
-                                            hover:text-slate-700
-                                        "
-                                        aria-label="Clear search"
-                                    >
-                                        <X size={15} />
-                                    </button>
-                                )}
-                            </div>
-
-                            <p
-                                className="
-                                    mt-1.5
-                                    text-center
-                                    text-[11px]
-                                    text-slate-400
-                                "
-                            >
-                                Enter at least 2 characters
-                                to search.
-                            </p>
-                        </div>
-                    </div>
+                    <p
+                        className="
+                            mt-1
+                            text-sm
+                            text-slate-500
+                        "
+                    >
+                        Search by owner, TD number,
+                        PIN, or barangay.
+                    </p>
                 </div>
 
-                {/* =====================================================
-                    FLOWING / OVERFLOW SEARCH RESULTS
-                ====================================================== */}
+                <div
+                    ref={wrapperRef}
+                    className="relative"
+                >
+                    {/* SEARCH INPUT */}
 
-                {(loading ||
-                    results.length > 0 ||
-                    (keyword.trim().length >= 2 &&
-                        !loading)) && (
-                    <div
-                        className="
-                            absolute
-                            left-0
-                            right-0
-                            top-full
-                            z-50
-                            mt-2
-                        "
-                    >
-                        <div
+                    <div className="relative">
+                        <Search
+                            size={19}
                             className="
-                                overflow-hidden
+                                absolute
+                                left-4
+                                top-1/2
+                                -translate-y-1/2
+                                text-slate-400
+                            "
+                        />
+
+                        <input
+                            type="text"
+                            value={keyword}
+                            onChange={(event) =>
+                                setKeyword(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="
+                                Search owner, TD number,
+                                PIN, or barangay...
+                            "
+                            className="
+                                h-12
+                                w-full
                                 rounded-xl
                                 border
                                 border-slate-200
-                                bg-white
-                                shadow-xl
+                                bg-slate-50
+                                pl-11
+                                pr-12
+                                text-sm
+                                font-medium
+                                text-slate-900
+                                outline-none
+                                transition-all
+                                placeholder:text-slate-400
+                                focus:border-blue-500
+                                focus:bg-white
+                                focus:ring-4
+                                focus:ring-blue-500/10
                             "
-                        >
-                            {/* =========================================
-                                LOADING
-                            ========================================== */}
+                        />
 
-                            {loading && (
-                                <div
+                        {/* LOADING */}
+
+                        {loading && (
+                            <Loader2
+                                size={18}
+                                className="
+                                    absolute
+                                    right-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    animate-spin
+                                    text-blue-500
+                                "
+                            />
+                        )}
+
+                        {/* CLEAR */}
+
+                        {!loading &&
+                            keyword && (
+                                <button
+                                    type="button"
+                                    onClick={
+                                        clearSearch
+                                    }
                                     className="
+                                        absolute
+                                        right-3
+                                        top-1/2
                                         flex
+                                        h-7
+                                        w-7
+                                        -translate-y-1/2
                                         items-center
                                         justify-center
-                                        gap-3
-                                        px-5
-                                        py-5
-                                        text-sm
-                                        text-slate-500
+                                        rounded-lg
+                                        text-slate-400
+                                        transition
+                                        hover:bg-slate-200
+                                        hover:text-slate-700
                                     "
                                 >
-                                    <Loader2
-                                        size={17}
-                                        className="
-                                            animate-spin
-                                            text-blue-600
-                                        "
-                                    />
-
-                                    <span>
-                                        Searching property
-                                        accounts...
-                                    </span>
-                                </div>
+                                    <X size={16} />
+                                </button>
                             )}
+                    </div>
 
-                            {/* =========================================
-                                RESULTS
-                            ========================================== */}
+                    {/* =================================================
+                        SEARCH RESULTS
+                    ================================================= */}
 
-                            {!loading &&
-                                results.length > 0 && (
-                                    <div
+                    {results.length > 0 && (
+                        <div
+                            className="
+                                absolute
+                                left-0
+                                right-0
+                                z-40
+                                mt-2
+                                max-h-[420px]
+                                overflow-y-auto
+                                rounded-2xl
+                                border
+                                border-slate-200
+                                bg-white
+                                p-2
+                                shadow-[0_20px_50px_rgba(0,0,0,0.12)]
+                            "
+                        >
+                            {results.map(
+                                (property) => (
+                                    <button
+                                        key={
+                                            property.objid
+                                        }
+                                        type="button"
+                                        onClick={() =>
+                                            handleSelectProperty(
+                                                property
+                                            )
+                                        }
                                         className="
-                                            max-h-[420px]
-                                            overflow-y-auto
+                                            w-full
+                                            rounded-xl
+                                            p-4
+                                            text-left
+                                            transition-all
+                                            hover:bg-blue-50
                                         "
                                     >
-                                        {results.map(
-                                            (property) => (
-                                                <button
-                                                    key={
-                                                        property.objid
-                                                    }
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleSelectProperty(
-                                                            property
-                                                        )
-                                                    }
+                                        <div
+                                            className="
+                                                flex
+                                                items-start
+                                                justify-between
+                                                gap-4
+                                            "
+                                        >
+                                            <div className="min-w-0">
+                                                <p
                                                     className="
-                                                        group
-                                                        flex
-                                                        w-full
-                                                        items-center
-                                                        gap-3
-                                                        border-b
-                                                        border-slate-100
-                                                        px-4
-                                                        py-3
-                                                        text-left
-                                                        transition
-                                                        last:border-b-0
-                                                        hover:bg-slate-50
-                                                        sm:px-5
+                                                        truncate
+                                                        text-sm
+                                                        font-bold
+                                                        text-slate-900
                                                     "
                                                 >
-                                                    {/* Search icon */}
+                                                    {property.owner_name ||
+                                                        "Unknown Owner"}
+                                                </p>
 
-                                                    <Search
-                                                        size={
-                                                            17
-                                                        }
+                                                <div
+                                                    className="
+                                                        mt-2
+                                                        flex
+                                                        flex-wrap
+                                                        gap-x-4
+                                                        gap-y-1
+                                                    "
+                                                >
+                                                    <span
                                                         className="
-                                                            shrink-0
-                                                            text-slate-400
-                                                            transition
-                                                            group-hover:text-blue-600
-                                                        "
-                                                    />
-
-                                                    {/* =================================
-                                                        ONE-LINE RESULT
-                                                    ================================== */}
-
-                                                    <div
-                                                        className="
-                                                            min-w-0
-                                                            flex-1
-                                                            truncate
-                                                            whitespace-nowrap
-                                                            text-sm
-                                                            text-slate-700
+                                                            text-xs
+                                                            font-semibold
+                                                            text-blue-600
                                                         "
                                                     >
-                                                        {/* Owner */}
+                                                        TD:{" "}
+                                                        {property.tdno ||
+                                                            "-"}
+                                                    </span>
 
-                                                        <span
-                                                            className="
-                                                                font-semibold
-                                                                text-slate-900
-                                                            "
-                                                        >
-                                                            {
-                                                                property.owner_name
-                                                            }
-                                                        </span>
+                                                    <span
+                                                        className="
+                                                            text-xs
+                                                            text-slate-500
+                                                        "
+                                                    >
+                                                        PIN:{" "}
+                                                        {property.fullpin ||
+                                                            "-"}
+                                                    </span>
+                                                </div>
 
-                                                        <span className="mx-2 text-slate-300">
-                                                            •
-                                                        </span>
+                                                <p
+                                                    className="
+                                                        mt-1.5
+                                                        truncate
+                                                        text-xs
+                                                        text-slate-500
+                                                    "
+                                                >
+                                                    {property.barangay_name ||
+                                                        "-"}
+                                                </p>
+                                            </div>
 
-                                                        {/* TD */}
-
-                                                        <span>
-                                                            TD:{" "}
-                                                            {property.tdno ||
-                                                                "-"}
-                                                        </span>
-
-                                                        {/* Previous TD */}
-
-                                                        {property.prevtdno && (
-                                                            <>
-                                                                <span className="mx-2 text-slate-300">
-                                                                    •
-                                                                </span>
-
-                                                                <span>
-                                                                    Prev
-                                                                    TD:{" "}
-                                                                    {
-                                                                        property.prevtdno
-                                                                    }
-                                                                </span>
-                                                            </>
-                                                        )}
-
-                                                        {/* PIN */}
-
-                                                        <span className="mx-2 text-slate-300">
-                                                            •
-                                                        </span>
-
-                                                        <span>
-                                                            PIN:{" "}
-                                                            {property.fullpin ||
-                                                                "-"}
-                                                        </span>
-
-                                                        {/* Barangay */}
-
-                                                        <span className="mx-2 text-slate-300">
-                                                            •
-                                                        </span>
-
-                                                        <span>
-                                                            {property.barangay_name ||
-                                                                "-"}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            )
-                                        )}
-                                    </div>
-                                )}
-
-                            {/* =========================================
-                                NO RESULTS
-                            ========================================== */}
-
-                           
+                                            <span
+                                                className="
+                                                    shrink-0
+                                                    rounded-lg
+                                                    bg-blue-50
+                                                    px-2.5
+                                                    py-1
+                                                    text-[10px]
+                                                    font-bold
+                                                    uppercase
+                                                    tracking-wide
+                                                    text-blue-600
+                                                "
+                                            >
+                                                Select
+                                            </span>
+                                        </div>
+                                    </button>
+                                )
+                            )}
                         </div>
-                    </div>
-                )}
-            </section>
+                    )}
 
-            {/* ===========================================================
-                BILLING DIALOG
-            ============================================================ */}
+                    {/* NO RESULTS */}
+
+                    {!loading &&
+                        keyword.trim() &&
+                        results.length === 0 &&
+                        !selectedProperty && (
+                            <div
+                                className="
+                                    mt-2
+                                    rounded-xl
+                                    border
+                                    border-slate-200
+                                    bg-slate-50
+                                    px-4
+                                    py-3
+                                    text-sm
+                                    text-slate-500
+                                "
+                            >
+                                No property found.
+                            </div>
+                        )}
+                </div>
+            </div>
+
+            {/* ========================================================
+                SELECTED PROPERTY
+            ======================================================== */}
+
+            {selectedProperty && (
+                <div
+                    className="
+                        mt-6
+                        grid
+                        grid-cols-1
+                        gap-6
+                        xl:grid-cols-12
+                    "
+                >
+                    {/* =================================================
+                        PROPERTY DETAILS
+                    ================================================= */}
+
+                    <div className="xl:col-span-8">
+                        <PropertyDetailsCard
+                            property={
+                                selectedProperty
+                            }
+                            onClear={() =>
+                                setSelectedProperty(
+                                    null
+                                )
+                            }
+                        />
+                    </div>
+
+                    {/* =================================================
+                        PAYMENT HISTORY
+                    ================================================= */}
+
+                    <div className="xl:col-span-4">
+                        <PaymentHistoryCard
+                            property={
+                                selectedProperty
+                            }
+                            onCreateBilling={
+                                handleCreateBilling
+                            }
+                            onAddPayment={() => {
+                                // Add Payment dialog will be
+                                // connected here next.
+                                console.log(
+                                    "Add Payment:",
+                                    selectedProperty
+                                );
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================================
+                EXISTING CREATE BILLING DIALOG
+                DO NOT CHANGE
+            ======================================================== */}
 
             <CreateBillingDialog
                 open={openBilling}
@@ -527,9 +517,9 @@ export default function SearchPropertyCard({
                     setOpenBilling(false)
                 }
                 onBillingCreated={
-                    onBillingCreated
+                    handleBillingCreated
                 }
             />
-        </>
+        </div>
     );
 }

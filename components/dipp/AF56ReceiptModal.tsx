@@ -11,14 +11,12 @@ import UnrevisedPropertyModal from "./af56/unrevised/UnrevisedPropertyModal";
 
 import Swal from "sweetalert2";
 
-
 type Props = {
     open: boolean;
     booklet: any;
     onClose: () => void;
     onSuccess: () => void;
 };
-
 
 export default function AF56ReceiptModal({
     open,
@@ -27,62 +25,59 @@ export default function AF56ReceiptModal({
     onSuccess,
 }: Props) {
 
-
     /* ================================================================
        SEARCH
     ================================================================ */
 
-    const [search, setSearch] =
-        useState("");
+    const [search, setSearch] = useState("");
 
-    const [loading, setLoading] =
-        useState(false);
+    const [loading, setLoading] = useState(false);
 
-    const [results, setResults] =
-        useState<any[]>([]);
+    const [results, setResults] = useState<any[]>([]);
 
-    const [selected, setSelected] =
-        useState<any>(null);
+    const [selected, setSelected] = useState<any>(null);
 
 
     /* ================================================================
        PROCESSING
     ================================================================ */
 
-    const [saving, setSaving] =
-        useState(false);
+    const [saving, setSaving] = useState(false);
 
 
     /* ================================================================
        UNREVISED
     ================================================================ */
 
-    const [unrevisedOpen, setUnrevisedOpen] =
-        useState(false);
+    const [unrevisedOpen, setUnrevisedOpen] = useState(false);
 
 
     /* ================================================================
        PAYOR
     ================================================================ */
 
-    const [payor, setPayor] =
-        useState("");
+    const [payor, setPayor] = useState("");
+
+
+    /* ================================================================
+       GENDER
+    ================================================================ */
+
+    const [gender, setGender] = useState("");
 
 
     /* ================================================================
        PAYMENT MODE
     ================================================================ */
 
-    const [paymentMode, setPaymentMode] =
-        useState("Cash");
+    const [paymentMode, setPaymentMode] = useState("Cash");
 
 
     /* ================================================================
        REMARKS
     ================================================================ */
 
-    const [remarks, setRemarks] =
-        useState("");
+    const [remarks, setRemarks] = useState("");
 
 
     /* ================================================================
@@ -100,6 +95,8 @@ export default function AF56ReceiptModal({
         setSelected(null);
 
         setPayor("");
+
+        setGender("");
 
         setPaymentMode("Cash");
 
@@ -143,69 +140,70 @@ export default function AF56ReceiptModal({
         }
 
 
-        const timer =
-            setTimeout(
-                async () => {
+        const timer = setTimeout(
+            async () => {
 
-                    try {
+                try {
 
-                        setLoading(true);
+                    setLoading(true);
 
 
-                        console.log(
-                            "BOOKLET OBJECT"
+                    console.log(
+                        "BOOKLET OBJECT"
+                    );
+
+                    console.log(
+                        booklet
+                    );
+
+
+                    console.log(
+                        "BOOKLET ID"
+                    );
+
+                    console.log(
+                        booklet?.id
+                    );
+
+
+                    const res =
+                        await axios.get(
+                            "/api/rpt/billing/search",
+                            {
+                                params: {
+                                    q: search,
+                                },
+                            }
                         );
 
-                        console.log(
-                            booklet
-                        );
 
+                    setResults(
+                        res.data.data ?? []
+                    );
 
-                        console.log(
-                            "BOOKLET ID"
-                        );
+                }
 
-                        console.log(
-                            booklet?.id
-                        );
+                catch (err) {
 
+                    console.error(
+                        err
+                    );
 
-                        const res =
-                            await axios.get(
-                                "/api/rpt/billing/search",
-                                {
-                                    params: {
-                                        q: search,
-                                    },
-                                }
-                            );
+                    setResults([]);
 
+                }
 
-                        setResults(
-                            res.data.data ?? []
-                        );
+                finally {
 
-                    }
-                    catch (err) {
+                    setLoading(
+                        false
+                    );
 
-                        console.error(
-                            err
-                        );
+                }
 
-                        setResults([]);
-
-                    }
-                    finally {
-
-                        setLoading(
-                            false
-                        );
-
-                    }
-
-                },
-                300
-            );
+            },
+            300
+        );
 
 
         return () =>
@@ -274,9 +272,14 @@ export default function AF56ReceiptModal({
                    Payor must be manually entered.
                 ==================================================== */
 
-                setPayor(
-                    ""
-                );
+                setPayor("");
+
+
+                /* ====================================================
+                   GENDER
+                ==================================================== */
+
+                setGender("");
 
 
                 /* ====================================================
@@ -292,25 +295,19 @@ export default function AF56ReceiptModal({
                    REMARKS
                 ==================================================== */
 
-                setRemarks(
-                    ""
-                );
+                setRemarks("");
 
 
                 /* ====================================================
                    CLEAR SEARCH
                 ==================================================== */
 
-                setSearch(
-                    ""
-                );
+                setSearch("");
 
-
-                setResults(
-                    []
-                );
+                setResults([]);
 
             }
+
             catch (err) {
 
                 console.error(
@@ -328,7 +325,6 @@ export default function AF56ReceiptModal({
 
     const handleProcess =
         async () => {
-
 
             /* --------------------------------------------------------
                VALIDATE BILLING
@@ -356,6 +352,23 @@ export default function AF56ReceiptModal({
                 await Swal.fire(
                     "Payor Required",
                     "Please enter the payor name.",
+                    "warning"
+                );
+
+                return;
+
+            }
+
+
+            /* --------------------------------------------------------
+               VALIDATE GENDER
+            -------------------------------------------------------- */
+
+            if (!gender) {
+
+                await Swal.fire(
+                    "Gender Required",
+                    "Please select the gender.",
                     "warning"
                 );
 
@@ -409,16 +422,21 @@ export default function AF56ReceiptModal({
                             receipt_date:
                                 new Date(),
 
-                            /*
-                            ==================================================
-                            PAYOR
+                            /* ==================================================
+                               PAYOR
 
-                            This is the manually entered Payor.
-                            ==================================================
-                            */
+                               This is the manually entered Payor.
+                            ================================================== */
 
                             payor:
                                 payor,
+
+                            /* ==================================================
+                               GENDER
+                            ================================================== */
+
+                            gender:
+                                gender,
 
                             payment_mode:
                                 paymentMode,
@@ -505,6 +523,7 @@ export default function AF56ReceiptModal({
                 onClose();
 
             }
+
             catch (err: any) {
 
                 console.error(
@@ -521,16 +540,15 @@ export default function AF56ReceiptModal({
                         ?.response
                         ?.data
                         ?.message ??
-
-                    err?.message ??
-
-                    "Unable to process collection.",
+                        err?.message ??
+                        "Unable to process collection.",
 
                     "error"
 
                 );
 
             }
+
             finally {
 
                 setSaving(
@@ -589,7 +607,6 @@ export default function AF56ReceiptModal({
                 "
             >
 
-
                 {/* ====================================================
                     HEADER
                 ==================================================== */}
@@ -614,7 +631,6 @@ export default function AF56ReceiptModal({
                     "
                 >
 
-
                     {/* =================================================
                         SEARCH TAB
                     ================================================= */}
@@ -634,15 +650,12 @@ export default function AF56ReceiptModal({
                     >
 
                         <AF56BillingInformation
-
                             search={
                                 search
                             }
-
                             onSearch={
                                 setSearch
                             }
-
                         />
 
                     </div>
@@ -664,12 +677,11 @@ export default function AF56ReceiptModal({
                         "
                     >
 
-
                         {/* =============================================
                             BILLING RESULTS
 
-                            Payor and Payment Mode are controlled
-                            by AF56ReceiptModal.
+                            Payor, Gender and Payment Mode are
+                            controlled by AF56ReceiptModal.
                         ============================================= */}
 
                         <AF56BillingResults
@@ -697,6 +709,19 @@ export default function AF56ReceiptModal({
 
                             onPayorChange={
                                 setPayor
+                            }
+
+
+                            /* =========================================
+                               GENDER
+                            ========================================= */
+
+                            gender={
+                                gender
+                            }
+
+                            onGenderChange={
+                                setGender
                             }
 
 
@@ -731,16 +756,13 @@ export default function AF56ReceiptModal({
                         {selected && (
 
                             <AF56BillingItems
-
                                 items={
                                     selected.items ??
                                     []
                                 }
-
                             />
 
                         )}
-
 
                     </div>
 
@@ -768,7 +790,6 @@ export default function AF56ReceiptModal({
                         "
                     >
 
-
                         {/* =============================================
                             LEFT
                         ============================================= */}
@@ -780,7 +801,6 @@ export default function AF56ReceiptModal({
                                 gap-3
                             "
                         >
-
 
                             {/* CANCEL */}
 
@@ -853,7 +873,6 @@ export default function AF56ReceiptModal({
 
                             </button>
 
-
                         </div>
 
 
@@ -868,7 +887,6 @@ export default function AF56ReceiptModal({
                                 gap-4
                             "
                         >
-
 
                             {/* =========================================
                                 TOTAL
@@ -967,47 +985,44 @@ export default function AF56ReceiptModal({
 
                             </button>
 
-
                         </div>
-
-
-                        {/* =============================================
-                            UNREVISED PROPERTY MODAL
-                        ============================================= */}
-
-                        <UnrevisedPropertyModal
-
-                            open={
-                                unrevisedOpen
-                            }
-
-                            booklet={
-                                booklet
-                            }
-
-                            onClose={() =>
-                                setUnrevisedOpen(
-                                    false
-                                )
-                            }
-
-                            onSuccess={() => {
-
-                                setUnrevisedOpen(
-                                    false
-                                );
-
-                                onSuccess();
-
-                            }}
-
-                        />
-
 
                     </div>
 
-                </div>
 
+                    {/* =============================================
+                        UNREVISED PROPERTY MODAL
+                    ============================================= */}
+
+                    <UnrevisedPropertyModal
+
+                        open={
+                            unrevisedOpen
+                        }
+
+                        booklet={
+                            booklet
+                        }
+
+                        onClose={() =>
+                            setUnrevisedOpen(
+                                false
+                            )
+                        }
+
+                        onSuccess={() => {
+
+                            setUnrevisedOpen(
+                                false
+                            );
+
+                            onSuccess();
+
+                        }}
+
+                    />
+
+                </div>
 
             </div>
 

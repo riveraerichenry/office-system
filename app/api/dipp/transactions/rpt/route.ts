@@ -1,9 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+    NextRequest,
+    NextResponse,
+} from "next/server";
+
 import { PoolClient } from "pg";
 
 import { authorize } from "@/lib/authorize";
 import { pool } from "@/lib/db";
 import { MODULE_PATHS } from "@/lib/module-paths";
+
+
 
 export async function POST(
     req: NextRequest
@@ -11,11 +17,12 @@ export async function POST(
 
     let client: PoolClient | null = null;
 
+
     try {
 
         /*
         |--------------------------------------------------------------------------
-        | Authorization
+        | AUTHORIZATION
         |--------------------------------------------------------------------------
         */
 
@@ -26,18 +33,21 @@ export async function POST(
                 "add"
             );
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Request Body
+        | REQUEST BODY
         |--------------------------------------------------------------------------
         */
 
         const body =
             await req.json();
 
+
         const {
 
-            booklet_registration_id, // <-- actually the LOR Release ID
+            booklet_registration_id,
 
             billing_id,
 
@@ -45,55 +55,123 @@ export async function POST(
 
             payor,
 
+            gender,
+
             payment_mode,
 
             remarks,
 
         } = body;
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Validation
+        | VALIDATION
         |--------------------------------------------------------------------------
         */
 
-        if (!booklet_registration_id)
-            throw new Error("Booklet is required.");
+        if (!booklet_registration_id) {
 
-        if (!billing_id)
-            throw new Error("Billing is required.");
+            throw new Error(
+                "Booklet is required."
+            );
 
-        if (!receipt_date)
-            throw new Error("Receipt date is required.");
+        }
 
-        if (!payor)
-            throw new Error("Payor is required.");
 
-        if (!payment_mode)
-            throw new Error("Payment mode is required.");
+        if (!billing_id) {
+
+            throw new Error(
+                "Billing is required."
+            );
+
+        }
+
+
+        if (!receipt_date) {
+
+            throw new Error(
+                "Receipt date is required."
+            );
+
+        }
+
+
+        if (
+            !payor ||
+            !String(payor).trim()
+        ) {
+
+            throw new Error(
+                "Payor is required."
+            );
+
+        }
+
+
+        if (!gender) {
+
+            throw new Error(
+                "Gender is required."
+            );
+
+        }
+
+
+        if (!["Male", "Female"].includes(
+            String(gender)
+        )) {
+
+            throw new Error(
+                "Invalid gender."
+            );
+
+        }
+
+
+        if (!payment_mode) {
+
+            throw new Error(
+                "Payment mode is required."
+            );
+
+        }
+
+
 
         /*
         |--------------------------------------------------------------------------
-        | Begin Transaction
+        | DATABASE CONNECTION
         |--------------------------------------------------------------------------
         */
 
         client =
             await pool.connect();
 
-        await client.query("BEGIN");
+
 
         /*
         |--------------------------------------------------------------------------
-        | Load LOR + Booklet
+        | BEGIN TRANSACTION
+        |--------------------------------------------------------------------------
+        */
+
+        await client.query(
+            "BEGIN"
+        );
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOAD LOR RELEASE + BOOKLET
         |--------------------------------------------------------------------------
         */
 
         const bookletResult =
             await client.query(
-
                 `
-
                 SELECT
 
                     lr.id
@@ -117,7 +195,7 @@ export async function POST(
                 INNER JOIN smi_booklet_registration sbr
 
                     ON sbr.id =
-                    lr.booklet_registration_id
+                       lr.booklet_registration_id
 
                 WHERE
 
@@ -132,62 +210,62 @@ export async function POST(
                     sbr.is_active = TRUE
 
                 FOR UPDATE
-
                 `,
-
                 [
-
                     booklet_registration_id,
-
                 ]
-
             );
+
+
 
         if (
             bookletResult.rows.length === 0
         ) {
 
             throw new Error(
-                "Booklet not found."
+                "Booklet/LOR release not found."
             );
 
         }
+
+
 
         const booklet =
             bookletResult.rows[0];
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Validate OR
+        | VALIDATE CURRENT OR
         |--------------------------------------------------------------------------
         */
 
         if (
-
             Number(booklet.current_or) >
-
             Number(booklet.ending_or)
-
         ) {
 
             throw new Error(
-                "Booklet has already been consumed."
+                "The accountable form booklet has already been consumed."
             );
 
         }
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Billing Header
+        | LOAD BILLING
         |--------------------------------------------------------------------------
         */
 
         const billingResult =
             await client.query(
-
                 `
+                SELECT
 
-                SELECT *
+                    *
 
                 FROM rpt_billings
 
@@ -195,15 +273,14 @@ export async function POST(
 
                     id = $1
 
+                FOR UPDATE
                 `,
-
                 [
-
                     billing_id,
-
                 ]
-
             );
+
+
 
         if (
             billingResult.rows.length === 0
@@ -215,31 +292,45 @@ export async function POST(
 
         }
 
+
+
         const billing =
             billingResult.rows[0];
 
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK BILLING STATUS
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            billing.status === "PAID"
+            String(
+                billing.status ?? ""
+            ).toUpperCase() === "PAID"
         ) {
 
             throw new Error(
-                "Billing has already been paid."
+                "This billing has already been paid."
             );
 
         }
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Billing Items
+        | LOAD BILLING ITEMS
         |--------------------------------------------------------------------------
         */
 
         const itemResult =
             await client.query(
-
                 `
+                SELECT
 
-                SELECT *
+                    *
 
                 FROM rpt_billing_items
 
@@ -254,39 +345,43 @@ export async function POST(
                     start_year,
 
                     start_quarter
-
                 `,
-
                 [
-
                     billing.id,
-
                 ]
-
             );
+
+
 
         if (
             itemResult.rows.length === 0
         ) {
 
             throw new Error(
-                "Billing has no items."
+                "Billing has no billing items."
             );
 
         }
 
+
+
         const items =
             itemResult.rows;
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Grand Total
+        | COMPUTE GRAND TOTAL
         |--------------------------------------------------------------------------
         */
 
         let grandTotal = 0;
 
-        for (const item of items) {
+
+        for (
+            const item of items
+        ) {
 
             grandTotal +=
                 Number(
@@ -295,20 +390,70 @@ export async function POST(
 
         }
 
-        // ==========================
-        // PART 2 STARTS HERE
-        // ==========================
 
 
-                /*
+        grandTotal =
+            Number(
+                grandTotal.toFixed(2)
+            );
+
+
+
+        if (
+            !Number.isFinite(
+                grandTotal
+            ) ||
+            grandTotal <= 0
+        ) {
+
+            throw new Error(
+                "Invalid billing grand total."
+            );
+
+        }
+
+
+
+        /*
         |--------------------------------------------------------------------------
-        | Insert Transaction Header
+        | PROPERTY ID
+        |--------------------------------------------------------------------------
+        |
+        | rpt_payment.property_id is VARCHAR.
+        |
+        | rpt_billings currently provides fullpin.
+        |
+        | Use FULLPIN as the property identifier.
+        |
+        */
+
+        const propertyId =
+            billing.fullpin
+                ? String(
+                    billing.fullpin
+                ).trim()
+                : "";
+
+
+
+        if (!propertyId) {
+
+            throw new Error(
+                "Billing does not contain a valid property identifier (fullpin)."
+            );
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | INSERT DIPP TRANSACTION
         |--------------------------------------------------------------------------
         */
 
         const transactionResult =
             await client.query(
-
                 `
                 INSERT INTO dipp_transactions (
 
@@ -327,6 +472,8 @@ export async function POST(
                     billing_id,
 
                     payor,
+
+                    gender,
 
                     payment_mode,
 
@@ -366,63 +513,144 @@ export async function POST(
 
                     $11,
 
+                    $12,
+
                     'ISSUED',
 
-                    $12,
+                    $13,
 
                     NOW()
 
                 )
 
                 RETURNING id
-
                 `,
-
                 [
 
-                    booklet.current_or,
+                    /*
+                    | OR NUMBER
+                    */
+
+                    String(
+                        booklet.current_or
+                    ),
+
+
+                    /*
+                    | RECEIPT DATE
+                    */
 
                     receipt_date,
 
+
+                    /*
+                    | BOOKLET REGISTRATION
+                    */
+
                     booklet.booklet_registration_id,
+
+
+                    /*
+                    | LOR RELEASE
+                    */
 
                     booklet.lor_release_id,
 
+
+                    /*
+                    | ACCOUNTABLE FORM
+                    */
+
                     booklet.accountable_form_id,
+
+
+                    /*
+                    | COLLECTOR
+                    */
 
                     booklet.accountable_officer_id,
 
+
+                    /*
+                    | BILLING
+                    */
+
                     billing.id,
 
-                    payor,
 
-                    payment_mode,
+                    /*
+                    | PAYOR
+                    */
 
-                    remarks ?? null,
+                    String(
+                        payor
+                    ).trim(),
+
+
+                    /*
+                    | GENDER
+                    */
+
+                    String(
+                        gender
+                    ),
+
+
+                    /*
+                    | PAYMENT MODE
+                    */
+
+                    String(
+                        payment_mode
+                    ),
+
+
+                    /*
+                    | REMARKS
+                    */
+
+                    remarks
+                        ? String(
+                            remarks
+                        ).trim()
+                        : null,
+
+
+                    /*
+                    | GRAND TOTAL
+                    */
 
                     grandTotal,
+
+
+                    /*
+                    | ENCODED BY
+                    */
 
                     user.id,
 
                 ]
-
             );
+
+
 
         const transactionId =
             transactionResult.rows[0].id;
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Insert Transaction Items
+        | INSERT DIPP RPT ITEMS
         |--------------------------------------------------------------------------
         */
 
-        for (const item of items) {
+        for (
+            const item of items
+        ) {
 
             await client.query(
-
                 `
-
                 INSERT INTO dipp_rpt_items (
 
                     transaction_id,
@@ -494,9 +722,7 @@ export async function POST(
                     NOW()
 
                 )
-
                 `,
-
                 [
 
                     transactionId,
@@ -509,7 +735,9 @@ export async function POST(
 
                     billing.barangay_name,
 
-                    item.assessed_value,
+                    Number(
+                        item.assessed_value ?? 0
+                    ),
 
                     item.start_quarter,
 
@@ -519,30 +747,416 @@ export async function POST(
 
                     item.end_year,
 
-                    item.basic,
+                    Number(
+                        item.basic ?? 0
+                    ),
 
-                    item.sef,
+                    Number(
+                        item.sef ?? 0
+                    ),
 
-                    item.penalty,
+                    Number(
+                        item.penalty ?? 0
+                    ),
 
-                    item.discount,
+                    Number(
+                        item.discount ?? 0
+                    ),
 
-                    item.total,
+                    Number(
+                        item.total ?? 0
+                    ),
 
                 ]
-
             );
 
         }
 
+
+
         /*
         |--------------------------------------------------------------------------
-        | Update Billing
+        | INSERT RPT PAYMENT HEADER
+        |--------------------------------------------------------------------------
+        */
+
+        const paymentResult =
+            await client.query(
+                `
+                INSERT INTO rpt_payment (
+
+                    transaction_id,
+
+                    property_id,
+
+                    tdno,
+
+                    taxpayer_name,
+
+                    payment_date,
+
+                    total_amount,
+
+                    status,
+
+                    is_cancelled,
+
+                    created_at,
+
+                    updated_at,
+
+                    created_by,
+
+                    updated_by
+
+                )
+
+                VALUES (
+
+                    $1,
+
+                    $2,
+
+                    $3,
+
+                    $4,
+
+                    $5,
+
+                    $6,
+
+                    'PAID',
+
+                    FALSE,
+
+                    CURRENT_TIMESTAMP,
+
+                    CURRENT_TIMESTAMP,
+
+                    $7,
+
+                    $7
+
+                )
+
+                RETURNING id
+                `,
+                [
+
+                    /*
+                    | DIPP TRANSACTION
+                    */
+
+                    transactionId,
+
+
+                    /*
+                    | PROPERTY ID
+                    */
+
+                    propertyId,
+
+
+                    /*
+                    | TD NUMBER
+                    */
+
+                    billing.td_number
+                        ? String(
+                            billing.td_number
+                        )
+                        : null,
+
+
+                    /*
+                    | TAXPAYER
+                    */
+
+                    billing.owner_name
+                        ? String(
+                            billing.owner_name
+                        )
+                        : String(
+                            payor
+                        ).trim(),
+
+
+                    /*
+                    | PAYMENT DATE
+                    */
+
+                    receipt_date,
+
+
+                    /*
+                    | TOTAL AMOUNT
+                    */
+
+                    grandTotal,
+
+
+                    /*
+                    | CREATED BY
+                    */
+
+                    user.id,
+
+                ]
+            );
+
+
+
+        const paymentId =
+            paymentResult.rows[0].id;
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | INSERT RPT PAYMENT ITEMS
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        |
+        | rpt_billing_items stores:
+        |
+        |     start_quarter
+        |     start_year
+        |     end_quarter
+        |     end_year
+        |
+        | while rpt_payment_items stores:
+        |
+        |     tax_year
+        |     quarter
+        |
+        | There is currently no start/end range in
+        | rpt_payment_items.
+        |
+        | Therefore we record the START period of each
+        | billing item here.
+        |
+        */
+
+        for (
+            const item of items
+        ) {
+
+            const taxYear =
+                Number(
+                    item.start_year
+                );
+
+
+            const quarter =
+                Number(
+                    item.start_quarter
+                );
+
+
+
+            if (
+                !Number.isInteger(
+                    taxYear
+                )
+            ) {
+
+                throw new Error(
+                    `Invalid tax year for TD ${item.td_number}.`
+                );
+
+            }
+
+
+
+            if (
+                !Number.isInteger(
+                    quarter
+                ) ||
+                quarter < 1 ||
+                quarter > 4
+            ) {
+
+                throw new Error(
+                    `Invalid quarter for TD ${item.td_number}.`
+                );
+
+            }
+
+
+
+            const basicTax =
+                Number(
+                    item.basic ?? 0
+                );
+
+
+            const penalty =
+                Number(
+                    item.penalty ?? 0
+                );
+
+
+            const discount =
+                Number(
+                    item.discount ?? 0
+                );
+
+
+            const amountPaid =
+                Number(
+                    item.total ?? 0
+                );
+
+
+
+            await client.query(
+                `
+                INSERT INTO rpt_payment_items (
+
+                    payment_id,
+
+                    property_id,
+
+                    tdno,
+
+                    tax_year,
+
+                    quarter,
+
+                    basic_tax,
+
+                    penalty,
+
+                    interest,
+
+                    discount,
+
+                    amount_paid,
+
+                    created_at
+
+                )
+
+                VALUES (
+
+                    $1,
+
+                    $2,
+
+                    $3,
+
+                    $4,
+
+                    $5,
+
+                    $6,
+
+                    $7,
+
+                    $8,
+
+                    $9,
+
+                    $10,
+
+                    CURRENT_TIMESTAMP
+
+                )
+                `,
+                [
+
+                    /*
+                    | PAYMENT ID
+                    */
+
+                    paymentId,
+
+
+                    /*
+                    | PROPERTY
+                    */
+
+                    propertyId,
+
+
+                    /*
+                    | TD NUMBER
+                    */
+
+                    item.td_number
+                        ? String(
+                            item.td_number
+                        )
+                        : billing.td_number,
+
+
+                    /*
+                    | TAX YEAR
+                    */
+
+                    taxYear,
+
+
+                    /*
+                    | QUARTER
+                    */
+
+                    quarter,
+
+
+                    /*
+                    | BASIC TAX
+                    */
+
+                    basicTax,
+
+
+                    /*
+                    | PENALTY
+                    */
+
+                    penalty,
+
+
+                    /*
+                    | INTEREST
+                    |
+                    | No interest column exists in
+                    | rpt_billing_items.
+                    |
+                    */
+
+                    0,
+
+
+                    /*
+                    | DISCOUNT
+                    */
+
+                    discount,
+
+
+                    /*
+                    | AMOUNT PAID
+                    */
+
+                    amountPaid,
+
+                ]
+            );
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE BILLING STATUS
         |--------------------------------------------------------------------------
         */
 
         await client.query(
-
             `
             UPDATE rpt_billings
 
@@ -556,32 +1170,37 @@ export async function POST(
 
                 id = $1
             `,
-
             [
-
                 billing.id,
-
             ]
-
         );
+
+
 
         /*
         |--------------------------------------------------------------------------
-        | Update Booklet
+        | ADVANCE OR BOOKLET
         |--------------------------------------------------------------------------
         */
 
         const nextOR =
-            Number(booklet.current_or) + 1;
+            Number(
+                booklet.current_or
+            ) + 1;
+
+
 
         const bookletStatus =
             nextOR >
-            Number(booklet.ending_or)
+            Number(
+                booklet.ending_or
+            )
                 ? "CONSUMED"
                 : "IN USE";
 
-        await client.query(
 
+
+        await client.query(
             `
             UPDATE smi_booklet_registration
 
@@ -597,7 +1216,6 @@ export async function POST(
 
                 id = $3
             `,
-
             [
 
                 nextOR,
@@ -607,12 +1225,13 @@ export async function POST(
                 booklet.booklet_registration_id,
 
             ]
-
         );
+
+
 
         /*
         |--------------------------------------------------------------------------
-        | Commit
+        | COMMIT
         |--------------------------------------------------------------------------
         */
 
@@ -620,12 +1239,23 @@ export async function POST(
             "COMMIT"
         );
 
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUCCESS
+        |--------------------------------------------------------------------------
+        */
+
         return NextResponse.json({
 
             success: true,
 
             transaction_id:
                 transactionId,
+
+            payment_id:
+                paymentId,
 
             or_number:
                 booklet.current_or,
@@ -637,19 +1267,51 @@ export async function POST(
                 grandTotal,
 
             message:
-                "Collection processed successfully."
+                "RPT collection processed successfully."
 
         });
 
-    } catch (err: any) {
+
+
+    } catch (
+        err: any
+    ) {
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ROLLBACK
+        |--------------------------------------------------------------------------
+        */
 
         if (client) {
 
-            await client.query(
-                "ROLLBACK"
-            );
+            try {
+
+                await client.query(
+                    "ROLLBACK"
+                );
+
+            } catch (
+                rollbackError
+            ) {
+
+                console.error(
+                    "ROLLBACK ERROR:",
+                    rollbackError
+                );
+
+            }
 
         }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOG ERROR
+        |--------------------------------------------------------------------------
+        */
 
         console.error(
             "===================================="
@@ -659,33 +1321,42 @@ export async function POST(
             "RPT COLLECTION API ERROR"
         );
 
-        console.error(err);
+        console.error(
+            err
+        );
 
         console.error(
             "===================================="
         );
 
+
+
         return NextResponse.json(
 
             {
-
                 success: false,
 
                 message:
-                    err.message ??
+                    err?.message ??
                     "Unable to process collection."
 
             },
 
             {
-
-                status: 500
-
+                status: 500,
             }
 
         );
 
+
+
     } finally {
+
+        /*
+        |--------------------------------------------------------------------------
+        | RELEASE CONNECTION
+        |--------------------------------------------------------------------------
+        */
 
         client?.release();
 

@@ -10,7 +10,7 @@ import {
     XCircle,
 } from "lucide-react";
 
-interface UserTableProps {
+interface BarangayUserTableProps {
     users: any[];
     loading: boolean;
     onSelect: (user: any) => void;
@@ -18,11 +18,11 @@ interface UserTableProps {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function UserTable({
+export default function BarangayUserTable({
     users,
     loading,
     onSelect,
-}: UserTableProps) {
+}: BarangayUserTableProps) {
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
 
@@ -34,11 +34,24 @@ export default function UserTable({
         }
 
         return users.filter((user) => {
+
+            const name = [
+                user.first_name,
+                user.middle_name,
+                user.last_name,
+            ]
+                .filter(Boolean)
+                .join(" ");
+
             return (
+                name.toLowerCase().includes(keyword) ||
                 String(user.username || "")
                     .toLowerCase()
                     .includes(keyword) ||
-                String(user.full_name || "")
+                String(user.role || "")
+                    .toLowerCase()
+                    .includes(keyword) ||
+                String(user.barangay_name || "")
                     .toLowerCase()
                     .includes(keyword)
             );
@@ -47,7 +60,9 @@ export default function UserTable({
 
     const totalPages = Math.max(
         1,
-        Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)
+        Math.ceil(
+            filteredUsers.length / ITEMS_PER_PAGE
+        )
     );
 
     const currentPage = Math.min(page, totalPages);
@@ -65,6 +80,16 @@ export default function UserTable({
     function handleSearch(value: string) {
         setSearch(value);
         setPage(1);
+    }
+
+    function getFullName(user: any) {
+        return [
+            user.first_name,
+            user.middle_name,
+            user.last_name,
+        ]
+            .filter(Boolean)
+            .join(" ");
     }
 
     function formatDate(value: string) {
@@ -102,8 +127,8 @@ export default function UserTable({
                     onChange={(e) =>
                         handleSearch(e.target.value)
                     }
-                    placeholder="Search name or username..."
-                    className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder="Search name, username, role or barangay..."
+                    className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                 />
 
             </div>
@@ -118,11 +143,19 @@ export default function UserTable({
                         <tr>
 
                             <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                                Full Name
+                                Name
                             </th>
 
                             <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                                 Username
+                            </th>
+
+                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                Role
+                            </th>
+
+                            <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                Barangay
                             </th>
 
                             <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -143,10 +176,10 @@ export default function UserTable({
 
                             <tr>
                                 <td
-                                    colSpan={4}
+                                    colSpan={6}
                                     className="px-5 py-12 text-center text-sm text-slate-500"
                                 >
-                                    Loading users...
+                                    Loading barangay users...
                                 </td>
                             </tr>
 
@@ -154,10 +187,10 @@ export default function UserTable({
 
                             <tr>
                                 <td
-                                    colSpan={4}
+                                    colSpan={6}
                                     className="px-5 py-12 text-center text-sm text-slate-500"
                                 >
-                                    No users found.
+                                    No barangay users found.
                                 </td>
                             </tr>
 
@@ -170,19 +203,21 @@ export default function UserTable({
                                     onClick={() =>
                                         onSelect(user)
                                     }
-                                    className="cursor-pointer transition hover:bg-slate-50"
+                                    className="cursor-pointer transition hover:bg-orange-50/50"
                                 >
 
                                     <td className="px-5 py-4">
 
                                         <div className="flex items-center gap-3">
 
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700">
                                                 <User size={17} />
                                             </div>
 
                                             <span className="font-medium text-slate-800">
-                                                {user.full_name}
+                                                {getFullName(
+                                                    user
+                                                )}
                                             </span>
 
                                         </div>
@@ -191,6 +226,19 @@ export default function UserTable({
 
                                     <td className="px-5 py-4 text-sm text-slate-600">
                                         {user.username}
+                                    </td>
+
+                                    <td className="px-5 py-4">
+
+                                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+                                            {user.role}
+                                        </span>
+
+                                    </td>
+
+                                    <td className="px-5 py-4 text-sm text-slate-600">
+                                        {user.barangay_name ||
+                                            "—"}
                                     </td>
 
                                     <td className="px-5 py-4">

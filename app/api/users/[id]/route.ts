@@ -8,6 +8,86 @@ type Params = {
   }>;
 };
 
+export async function GET(
+  req: NextRequest,
+  { params }: Params
+) {
+  try {
+    const { id } = await params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        u.id,
+        u.username,
+        u.full_name,
+        u.is_active,
+        u.created_at,
+        u.updated_at,
+
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'id', r.id,
+              'role_name', r.role_name,
+              'description', r.description
+            )
+          ) FILTER (WHERE r.id IS NOT NULL),
+          '[]'
+        ) AS roles
+
+      FROM users u
+
+      LEFT JOIN user_roles ur
+        ON ur.user_id = u.id
+
+      LEFT JOIN roles r
+        ON r.id = ur.role_id
+
+      WHERE u.id = $1
+
+      GROUP BY
+        u.id,
+        u.username,
+        u.full_name,
+        u.is_active,
+        u.created_at,
+        u.updated_at
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "User not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch user.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: Params
@@ -27,20 +107,25 @@ export async function PUT(
 
     await client.query("BEGIN");
 
-    // Update user info
-    if (password && password.trim() !== "") {
-      const hashed = await bcrypt.hash(password, 10);
+    if (
+      password &&
+      password.trim() !== ""
+    ) {
+      const hashed = await bcrypt.hash(
+        password,
+        10
+      );
 
       await client.query(
         `
         UPDATE users
         SET
-          username=$1,
-          full_name=$2,
-          password=$3,
-          is_active=$4,
-          updated_at=NOW()
-        WHERE id=$5
+          username = $1,
+          full_name = $2,
+          password = $3,
+          is_active = $4,
+          updated_at = NOW()
+        WHERE id = $5
         `,
         [
           username,
@@ -55,11 +140,11 @@ export async function PUT(
         `
         UPDATE users
         SET
-          username=$1,
-          full_name=$2,
-          is_active=$3,
-          updated_at=NOW()
-        WHERE id=$4
+          username = $1,
+          full_name = $2,
+          is_active = $3,
+          updated_at = NOW()
+        WHERE id = $4
         `,
         [
           username,
@@ -70,17 +155,21 @@ export async function PUT(
       );
     }
 
-    // Remove old roles
+    /*
+     * Remove the user's existing roles
+     */
     await client.query(
       `
       DELETE FROM user_roles
-      WHERE user_id=$1
+      WHERE user_id = $1
       `,
       [id]
     );
 
-    // Insert new roles
-    for (const roleId of roles) {
+    /*
+     * Add the newly selected roles
+     */
+    for (const roleId of roles || []) {
       await client.query(
         `
         INSERT INTO user_roles
@@ -89,7 +178,7 @@ export async function PUT(
           role_id
         )
         VALUES
-        ($1,$2)
+        ($1, $2)
         `,
         [id, roleId]
       );
@@ -100,9 +189,7 @@ export async function PUT(
     return NextResponse.json({
       success: true,
     });
-
   } catch (error) {
-
     await client.query("ROLLBACK");
 
     console.error(error);
@@ -116,7 +203,6 @@ export async function PUT(
         status: 500,
       }
     );
-
   } finally {
     client.release();
   }
@@ -132,7 +218,7 @@ export async function DELETE(
     await pool.query(
       `
       DELETE FROM users
-      WHERE id=$1
+      WHERE id = $1
       `,
       [id]
     );
@@ -140,9 +226,7 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
     });
-
   } catch (error) {
-
     console.error(error);
 
     return NextResponse.json(

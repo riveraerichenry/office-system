@@ -48,7 +48,6 @@ export async function GET() {
       success: true,
       data: result.rows,
     });
-
   } catch (error) {
     console.error(error);
 
@@ -78,7 +77,10 @@ export async function POST(req: Request) {
 
     await client.query("BEGIN");
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      10
+    );
 
     const userResult = await client.query(
       `
@@ -90,7 +92,7 @@ export async function POST(req: Request) {
         is_active
       )
       VALUES
-      ($1,$2,$3,$4)
+      ($1, $2, $3, $4)
       RETURNING id
       `,
       [
@@ -103,7 +105,7 @@ export async function POST(req: Request) {
 
     const userId = userResult.rows[0].id;
 
-    for (const roleId of roles) {
+    for (const roleId of roles || []) {
       await client.query(
         `
         INSERT INTO user_roles
@@ -112,7 +114,7 @@ export async function POST(req: Request) {
           role_id
         )
         VALUES
-        ($1,$2)
+        ($1, $2)
         `,
         [userId, roleId]
       );
@@ -123,9 +125,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
     });
-
   } catch (error) {
-
     await client.query("ROLLBACK");
 
     console.error(error);
@@ -133,12 +133,12 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: false,
+        message: "Failed to create user.",
       },
       {
         status: 500,
       }
     );
-
   } finally {
     client.release();
   }

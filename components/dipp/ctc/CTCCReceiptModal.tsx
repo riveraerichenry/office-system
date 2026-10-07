@@ -12,8 +12,11 @@ import Swal from "sweetalert2";
 import BookletHeader from "../general/BookletHeader";
 
 import CertificateInformation from "./CertificateInformation";
+
 import TaxComputation from "./TaxComputation";
+
 import Footer from "./Footer";
+
 
 type Props = {
     open: boolean;
@@ -22,12 +25,14 @@ type Props = {
     onSuccess: () => void;
 };
 
+
 export default function CTCCReceiptModal({
     open,
     booklet,
     onClose,
     onSuccess,
 }: Props) {
+
 
     /*
     |--------------------------------------------------------------------------
@@ -39,6 +44,7 @@ export default function CTCCReceiptModal({
         saving,
         setSaving,
     ] = useState(false);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -55,12 +61,14 @@ export default function CTCCReceiptModal({
             .substring(0, 10)
     );
 
+
     const [
         placeIssued,
         setPlaceIssued,
     ] = useState(
         "TAYTAY, PALAWAN"
     );
+
 
     /*
     |--------------------------------------------------------------------------
@@ -73,25 +81,30 @@ export default function CTCCReceiptModal({
         setCorporationName,
     ] = useState("");
 
+
     const [
         address,
         setAddress,
     ] = useState("");
+
 
     const [
         tin,
         setTin,
     ] = useState("");
 
+
     const [
         secRegistration,
         setSecRegistration,
     ] = useState("");
 
+
     const [
         representative,
         setRepresentative,
     ] = useState("");
+
 
     /*
     |--------------------------------------------------------------------------
@@ -106,24 +119,48 @@ export default function CTCCReceiptModal({
         "TAXABLE"
     );
 
+
     const [
         grossIncome,
         setGrossIncome,
     ] = useState(0);
+
 
     const [
         otherIncome,
         setOtherIncome,
     ] = useState(0);
 
-    const basicTax = 5;
 
     /*
     |--------------------------------------------------------------------------
-    | Salary Tax
+    | Basic Tax
     |--------------------------------------------------------------------------
     |
-    | Income / 1000
+    | Fixed basic tax = ₱500.00
+    |
+    */
+
+    const basicTax = 500;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Income Tax
+    |--------------------------------------------------------------------------
+    |
+    | TAXABLE:
+    | ₱2.00 for every ₱5,000.00 of gross income
+    |
+    | Formula:
+    | Gross Income / 5,000 * 2
+    |
+    | Example:
+    | ₱5,000   = ₱2
+    | ₱10,000  = ₱4
+    | ₱50,000  = ₱20
+    |
+    | PESO mode remains ₱1.00
     |
     */
 
@@ -139,13 +176,14 @@ export default function CTCCReceiptModal({
             return (
                 Number(
                     grossIncome
-                ) / 1000
-            );
+                ) / 5000
+            ) * 2;
 
         }, [
             grossIncome,
             mode,
         ]);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -155,7 +193,7 @@ export default function CTCCReceiptModal({
     | January = 1
     | February = 2
     | ...
-    | August = 8
+    | December = 12
     |
     */
 
@@ -166,10 +204,12 @@ export default function CTCCReceiptModal({
                 return 0;
             }
 
+
             const date =
                 new Date(
                     `${issueDate}T00:00:00`
                 );
+
 
             if (
                 Number.isNaN(
@@ -179,6 +219,7 @@ export default function CTCCReceiptModal({
                 return 0;
             }
 
+
             return (
                 date.getMonth() + 1
             );
@@ -187,33 +228,16 @@ export default function CTCCReceiptModal({
             issueDate,
         ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Penalty
-    |--------------------------------------------------------------------------
-    |
-    | ₱1.00 for every month
-    |
-    */
-
-    const penaltyPerMonth = 1;
-
-    const penalty =
-        useMemo(() => {
-
-            return (
-                months *
-                penaltyPerMonth
-            );
-
-        }, [
-            months,
-        ]);
 
     /*
     |--------------------------------------------------------------------------
     | Tax Total
     |--------------------------------------------------------------------------
+    |
+    | Basic Tax
+    | + Income Tax
+    | + Other Income
+    |
     */
 
     const taxTotal =
@@ -238,6 +262,47 @@ export default function CTCCReceiptModal({
             otherIncome,
         ]);
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Penalty
+    |--------------------------------------------------------------------------
+    |
+    | 2% per month
+    |
+    | Formula:
+    |
+    | Tax Total × 2% × Number of Months
+    |
+    | Example:
+    |
+    | Tax Total = ₱500
+    | 1 month   = ₱10
+    | 2 months  = ₱20
+    | 3 months  = ₱30
+    |
+    */
+
+    const penaltyRatePerMonth = 0.02;
+
+
+    const penalty =
+        useMemo(() => {
+
+            return (
+                Number(
+                    taxTotal
+                ) *
+                penaltyRatePerMonth *
+                months
+            );
+
+        }, [
+            taxTotal,
+            months,
+        ]);
+
+
     /*
     |--------------------------------------------------------------------------
     | Interest
@@ -248,6 +313,7 @@ export default function CTCCReceiptModal({
     */
 
     const interest = 0;
+
 
     /*
     |--------------------------------------------------------------------------
@@ -278,6 +344,7 @@ export default function CTCCReceiptModal({
             interest,
         ]);
 
+
     /*
     |--------------------------------------------------------------------------
     | Process CTC-C
@@ -287,6 +354,7 @@ export default function CTCCReceiptModal({
     async function processCTCC() {
 
         try {
+
 
             /*
             |--------------------------------------------------------------------------
@@ -308,6 +376,7 @@ export default function CTCCReceiptModal({
                 return;
             }
 
+
             if (
                 !address.trim()
             ) {
@@ -321,6 +390,7 @@ export default function CTCCReceiptModal({
 
                 return;
             }
+
 
             if (
                 !issueDate
@@ -336,7 +406,9 @@ export default function CTCCReceiptModal({
                 return;
             }
 
+
             setSaving(true);
+
 
             /*
             |--------------------------------------------------------------------------
@@ -348,20 +420,26 @@ export default function CTCCReceiptModal({
                 await axios.post(
                     "/api/dipp/transactions",
                     {
+
                         booklet_registration_id:
                             booklet.booklet_registration_id,
+
 
                         receipt_date:
                             issueDate,
 
+
                         payor:
                             corporationName.trim(),
+
 
                         payment_mode:
                             "Cash",
 
+
                         remarks:
                             null,
+
 
                         /*
                         |--------------------------------------------------------------------------
@@ -371,6 +449,7 @@ export default function CTCCReceiptModal({
                         */
 
                         items: [
+
                             {
                                 account_id:
                                     null,
@@ -381,7 +460,9 @@ export default function CTCCReceiptModal({
                                 remarks:
                                     null,
                             },
+
                         ],
+
 
                         /*
                         |--------------------------------------------------------------------------
@@ -391,121 +472,158 @@ export default function CTCCReceiptModal({
 
                         ctc: {
 
+
                             ctc_type:
                                 "CTC-C",
 
+
                             /*
+                            |--------------------------------------------------------------------------
                             | Individual fields
                             | are intentionally null.
+                            |--------------------------------------------------------------------------
                             */
 
                             full_name:
                                 null,
 
+
                             address:
                                 address || null,
+
 
                             tin:
                                 tin || null,
 
+
                             cr_number:
                                 null,
+
 
                             citizenship:
                                 null,
 
+
                             sex:
                                 null,
+
 
                             height:
                                 null,
 
+
                             weight:
                                 null,
+
 
                             place_of_birth:
                                 null,
 
+
                             birth_date:
                                 null,
+
 
                             civil_status:
                                 null,
 
+
                             occupation:
                                 null,
 
+
                             /*
+                            |--------------------------------------------------------------------------
                             | Corporation
+                            |--------------------------------------------------------------------------
                             */
 
                             corporation_name:
                                 corporationName.trim(),
 
+
                             sec_registration:
                                 secRegistration ||
                                 null,
+
 
                             representative:
                                 representative ||
                                 null,
 
+
                             /*
+                            |--------------------------------------------------------------------------
                             | Certificate
+                            |--------------------------------------------------------------------------
                             */
 
                             place_issued:
                                 placeIssued ||
                                 null,
 
+
                             issue_date:
                                 issueDate ||
                                 null,
 
+
                             /*
+                            |--------------------------------------------------------------------------
                             | Tax
+                            |--------------------------------------------------------------------------
                             */
 
                             tax_mode:
                                 mode,
+
 
                             taxable_amount:
                                 Number(
                                     grossIncome
                                 ),
 
+
                             basic_tax:
                                 Number(
                                     basicTax
                                 ),
+
 
                             salary_tax:
                                 Number(
                                     incomeTax
                                 ),
 
+
                             additional_tax:
                                 Number(
                                     otherIncome
                                 ),
+
 
                             penalty:
                                 Number(
                                     penalty
                                 ),
 
+
                             interest:
                                 Number(
                                     interest
                                 ),
 
+
                             total_amount:
                                 Number(
                                     total
                                 ),
+
                         },
+
                     }
                 );
+
 
             /*
             |--------------------------------------------------------------------------
@@ -522,6 +640,7 @@ export default function CTCCReceiptModal({
                 timer: 1500,
                 showConfirmButton: false,
             });
+
 
             /*
             |--------------------------------------------------------------------------
@@ -540,6 +659,7 @@ export default function CTCCReceiptModal({
 
             }
 
+
             /*
             |--------------------------------------------------------------------------
             | Refresh Parent
@@ -547,6 +667,7 @@ export default function CTCCReceiptModal({
             */
 
             await onSuccess();
+
 
             /*
             |--------------------------------------------------------------------------
@@ -556,14 +677,17 @@ export default function CTCCReceiptModal({
 
             onClose();
 
+
         } catch (
             err: any
         ) {
+
 
             console.error(
                 "CTC-C ERROR:",
                 err
             );
+
 
             await Swal.fire({
                 icon: "error",
@@ -574,6 +698,7 @@ export default function CTCCReceiptModal({
                     "Unexpected error.",
             });
 
+
         } finally {
 
             setSaving(false);
@@ -581,6 +706,7 @@ export default function CTCCReceiptModal({
         }
 
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -594,7 +720,9 @@ export default function CTCCReceiptModal({
             return;
         }
 
+
         setSaving(false);
+
 
         setIssueDate(
             new Date()
@@ -602,29 +730,40 @@ export default function CTCCReceiptModal({
                 .substring(0, 10)
         );
 
+
         setPlaceIssued(
             "TAYTAY, PALAWAN"
         );
 
+
         setCorporationName("");
+
 
         setAddress("");
 
+
         setTin("");
+
 
         setSecRegistration("");
 
+
         setRepresentative("");
+
 
         setMode(
             "TAXABLE"
         );
 
+
         setGrossIncome(0);
+
 
         setOtherIncome(0);
 
+
     }, [open]);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -639,6 +778,7 @@ export default function CTCCReceiptModal({
         return null;
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Render
@@ -651,6 +791,7 @@ export default function CTCCReceiptModal({
 
             <div className="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
+
                 {/* ==========================================================
                     BOOKLET HEADER
                 ========================================================== */}
@@ -661,11 +802,13 @@ export default function CTCCReceiptModal({
                     }
                 />
 
+
                 {/* ==========================================================
                     BODY
                 ========================================================== */}
 
                 <div className="flex-1 space-y-5 overflow-y-auto bg-slate-100 p-6">
+
 
                     {/* ======================================================
                         CERTIFICATE INFORMATION
@@ -681,11 +824,13 @@ export default function CTCCReceiptModal({
                         onPlaceIssuedChange={setPlaceIssued}
                     />
 
+
                     {/* ======================================================
                         CORPORATION INFORMATION
                     ====================================================== */}
 
                     <div className="rounded-xl border bg-white shadow-sm">
+
 
                         <div className="border-b bg-slate-50 px-5 py-4">
 
@@ -695,6 +840,7 @@ export default function CTCCReceiptModal({
 
                             </h2>
 
+
                             <p className="mt-1 text-sm text-slate-500">
 
                                 Enter the registered corporation information.
@@ -703,7 +849,9 @@ export default function CTCCReceiptModal({
 
                         </div>
 
+
                         <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+
 
                             {/* Corporation Name */}
 
@@ -714,6 +862,7 @@ export default function CTCCReceiptModal({
                                     Corporation Name
 
                                 </label>
+
 
                                 <input
                                     type="text"
@@ -734,6 +883,7 @@ export default function CTCCReceiptModal({
 
                             </div>
 
+
                             {/* Address */}
 
                             <div className="md:col-span-2">
@@ -743,6 +893,7 @@ export default function CTCCReceiptModal({
                                     Address
 
                                 </label>
+
 
                                 <input
                                     type="text"
@@ -763,6 +914,7 @@ export default function CTCCReceiptModal({
 
                             </div>
 
+
                             {/* TIN */}
 
                             <div>
@@ -772,6 +924,7 @@ export default function CTCCReceiptModal({
                                     TIN
 
                                 </label>
+
 
                                 <input
                                     type="text"
@@ -792,6 +945,7 @@ export default function CTCCReceiptModal({
 
                             </div>
 
+
                             {/* SEC Registration */}
 
                             <div>
@@ -801,6 +955,7 @@ export default function CTCCReceiptModal({
                                     SEC Registration No.
 
                                 </label>
+
 
                                 <input
                                     type="text"
@@ -821,6 +976,7 @@ export default function CTCCReceiptModal({
 
                             </div>
 
+
                             {/* Representative */}
 
                             <div className="md:col-span-2">
@@ -830,6 +986,7 @@ export default function CTCCReceiptModal({
                                     Authorized Representative
 
                                 </label>
+
 
                                 <input
                                     type="text"
@@ -850,9 +1007,11 @@ export default function CTCCReceiptModal({
 
                             </div>
 
+
                         </div>
 
                     </div>
+
 
                     {/* ======================================================
                         TAX COMPUTATION
@@ -864,41 +1023,51 @@ export default function CTCCReceiptModal({
                             mode
                         }
 
+
                         grossIncome={
                             grossIncome
                         }
+
 
                         incomeTax={
                             incomeTax
                         }
 
+
                         otherIncome={
                             otherIncome
                         }
+
 
                         basicTax={
                             basicTax
                         }
 
+
                         interest={
                             interest
                         }
+
 
                         penalty={
                             penalty
                         }
 
+
                         total={
                             total
                         }
+
 
                         saving={
                             saving
                         }
 
+
                         onModeChange={
                             setMode
                         }
+
 
                         onGrossIncomeChange={
                             setGrossIncome
@@ -906,7 +1075,9 @@ export default function CTCCReceiptModal({
 
                     />
 
+
                 </div>
+
 
                 {/* ==========================================================
                     FOOTER
@@ -918,13 +1089,16 @@ export default function CTCCReceiptModal({
                         saving
                     }
 
+
                     total={
                         total
                     }
 
+
                     onCancel={
                         onClose
                     }
+
 
                     onProcess={
                         processCTCC
@@ -932,9 +1106,11 @@ export default function CTCCReceiptModal({
 
                 />
 
+
             </div>
 
         </div>
 
     );
+
 }

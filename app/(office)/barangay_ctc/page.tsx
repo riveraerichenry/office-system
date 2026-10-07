@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, RefreshCw } from "lucide-react";
-import CTCTable from "@/components/dipp/ctc/barangay/CTCTable";
+import CTCTable from "@/components/barangay/CTCTable";
 
 export default function BarangayCTCPage() {
   return (
