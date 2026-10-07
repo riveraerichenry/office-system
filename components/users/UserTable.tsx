@@ -2,7 +2,6 @@
 
 import {
   Search,
-  Plus,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -15,23 +14,19 @@ import {
 
 
 
-type UserTableProps = {
+type Props = {
   users: any[];
-  selected: any;
-  onSelect: (user: any) => void;
   loading: boolean;
-  onAdd: () => void;
+  onSelect: (user: any) => void;
 };
 
 
 
 export default function UserTable({
   users,
-  selected,
-  onSelect,
   loading,
-  onAdd,
-}: UserTableProps) {
+  onSelect,
+}: Props) {
 
   const [search, setSearch] =
     useState("");
@@ -40,13 +35,13 @@ export default function UserTable({
     useState(1);
 
 
-  const ITEMS_PER_PAGE = 10;
+  const PER_PAGE = 10;
 
 
 
   /*
   |--------------------------------------------------------------------------
-  | FILTER USERS
+  | FILTER
   |--------------------------------------------------------------------------
   */
 
@@ -59,30 +54,41 @@ export default function UserTable({
           .toLowerCase();
 
 
-      if (!keyword) {
-        return users;
-      }
-
-
       return users.filter(
         (user: any) => {
 
+          const roles =
+            (user.roles || [])
+              .map(
+                (role: any) =>
+                  role.role_name
+              )
+              .join(" ")
+              .toLowerCase();
+
+
           return (
+
             user.username
               ?.toLowerCase()
-              .includes(keyword) ||
+              .includes(keyword)
 
-            user.role
-              ?.toLowerCase()
-              .includes(keyword) ||
+            ||
 
             user.full_name
               ?.toLowerCase()
-              .includes(keyword) ||
+              .includes(keyword)
+
+            ||
+
+            roles.includes(keyword)
+
+            ||
 
             user.email
               ?.toLowerCase()
               .includes(keyword)
+
           );
 
         }
@@ -106,7 +112,7 @@ export default function UserTable({
       1,
       Math.ceil(
         filtered.length /
-          ITEMS_PER_PAGE
+          PER_PAGE
       )
     );
 
@@ -114,17 +120,17 @@ export default function UserTable({
   const rows =
     filtered.slice(
       (page - 1) *
-        ITEMS_PER_PAGE,
+        PER_PAGE,
 
       page *
-        ITEMS_PER_PAGE
+        PER_PAGE
     );
 
 
 
   /*
   |--------------------------------------------------------------------------
-  | RESET PAGE WHEN SEARCH CHANGES
+  | RESET PAGE ON SEARCH
   |--------------------------------------------------------------------------
   */
 
@@ -172,40 +178,41 @@ export default function UserTable({
 
   return (
 
-    <div className="rounded-[40px] bg-white px-6 py-7 shadow-xl">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
 
-      {/* HEADER */}
+      {/* ================================================================
+          HEADER
+      ================================================================ */}
 
-      <div className="mb-8 flex items-center justify-between">
+      <div className="border-b border-gray-200 px-6 py-5">
 
-        <h1 className="text-4xl font-extrabold text-gray-900">
-          Users
-        </h1>
+        <div>
 
+          <h2 className="text-xl font-semibold text-gray-900">
+            Users
+          </h2>
 
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-500 text-white shadow-lg transition hover:scale-105"
-        >
+          <p className="mt-1 text-sm text-gray-500">
+            Select a user to view details.
+          </p>
 
-          <Plus size={20} />
-
-        </button>
+        </div>
 
       </div>
 
 
 
-      {/* SEARCH */}
+      {/* ================================================================
+          SEARCH
+      ================================================================ */}
 
-      <div className="mb-7">
+      <div className="border-b border-gray-200 p-5">
 
-        <div className="flex items-center gap-3 border-b border-gray-300 pb-3">
+        <div className="relative">
 
           <Search
             size={18}
-            className="text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
 
 
@@ -221,8 +228,8 @@ export default function UserTable({
               setPage(1);
 
             }}
-            placeholder="Search user"
-            className="w-full bg-transparent text-sm outline-none"
+            placeholder="Search users..."
+            className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
 
         </div>
@@ -231,19 +238,19 @@ export default function UserTable({
 
 
 
-      {/* USERS */}
+      {/* ================================================================
+          USER LIST
+      ================================================================ */}
 
-      <div className="min-h-[600px] space-y-3">
+      <div className="min-h-[620px] space-y-2 p-5">
 
         {/* LOADING */}
 
         {loading && (
 
-          <div className="flex min-h-[400px] items-center justify-center">
+          <div className="py-10 text-center text-gray-500">
 
-            <span className="text-sm text-gray-500">
-              Loading users...
-            </span>
+            Loading users...
 
           </div>
 
@@ -256,11 +263,9 @@ export default function UserTable({
         {!loading &&
           rows.length === 0 && (
 
-            <div className="flex min-h-[400px] items-center justify-center">
+            <div className="py-10 text-center text-gray-500">
 
-              <span className="text-sm text-gray-500">
-                No users found.
-              </span>
+              No users found.
 
             </div>
 
@@ -268,89 +273,80 @@ export default function UserTable({
 
 
 
-        {/* ROWS */}
+        {/* USERS */}
 
         {!loading &&
           rows.map(
-            (user: any) => {
+            (user: any) => (
 
-              const isSelected =
-                selected?.id ===
-                user.id;
+              <button
+                key={user.id}
+                type="button"
+                onClick={() =>
+                  onSelect(user)
+                }
+                className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50"
+              >
 
+                <div className="flex items-start justify-between">
 
-              return (
+                  <div>
 
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() =>
-                    onSelect(user)
-                  }
-                  className={`w-full rounded-[28px] px-5 py-5 text-left transition ${
-                    isSelected
-                      ? "bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-500 text-white shadow-lg"
-                      : "bg-[#f8f8f8] text-gray-900 hover:bg-gray-100"
-                  }`}
-                >
+                    <h3 className="font-semibold text-gray-900">
 
-                  <div className="flex items-center justify-between gap-3">
+                      {user.full_name ||
+                        "Unnamed User"}
 
-                    <div className="min-w-0">
-
-                      <p className="truncate font-bold">
-                        {user.username ||
-                          "Unnamed User"}
-                      </p>
+                    </h3>
 
 
-                      <p
-                        className={`mt-1 truncate text-sm ${
-                          isSelected
-                            ? "text-white/80"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {user.full_name ||
-                          user.email ||
-                          "No additional information"}
-                      </p>
+                    <p className="mt-1 text-sm text-gray-500">
 
-                    </div>
+                      @{user.username}
 
-
-                    {user.role && (
-
-                      <span
-                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                          isSelected
-                            ? "bg-white/20 text-white"
-                            : "bg-gray-200 text-gray-600"
-                        }`}
-                      >
-
-                        {user.role}
-
-                      </span>
-
-                    )}
+                    </p>
 
                   </div>
 
-                </button>
+                </div>
 
-              );
 
-            }
+
+                {/* ROLES */}
+
+                <div className="mt-3 flex flex-wrap gap-2">
+
+                  {(user.roles || []).map(
+                    (role: any) => (
+
+                      <span
+                        key={role.id}
+                        className="rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"
+                      >
+
+                        {role.role_name}
+
+                      </span>
+
+                    )
+                  )}
+
+                </div>
+
+              </button>
+
+            )
           )}
 
       </div>
 
 
 
-      {/* PAGINATION */}
+      {/* ================================================================
+          PAGINATION
+      ================================================================ */}
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-gray-200 px-5 py-4">
 
         {/* PREVIOUS */}
 
@@ -361,18 +357,18 @@ export default function UserTable({
           }
           onClick={() =>
             setPage(
-              (prev) =>
+              (current) =>
                 Math.max(
-                  prev - 1,
+                  current - 1,
                   1
                 )
             )
           }
-          className="rounded-full p-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-md border border-gray-300 p-2 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
 
           <ChevronLeft
-            size={22}
+            size={18}
           />
 
         </button>
@@ -381,10 +377,19 @@ export default function UserTable({
 
         {/* PAGE */}
 
-        <span className="text-sm font-medium text-gray-600">
+        <span className="text-sm text-gray-600">
 
-          Page {page} of{" "}
-          {totalPages}
+          Page{" "}
+
+          <strong>
+            {page}
+          </strong>
+
+          {" "}of{" "}
+
+          <strong>
+            {totalPages}
+          </strong>
 
         </span>
 
@@ -395,23 +400,22 @@ export default function UserTable({
         <button
           type="button"
           disabled={
-            page ===
-            totalPages
+            page === totalPages
           }
           onClick={() =>
             setPage(
-              (prev) =>
+              (current) =>
                 Math.min(
-                  prev + 1,
+                  current + 1,
                   totalPages
                 )
             )
           }
-          className="rounded-full p-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-md border border-gray-300 p-2 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
 
           <ChevronRight
-            size={22}
+            size={18}
           />
 
         </button>
