@@ -3,1027 +3,1580 @@
 import "./CTCPrint.css";
 
 type Props = {
-    transaction: any;
+transaction: any;
 };
 
 export default function CTCPrint({
-    transaction,
+
+transaction,
+
 }: Props) {
 
-    /* =====================================================
-       CTC DATA
-    ===================================================== */
+/* =====================================================
+   CTC DATA
+===================================================== */
 
-    const ctc =
-        transaction?.ctc ??
-        transaction ??
-        {};
+const ctc =
+
+    transaction?.ctc ??
+
+    transaction ??
+
+    {};
 
 
-    /* =====================================================
-       FORMAT DATE
-       MM/DD/YY
-    ===================================================== */
+/* =====================================================
+   FORMAT DATE
+   MM/DD/YY
+===================================================== */
 
-    const formatDate = (
-        value: any
-    ) => {
+const formatDate = (
 
-        if (!value) {
-            return "";
-        }
+    value: any
 
-        const date =
-            new Date(value);
+) => {
 
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-            return "";
-        }
+    if (!value) {
 
-        return date.toLocaleDateString(
+        return "";
+
+    }
+
+
+    const date =
+
+        new Date(
+            value
+        );
+
+
+    if (
+
+        Number.isNaN(
+            date.getTime()
+        )
+
+    ) {
+
+        return "";
+
+    }
+
+
+    return date
+        .toLocaleDateString(
+
             "en-US",
+
             {
+
                 month: "2-digit",
+
                 day: "2-digit",
+
                 year: "2-digit",
+
             }
+
         );
-    };
+
+};
 
 
-    /* =====================================================
-       FORMAT AMOUNT
-    ===================================================== */
+/* =====================================================
+   FORMAT AMOUNT
+===================================================== */
 
-    const formatAmount = (
-        value: any
-    ) => {
+const formatAmount = (
 
-        const amount =
-            Number(value ?? 0);
+    value: any
+
+) => {
+
+    const amount =
+
+        Number(
+            value ?? 0
+        );
+
+
+    if (
+
+        !Number.isFinite(
+            amount
+        )
+
+    ) {
+
+        return "0.00";
+
+    }
+
+
+    return amount
+        .toLocaleString(
+
+            "en-PH",
+
+            {
+
+                minimumFractionDigits:
+                    2,
+
+                maximumFractionDigits:
+                    2,
+
+            }
+
+        );
+
+};
+
+
+/* =====================================================
+   AMOUNT TO WORDS
+===================================================== */
+
+const amountToWords = (
+
+    value: number
+
+) => {
+
+    const numericValue =
+
+        Number(
+            value ?? 0
+        );
+
+
+    const number =
+
+        Math.floor(
+            numericValue
+        );
+
+
+    const centavos =
+
+        Math.round(
+
+            (
+
+                numericValue -
+
+                Math.floor(
+                    numericValue
+                )
+
+            )
+
+            * 100
+
+        );
+
+
+    const ones = [
+
+        "ZERO",
+        "ONE",
+        "TWO",
+        "THREE",
+        "FOUR",
+        "FIVE",
+        "SIX",
+        "SEVEN",
+        "EIGHT",
+        "NINE",
+        "TEN",
+        "ELEVEN",
+        "TWELVE",
+        "THIRTEEN",
+        "FOURTEEN",
+        "FIFTEEN",
+        "SIXTEEN",
+        "SEVENTEEN",
+        "EIGHTEEN",
+        "NINETEEN",
+
+    ];
+
+
+    const tens = [
+
+        "",
+        "",
+        "TWENTY",
+        "THIRTY",
+        "FORTY",
+        "FIFTY",
+        "SIXTY",
+        "SEVENTY",
+        "EIGHTY",
+        "NINETY",
+
+    ];
+
+
+    const convertBelowThousand = (
+
+        num: number
+
+    ): string => {
 
         if (
-            !Number.isFinite(amount)
+
+            num === 0
+
         ) {
-            return "0.00";
-        }
 
-        return amount.toLocaleString(
-            "en-PH",
-            {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            }
-        );
-    };
-
-
-    /* =====================================================
-       FORMAT FULL NAME
-
-       ALWAYS DISPLAY:
-
-       SURNAME, FIRSTNAME MIDDLE
-
-       Supported input:
-
-       FIRSTNAME MIDDLE SURNAME
-       ->
-       SURNAME, FIRSTNAME MIDDLE
-
-       OR
-
-       SURNAME, FIRSTNAME MIDDLE
-       ->
-       SURNAME, FIRSTNAME MIDDLE
-    ===================================================== */
-
-    const formatFullName = (
-        fullName: string
-    ) => {
-
-        if (!fullName) {
             return "";
-        }
 
-        const cleaned =
-            String(fullName)
-                .replace(/\s+/g, " ")
-                .trim();
-
-        if (!cleaned) {
-            return "";
         }
 
 
-        /*
-         * Already surname-first
-         *
-         * CALINGA, JOHN MARK P.
-         *
-         * Keep as:
-         *
-         * CALINGA, JOHN MARK P.
-         */
+        if (
 
-        if (cleaned.includes(",")) {
+            num < 20
 
-            const commaIndex =
-                cleaned.indexOf(",");
+        ) {
 
-            const surname =
-                cleaned
-                    .substring(
-                        0,
-                        commaIndex
-                    )
-                    .trim();
-
-            const firstMiddle =
-                cleaned
-                    .substring(
-                        commaIndex + 1
-                    )
-                    .trim()
-                    .replace(
-                        /\s+/g,
-                        " "
-                    );
-
-            if (!surname) {
-                return firstMiddle;
-            }
-
-            if (!firstMiddle) {
-                return surname;
-            }
-
-            return `${surname}, ${firstMiddle}`;
-        }
-
-
-        /*
-         * Encoder entered:
-         *
-         * JOHN MARK P. CALINGA
-         *
-         * Convert to:
-         *
-         * CALINGA, JOHN MARK P.
-         */
-
-        const parts =
-            cleaned.split(" ");
-
-
-        /*
-         * Only one name
-         */
-
-        if (parts.length === 1) {
-            return parts[0];
-        }
-
-
-        /*
-         * Last word is treated
-         * as surname.
-         */
-
-        const surname =
-            parts[
-                parts.length - 1
+            return ones[
+                num
             ];
 
-
-        /*
-         * Everything before surname
-         * becomes first name + middle name.
-         */
-
-        const firstMiddle =
-            parts
-                .slice(0, -1)
-                .join(" ")
-                .trim();
-
-
-        if (!firstMiddle) {
-            return surname;
         }
 
 
-        return `${surname}, ${firstMiddle}`;
-    };
+        if (
 
+            num < 100
 
-    /* =====================================================
-       AMOUNT TO WORDS
-    ===================================================== */
-
-    const amountToWords = (
-        value: number
-    ) => {
-
-        const numericValue =
-            Number(value ?? 0);
-
-        const number =
-            Math.floor(
-                numericValue
-            );
-
-        const centavos =
-            Math.round(
-                (
-                    numericValue -
-                    Math.floor(
-                        numericValue
-                    )
-                ) * 100
-            );
-
-
-        const ones = [
-            "ZERO",
-            "ONE",
-            "TWO",
-            "THREE",
-            "FOUR",
-            "FIVE",
-            "SIX",
-            "SEVEN",
-            "EIGHT",
-            "NINE",
-            "TEN",
-            "ELEVEN",
-            "TWELVE",
-            "THIRTEEN",
-            "FOURTEEN",
-            "FIFTEEN",
-            "SIXTEEN",
-            "SEVENTEEN",
-            "EIGHTEEN",
-            "NINETEEN",
-        ];
-
-
-        const tens = [
-            "",
-            "",
-            "TWENTY",
-            "THIRTY",
-            "FORTY",
-            "FIFTY",
-            "SIXTY",
-            "SEVENTY",
-            "EIGHTY",
-            "NINETY",
-        ];
-
-
-        const convertBelowThousand = (
-            num: number
-        ): string => {
-
-            if (num === 0) {
-                return "";
-            }
-
-            if (num < 20) {
-                return ones[num];
-            }
-
-            if (num < 100) {
-
-                return (
-                    tens[
-                        Math.floor(
-                            num / 10
-                        )
-                    ] +
-                    (
-                        num % 10 !== 0
-                            ? ` ${
-                                ones[
-                                    num % 10
-                                ]
-                            }`
-                            : ""
-                    )
-                );
-            }
-
+        ) {
 
             return (
-                `${ones[
+
+                tens[
                     Math.floor(
-                        num / 100
+                        num / 10
                     )
-                ]} HUNDRED` +
+                ]
+
+                +
+
                 (
-                    num % 100 !== 0
+
+                    num % 10 !== 0
+
                         ? ` ${
-                            convertBelowThousand(
-                                num % 100
-                            )
+                            ones[
+                                num % 10
+                            ]
                         }`
+
                         : ""
+
                 )
+
             );
-        };
 
-
-        const convertNumber = (
-            num: number
-        ): string => {
-
-            if (num === 0) {
-                return "ZERO";
-            }
-
-            const parts: string[] = [];
-
-
-            const millions =
-                Math.floor(
-                    num / 1000000
-                );
-
-
-            const thousands =
-                Math.floor(
-                    (
-                        num % 1000000
-                    ) / 1000
-                );
-
-
-            const remainder =
-                num % 1000;
-
-
-            if (millions > 0) {
-
-                parts.push(
-                    `${
-                        convertBelowThousand(
-                            millions
-                        )
-                    } MILLION`
-                );
-            }
-
-
-            if (thousands > 0) {
-
-                parts.push(
-                    `${
-                        convertBelowThousand(
-                            thousands
-                        )
-                    } THOUSAND`
-                );
-            }
-
-
-            if (remainder > 0) {
-
-                parts.push(
-                    convertBelowThousand(
-                        remainder
-                    )
-                );
-            }
-
-
-            return parts.join(" ");
-        };
-
-
-        const pesoWords =
-            convertNumber(number);
+        }
 
 
         return (
-            `${pesoWords} PESOS` +
+
+            `${
+
+                ones[
+                    Math.floor(
+                        num / 100
+                    )
+                ]
+
+            } HUNDRED`
+
+            +
+
             (
-                centavos > 0
-                    ? ` AND ${
-                        convertNumber(
-                            centavos
+
+                num % 100 !== 0
+
+                    ? ` ${
+                        convertBelowThousand(
+                            num % 100
                         )
-                    } CENTAVOS`
+                    }`
+
                     : ""
-            ) +
-            " ONLY"
+
+            )
+
         );
+
     };
 
 
-    /* =====================================================
-       RECEIPT DATE
-    ===================================================== */
+    const convertNumber = (
 
-    const receiptDate =
-        transaction?.receipt_date ??
-        ctc?.issue_date ??
-        transaction?.created_at ??
-        null;
+        num: number
+
+    ): string => {
+
+        if (
+
+            num === 0
+
+        ) {
+
+            return "ZERO";
+
+        }
 
 
-    const formattedDate =
-        formatDate(
-            receiptDate
+        const parts: string[] = [];
+
+
+        const millions =
+
+            Math.floor(
+                num / 1000000
+            );
+
+
+        const thousands =
+
+            Math.floor(
+
+                (
+
+                    num % 1000000
+
+                )
+
+                / 1000
+
+            );
+
+
+        const remainder =
+
+            num % 1000;
+
+
+        if (
+
+            millions > 0
+
+        ) {
+
+            parts.push(
+
+                `${
+
+                    convertBelowThousand(
+                        millions
+                    )
+
+                } MILLION`
+
+            );
+
+        }
+
+
+        if (
+
+            thousands > 0
+
+        ) {
+
+            parts.push(
+
+                `${
+
+                    convertBelowThousand(
+                        thousands
+                    )
+
+                } THOUSAND`
+
+            );
+
+        }
+
+
+        if (
+
+            remainder > 0
+
+        ) {
+
+            parts.push(
+
+                convertBelowThousand(
+                    remainder
+                )
+
+            );
+
+        }
+
+
+        return parts.join(
+            " "
         );
 
-
-    /* =====================================================
-       COLLECTOR
-    ===================================================== */
-
-    const collector =
-        transaction?.collector ??
-        transaction?.collector_name ??
-        "";
+    };
 
 
-    /* =====================================================
-       VALUES
-    ===================================================== */
+    const pesoWords =
 
-    const fullName =
-        ctc?.full_name ??
-        transaction?.payor ??
-        "";
-
-
-    const address =
-        ctc?.address ??
-        "";
-
-
-    const tin =
-        ctc?.tin ??
-        "";
-
-
-    const citizenship =
-        ctc?.citizenship ??
-        "";
-
-
-    const placeOfBirth =
-        ctc?.place_of_birth ??
-        "";
-
-
-    const birthDate =
-        ctc?.birth_date
-            ? formatDate(
-                ctc.birth_date
-            )
-            : "";
-
-
-    const civilStatus =
-        ctc?.civil_status ??
-        "";
-
-
-    const occupation =
-        ctc?.occupation ??
-        "";
-
-
-    const sex =
-        ctc?.sex ??
-        "";
-
-
-    const height =
-        ctc?.height ??
-        "";
-
-
-    const weight =
-        ctc?.weight ??
-        "";
-
-
-    const placeIssued =
-        ctc?.place_issued ??
-        "";
-
-
-    const issueDate =
-        ctc?.issue_date
-            ? formatDate(
-                ctc.issue_date
-            )
-            : formattedDate;
-
-
-    const orNumber =
-        transaction?.or_number ??
-        "";
-
-
-    const basicTax =
-        Number(
-            ctc?.basic_tax ?? 0
+        convertNumber(
+            number
         );
 
-
-    const salaryTax =
-        Number(
-            ctc?.salary_tax ?? 0
-        );
-
-
-    const additionalTax =
-        Number(
-            ctc?.additional_tax ?? 0
-        );
-
-
-    const penalty =
-        Number(
-            ctc?.penalty ?? 0
-        );
-
-
-    const interest =
-        Number(
-            ctc?.interest ?? 0
-        );
-
-
-    const totalAmount =
-        Number(
-            ctc?.total_amount ??
-            transaction?.grand_total ??
-            0
-        );
-
-
-    const taxableAmount =
-        Number(
-            ctc?.taxable_amount ?? 0
-        );
-
-
-    /* =====================================================
-       RENDER
-    ===================================================== */
 
     return (
-        <div className="ctc-print">
 
-            {/* =================================================
-                CTC HEADER
-            ================================================= */}
+        `${pesoWords} PESOS`
 
-            <div className="ctc-header">
+        +
 
-                <div className="ctc-header-left">
+        (
 
-                    <div className="ctc-republic">
-                        REPUBLIC OF THE PHILIPPINES
-                    </div>
+            centavos > 0
 
-                    <div className="ctc-province">
-                        PROVINCE OF PALAWAN
-                    </div>
+                ? ` AND ${
+                    convertNumber(
+                        centavos
+                    )
+                } CENTAVOS`
 
-                    <div className="ctc-municipality">
-                        MUNICIPALITY OF TAYTAY
-                    </div>
+                : ""
 
-                </div>
+        )
 
+        +
 
-                <div className="ctc-title">
+        " ONLY"
 
-                    <div className="ctc-title-main">
-                        COMMUNITY TAX CERTIFICATE
-                    </div>
+    );
 
-                    <div className="ctc-title-sub">
-                        INDIVIDUAL
-                    </div>
+};
 
-                </div>
 
+/* =====================================================
+   RECEIPT DATE
+===================================================== */
 
-                <div className="ctc-header-right">
+const receiptDate =
 
-                    <div>
-                        CTC No.
-                    </div>
+    transaction?.receipt_date ??
 
-                    <strong>
-                        {orNumber}
-                    </strong>
+    ctc?.issue_date ??
 
-                </div>
+    transaction?.created_at ??
 
-            </div>
+    null;
 
 
-            {/* =================================================
-                NAME / ADDRESS
-            ================================================= */}
+const formattedDate =
 
-            <div className="ctc-section">
+    formatDate(
+        receiptDate
+    );
 
-                <div className="ctc-row">
 
-                    <div className="ctc-label">
-                        NAME:
-                    </div>
+/* =====================================================
+   COLLECTOR
 
-                    <div className="ctc-name">
-                        {formatFullName(
-                            fullName
-                        )}
-                    </div>
+   Comes from:
+   dipp_transactions.collector_id
 
-                </div>
+   API should return:
+   collector_user.username AS collector
+===================================================== */
 
+const collector =
 
-                <div className="ctc-row">
+    transaction?.collector ??
 
-                    <div className="ctc-label">
-                        ADDRESS:
-                    </div>
+    transaction?.collector_username ??
 
-                    <div className="ctc-value">
-                        {address}
-                    </div>
+    transaction?.collector_name ??
 
-                </div>
+    transaction?.collector_user?.username ??
 
-            </div>
+    "";
 
 
-            {/* =================================================
-                PERSONAL INFORMATION
-            ================================================= */}
+/* =====================================================
+   USER / ENCODED BY
 
-            <div className="ctc-section">
+   IMPORTANT:
 
-                <div className="ctc-grid">
+   encoded_by = UUID
 
-                    <div className="ctc-field">
+   encoded_by_name / username = DISPLAY VALUE
+===================================================== */
 
-                        <span className="ctc-label">
-                            TIN:
-                        </span>
+const user =
 
-                        <span className="ctc-value">
-                            {tin}
-                        </span>
+    transaction?.encoded_by_name ??
 
-                    </div>
+    transaction?.username ??
 
+    transaction?.encoded_by_username ??
 
-                    <div className="ctc-field">
+    transaction?.encoder_user?.username ??
 
-                        <span className="ctc-label">
-                            CITIZENSHIP:
-                        </span>
+    transaction?.user?.username ??
 
-                        <span className="ctc-value">
-                            {citizenship}
-                        </span>
+    transaction?.user_name ??
 
-                    </div>
+    "";
 
 
-                    <div className="ctc-field">
+/* =====================================================
+   TAX VALUES
+===================================================== */
 
-                        <span className="ctc-label">
-                            SEX:
-                        </span>
+const basicTax =
 
-                        <span className="ctc-value">
-                            {sex}
-                        </span>
+    Number(
+        ctc?.basic_tax ?? 0
+    );
 
-                    </div>
 
+const salaryTax =
 
-                    <div className="ctc-field">
+    Number(
+        ctc?.salary_tax ?? 0
+    );
 
-                        <span className="ctc-label">
-                            HEIGHT:
-                        </span>
 
-                        <span className="ctc-value">
-                            {height}
-                        </span>
+const additionalTax =
 
-                    </div>
+    Number(
+        ctc?.additional_tax ?? 0
+    );
 
 
-                    <div className="ctc-field">
+const taxableAmount =
 
-                        <span className="ctc-label">
-                            WEIGHT:
-                        </span>
+    Number(
+        ctc?.taxable_amount ?? 0
+    );
 
-                        <span className="ctc-value">
-                            {weight}
-                        </span>
 
-                    </div>
+/* =====================================================
+   PENALTY
 
+   DISPLAYED IN THE EXISTING
+   INTEREST POSITION.
+===================================================== */
 
-                    <div className="ctc-field">
+const penalty =
 
-                        <span className="ctc-label">
-                            PLACE OF BIRTH:
-                        </span>
+    Number(
+        ctc?.penalty ?? 0
+    );
 
-                        <span className="ctc-value">
-                            {placeOfBirth}
-                        </span>
 
-                    </div>
+const totalAmount =
 
+    Number(
 
-                    <div className="ctc-field">
+        ctc?.total_amount ??
 
-                        <span className="ctc-label">
-                            DATE OF BIRTH:
-                        </span>
+        transaction?.grand_total ??
 
-                        <span className="ctc-value">
-                            {birthDate}
-                        </span>
+        0
 
-                    </div>
+    );
 
 
-                    <div className="ctc-field">
+const totalAmountInWords =
 
-                        <span className="ctc-label">
-                            CIVIL STATUS:
-                        </span>
+    amountToWords(
+        totalAmount
+    );
 
-                        <span className="ctc-value">
-                            {civilStatus}
-                        </span>
 
-                    </div>
+/* =====================================================
+   FORMAT FULL NAME
 
+   INPUT:
+   FIRST MIDDLE LAST
 
-                    <div className="ctc-field">
+   OUTPUT:
+   LAST, FIRST MIDDLE
+===================================================== */
 
-                        <span className="ctc-label">
-                            PROFESSION/OCCUPATION:
-                        </span>
+const formatFullName = (
 
-                        <span className="ctc-value">
-                            {occupation}
-                        </span>
+    fullName: string
 
-                    </div>
+) => {
 
-                </div>
+    if (!fullName) {
 
-            </div>
+        return "";
 
+    }
 
-            {/* =================================================
-                TAX COMPUTATION
-            ================================================= */}
 
-            <div className="ctc-section">
+    const parts =
 
-                <div className="ctc-section-title">
-                    TAXABLE INCOME
-                </div>
+        fullName
 
+            .trim()
 
-                <div className="ctc-tax-row">
+            .split(
+                /\s+/
+            );
 
-                    <div>
-                        BASIC COMMUNITY TAX
-                    </div>
 
-                    <div>
-                        ₱ {formatAmount(
-                            basicTax
-                        )}
-                    </div>
+    if (
 
-                </div>
+        parts.length === 1
 
+    ) {
 
-                <div className="ctc-tax-row">
+        return parts[0];
 
-                    <div>
-                        ADDITIONAL COMMUNITY TAX
-                    </div>
+    }
 
-                    <div>
-                        ₱ {formatAmount(
-                            additionalTax
-                        )}
-                    </div>
 
-                </div>
+    const firstName =
 
+        parts[0];
 
-                <div className="ctc-tax-row">
 
-                    <div>
-                        SALARY / INCOME TAX
-                    </div>
+    const lastName =
 
-                    <div>
-                        ₱ {formatAmount(
-                            salaryTax
-                        )}
-                    </div>
+        parts[
+            parts.length - 1
+        ];
 
-                </div>
 
+    const middleName =
 
-                <div className="ctc-tax-row">
+        parts
 
-                    <div>
-                        PENALTY
-                    </div>
+            .slice(
+                1,
+                -1
+            )
 
-                    <div>
-                        ₱ {formatAmount(
-                            penalty
-                        )}
-                    </div>
+            .join(
+                " "
+            );
 
-                </div>
 
+    return middleName
 
-                <div className="ctc-tax-row">
+        ? `${lastName}, ${firstName} ${middleName}`
 
-                    <div>
-                        INTEREST
-                    </div>
+        : `${lastName}, ${firstName}`;
 
-                    <div>
-                        ₱ {formatAmount(
-                            interest
-                        )}
-                    </div>
+};
 
-                </div>
 
+return (
 
-                <div className="ctc-total-row">
+    <div
 
-                    <div>
-                        TOTAL
-                    </div>
+        className="ctc-print-page"
 
-                    <div>
-                        ₱ {formatAmount(
-                            totalAmount
-                        )}
-                    </div>
+        style={{
 
-                </div>
+            /* =====================================================
+               GLOBAL FONT CONTROL
+            ===================================================== */
 
-            </div>
+            "--ctc-font-family":
+                "Arial, sans-serif",
 
 
-            {/* =================================================
-                AMOUNT IN WORDS
-            ================================================= */}
+            /* =====================================================
+               YEAR
+            ===================================================== */
 
-            <div className="ctc-section">
+            "--ctc-year-x":
+                "70px",
 
-                <div className="ctc-label">
-                    AMOUNT IN WORDS:
-                </div>
+            "--ctc-year-y":
+                "70px",
 
-                <div className="ctc-amount-words">
-                    {amountToWords(
-                        totalAmount
-                    )}
-                </div>
+            "--ctc-year-font-size":
+                "15px",
 
-            </div>
+            "--ctc-year-font-weight":
+                "600",
 
 
-            {/* =================================================
-                ISSUANCE INFORMATION
-            ================================================= */}
+            /* =====================================================
+               PLACE OF ISSUE
+            ===================================================== */
 
-            <div className="ctc-section">
+            "--ctc-place-issued-x":
+                "115px",
 
-                <div className="ctc-grid">
+            "--ctc-place-issued-y":
+                "70px",
 
-                    <div className="ctc-field">
+            "--ctc-place-issued-font-size":
+                "14px",
 
-                        <span className="ctc-label">
-                            DATE ISSUED:
-                        </span>
+            "--ctc-place-issued-font-weight":
+                "600",
 
-                        <span className="ctc-value">
-                            {issueDate}
-                        </span>
 
-                    </div>
+            /* =====================================================
+               DATE ISSUED
+            ===================================================== */
 
+            "--ctc-date-issued-x":
+                "250px",
 
-                    <div className="ctc-field">
+            "--ctc-date-issued-y":
+                "70px",
 
-                        <span className="ctc-label">
-                            PLACE ISSUED:
-                        </span>
+            "--ctc-date-issued-font-size":
+                "14px",
 
-                        <span className="ctc-value">
-                            {placeIssued}
-                        </span>
+            "--ctc-date-issued-font-weight":
+                "600",
 
-                    </div>
 
+            /* =====================================================
+               FULL NAME
+            ===================================================== */
 
-                    <div className="ctc-field">
+            "--ctc-name-x":
+                "60px",
 
-                        <span className="ctc-label">
-                            RECEIPT DATE:
-                        </span>
+            "--ctc-name-y":
+                "90px",
 
-                        <span className="ctc-value">
-                            {formattedDate}
-                        </span>
+            "--ctc-name-font-size":
+                "14px",
 
-                    </div>
+            "--ctc-name-font-weight":
+                "700",
 
-                </div>
 
-            </div>
+            /* =====================================================
+               ADDRESS
+            ===================================================== */
 
+            "--ctc-address-x":
+                "60px",
 
-            {/* =================================================
-                SIGNATURE
-            ================================================= */}
+            "--ctc-address-y":
+                "109px",
 
-            <div className="ctc-signature-section">
+            "--ctc-address-font-size":
+                "14px",
 
-                <div className="ctc-signature-box">
+            "--ctc-address-font-weight":
+                "400",
 
-                    <div className="ctc-signature-line">
-                        ______________________________
-                    </div>
 
-                    <div className="ctc-signature-label">
-                        TAXPAYER / REPRESENTATIVE
-                    </div>
+            /* =====================================================
+               CITIZENSHIP
+            ===================================================== */
 
-                </div>
+            "--ctc-citizenship-x":
+                "60px",
 
+            "--ctc-citizenship-y":
+                "130px",
 
-                <div className="ctc-signature-box">
+            "--ctc-citizenship-font-size":
+                "14px",
 
-                    <div className="ctc-signature-line">
-                        {collector || "______________________________"}
-                    </div>
+            "--ctc-citizenship-font-weight":
+                "400",
 
-                    <div className="ctc-signature-label">
-                        COLLECTOR
-                    </div>
 
-                </div>
+            /* =====================================================
+               CIVIL STATUS
+            ===================================================== */
 
-            </div>
+            "--ctc-civil-status-x":
+                "25px",
 
+            "--ctc-civil-status-y":
+                "133px",
 
-            {/* =================================================
-                FOOTER
-            ================================================= */}
+            "--ctc-civil-status-font-size":
+                "8px",
 
-            <div className="ctc-footer">
+            "--ctc-civil-status-font-weight":
+                "600",
 
-                <div>
-                    THIS CERTIFICATE IS VALID UNTIL
-                    DECEMBER 31 OF THE CURRENT YEAR.
-                </div>
 
-                <div>
-                    OR NO.: {orNumber}
-                </div>
+            /* =====================================================
+               BIRTH DATE
+            ===================================================== */
 
-            </div>
+            "--ctc-birth-date-x":
+                "405px",
+
+            "--ctc-birth-date-y":
+                "155px",
+
+            "--ctc-birth-date-font-size":
+                "14px",
+
+            "--ctc-birth-date-font-weight":
+                "400",
+
+
+            /* =====================================================
+               PLACE OF BIRTH
+            ===================================================== */
+
+            "--ctc-place-birth-x":
+                "320px",
+
+            "--ctc-place-birth-y":
+                "130px",
+
+            "--ctc-place-birth-font-size":
+                "14px",
+
+            "--ctc-place-birth-font-weight":
+                "400",
+
+
+            /* =====================================================
+               SEX
+            ===================================================== */
+
+            "--ctc-sex-x":
+                "355px",
+
+            "--ctc-sex-y":
+                "133px",
+
+            "--ctc-sex-font-size":
+                "9px",
+
+            "--ctc-sex-font-weight":
+                "700",
+
+
+            /* =====================================================
+               HEIGHT
+            ===================================================== */
+
+            "--ctc-height-x":
+                "495px",
+
+            "--ctc-height-y":
+                "130px",
+
+            "--ctc-height-font-size":
+                "14px",
+
+            "--ctc-height-font-weight":
+                "400",
+
+
+            /* =====================================================
+               WEIGHT
+            ===================================================== */
+
+            "--ctc-weight-x":
+                "495px",
+
+            "--ctc-weight-y":
+                "155px",
+
+            "--ctc-weight-font-size":
+                "14px",
+
+            "--ctc-weight-font-weight":
+                "400",
+
+
+            /* =====================================================
+               OCCUPATION
+            ===================================================== */
+
+            "--ctc-occupation-x":
+                "60px",
+
+            "--ctc-occupation-y":
+                "175px",
+
+            "--ctc-occupation-font-size":
+                "14px",
+
+            "--ctc-occupation-font-weight":
+                "400",
+
+
+            /* =====================================================
+               CR NUMBER
+            ===================================================== */
+
+            "--ctc-cr-number-x":
+                "310px",
+
+            "--ctc-cr-number-y":
+                "160px",
+
+            "--ctc-cr-number-font-size":
+                "9px",
+
+            "--ctc-cr-number-font-weight":
+                "600",
+
+
+            /* =====================================================
+               BASIC TAX
+            ===================================================== */
+
+            "--ctc-basic-tax-x":
+                "440px",
+
+            "--ctc-basic-tax-y":
+                "190px",
+
+            "--ctc-basic-tax-font-size":
+                "14px",
+
+            "--ctc-basic-tax-font-weight":
+                "600",
+
+
+            
+            /*
+            * =====================================================
+            * SALARY TAX
+            * =====================================================
+            */
+
+            "--ctc-salary-tax-x":
+                "460px",
+
+            "--ctc-salary-tax-y":
+                "250px",
+
+            "--ctc-salary-tax-font-size":
+                "14px",
+
+            "--ctc-salary-tax-font-weight":
+                "600",
+
+
+            /* =====================================================
+               ADDITIONAL TAX
+            ===================================================== */
+
+            "--ctc-additional-tax-x":
+                "430px",
+
+            "--ctc-additional-tax-y":
+                "220px",
+
+            "--ctc-additional-tax-font-size":
+                "10px",
+
+            "--ctc-additional-tax-font-weight":
+                "600",
+
+
+            /* =====================================================
+               TAXABLE AMOUNT
+            ===================================================== */
+
+            "--ctc-taxable-amount-x":
+                "380px",
+
+            "--ctc-taxable-amount-y":
+                "250px",
+
+            "--ctc-taxable-amount-font-size":
+                "14px",
+
+            "--ctc-taxable-amount-font-weight":
+                "600",
+
+
+            /* =====================================================
+               SALARY TAX
+            ===================================================== */
+
+           
+
+            /* =====================================================
+               TOTAL
+            ===================================================== */
+
+            "--ctc-total-x":
+                "460px",
+
+            "--ctc-total-y":
+                "295px",
+
+            "--ctc-total-font-size":
+                "14px",
+
+            "--ctc-total-font-weight":
+                "700",
+
+
+            /* =====================================================
+               PENALTY
+            ===================================================== */
+
+            "--ctc-interest-x":
+                "450px",
+
+            "--ctc-interest-y":
+                "320px",
+
+            "--ctc-interest-font-size":
+                "14px",
+
+            "--ctc-interest-font-weight":
+                "600",
+
+
+            /* =====================================================
+               TOTAL AMOUNT PAID
+            ===================================================== */
+
+            "--ctc-total-paid-x":
+                "460px",
+
+            "--ctc-total-paid-y":
+                "350px",
+
+            "--ctc-total-paid-font-size":
+                "14px",
+
+            "--ctc-total-paid-font-weight":
+                "700",
+
+
+            /* =====================================================
+               TREASURER
+            ===================================================== */
+
+            "--ctc-treasurer-x":
+                "190px",
+
+            "--ctc-treasurer-y":
+                "357px",
+
+            "--ctc-treasurer-font-size":
+                "15px",
+
+            "--ctc-treasurer-font-weight":
+                "700",
+
+
+            /* =====================================================
+               DATE / COLLECTOR / USER
+
+               ONE SINGLE LINE
+            ===================================================== */
+
+            "--ctc-info-line-x":
+                "220px",
+
+            "--ctc-info-line-y":
+                "400px",
+
+            "--ctc-info-line-font-size":
+                "10px",
+
+            "--ctc-info-line-font-weight":
+                "400",
+
+            "--ctc-info-line-gap":
+                "18px",
+
+
+            /* =====================================================
+               AMOUNT IN WORDS
+            ===================================================== */
+
+            "--ctc-amount-words-x":
+                "430px",
+
+            "--ctc-amount-words-y":
+                "375px",
+
+            "--ctc-amount-words-width":
+                "150px",
+
+            "--ctc-amount-words-height":
+                "28px",
+
+            "--ctc-amount-words-line-height":
+                "14px",
+
+            "--ctc-amount-words-font-size":
+                "10px",
+
+            "--ctc-amount-words-font-weight":
+                "600",
+
+        } as React.CSSProperties}
+
+    >
+
+
+        {/* =====================================================
+            YEAR
+        ===================================================== */}
+
+        <div className="ctc-year">
+
+            {
+
+                receiptDate
+
+                    ? String(
+
+                        new Date(
+                            receiptDate
+                        ).getFullYear()
+
+                    ).slice(
+                        -2
+                    )
+
+                    : ""
+
+            }
 
         </div>
-    );
+
+
+        {/* =====================================================
+            PLACE ISSUED
+        ===================================================== */}
+
+        <div className="ctc-place-issued">
+
+            {
+
+                ctc?.place_issued ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            DATE ISSUED
+        ===================================================== */}
+
+        <div className="ctc-date-issued">
+
+            {
+
+                receiptDate
+
+                    ? new Date(
+
+                        receiptDate
+
+                    ).toLocaleDateString(
+
+                        "en-US",
+
+                        {
+
+                            month: "2-digit",
+
+                            day: "2-digit",
+
+                            year: "numeric",
+
+                        }
+
+                    )
+
+                    : ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            FULL NAME
+        ===================================================== */}
+
+        <div className="ctc-name">
+
+            {
+
+                formatFullName(
+
+                    ctc?.full_name ??
+
+                    transaction?.payor ??
+
+                    ""
+
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            ADDRESS
+        ===================================================== */}
+
+        <div className="ctc-address">
+
+            {
+
+                ctc?.address
+
+                    ? `${ctc.address}, TAYTAY, PALAWAN`
+
+                    : "TAYTAY, PALAWAN"
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            CITIZENSHIP
+        ===================================================== */}
+
+        <div className="ctc-citizenship">
+
+            {
+
+                ctc?.citizenship ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            BIRTH DATE
+        ===================================================== */}
+
+        <div className="ctc-birth-date">
+
+            {
+
+                ctc?.birth_date
+
+                    ? new Date(
+
+                        ctc.birth_date
+
+                    ).toLocaleDateString(
+
+                        "en-US",
+
+                        {
+
+                            month: "2-digit",
+
+                            day: "2-digit",
+
+                            year: "numeric",
+
+                        }
+
+                    )
+
+                    : ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            PLACE OF BIRTH
+        ===================================================== */}
+
+        <div className="ctc-place-birth">
+
+            {
+
+                ctc?.place_of_birth ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            HEIGHT
+        ===================================================== */}
+
+        <div className="ctc-height">
+
+            {
+
+                ctc?.height ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            WEIGHT
+        ===================================================== */}
+
+        <div className="ctc-weight">
+
+            {
+
+                ctc?.weight ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            OCCUPATION
+        ===================================================== */}
+
+        <div className="ctc-occupation">
+
+            {
+
+                ctc?.occupation ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            CR NUMBER
+        ===================================================== */}
+
+        <div className="ctc-cr-number">
+
+            {
+
+                ctc?.cr_number ??
+
+                ""
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            BASIC TAX
+        ===================================================== */}
+
+        <div className="ctc-basic-tax">
+
+            ₱{
+
+                formatAmount(
+                    basicTax
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            SALARY TAX
+        ===================================================== */}
+
+        <div className="ctc-salary-tax">
+
+            ₱{
+
+                formatAmount(
+                    salaryTax
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            TAXABLE AMOUNT
+        ===================================================== */}
+
+        <div className="ctc-taxable-amount">
+
+            ₱{
+
+                formatAmount(
+                    taxableAmount
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            TOTAL TAX
+        ===================================================== */}
+
+        <div className="ctc-total">
+
+            ₱{
+
+                formatAmount(
+
+                    basicTax +
+
+                    additionalTax +
+
+                    salaryTax
+
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            PENALTY
+        ===================================================== */}
+
+        <div className="ctc-interest">
+
+            ₱{
+
+                formatAmount(
+                    penalty
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            TOTAL PAID
+        ===================================================== */}
+
+        <div className="ctc-total-paid">
+
+            ₱{
+
+                formatAmount(
+                    totalAmount
+                )
+
+            }
+
+        </div>
+
+
+        {/* =====================================================
+            TREASURER
+        ===================================================== */}
+
+        <div className="ctc-treasurer">
+
+            IMLYN B. PARAPINA
+
+        </div>
+
+
+        {/* =====================================================
+            DATE / COLLECTOR / USER
+
+            ONE SINGLE LINE
+        ===================================================== */}
+
+        <div className="ctc-info-line">
+
+
+            <span className="ctc-info-date">
+
+                {
+
+                    formattedDate
+
+                }
+
+            </span>
+
+
+            {/* <span className="ctc-info-collector">
+
+                {
+
+                    collector
+
+                }
+
+            </span> */}
+
+
+            <span className="ctc-info-user">
+
+                {
+
+                    user
+
+                }
+
+            </span>
+
+
+        </div>
+
+
+        {/* =====================================================
+            AMOUNT IN WORDS
+        ===================================================== */}
+
+        <div className="ctc-amount-words">
+
+            {
+
+                totalAmountInWords
+
+            }
+
+        </div>
+
+
+    </div>
+
+);
+
 }
