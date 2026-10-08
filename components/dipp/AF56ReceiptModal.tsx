@@ -408,8 +408,7 @@ export default function AF56ReceiptModal({
 
                 const res =
                     await axios.post(
-
-                        "/api/dipp/transactions/rpt",
+                            "/api/dipp/af56",
 
                         {
 
