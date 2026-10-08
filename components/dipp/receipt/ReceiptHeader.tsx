@@ -36,16 +36,16 @@ export default function ReceiptHeader({
                  */
 
                 "--receipt-date-x": "245px",
-                "--receipt-date-y": "175px",
+                "--receipt-date-y": "215px",
 
                 "--receipt-agency-x": "96px",
-                "--receipt-agency-y": "205px",
+                "--receipt-agency-y": "245px",
 
                 "--receipt-fund-x": "310px",
-                "--receipt-fund-y": "205px",
+                "--receipt-fund-y": "245px",
 
                 "--receipt-payor-x": "96px",
-                "--receipt-payor-y": "225px",
+                "--receipt-payor-y": "265px",
 
             } as React.CSSProperties}
         >

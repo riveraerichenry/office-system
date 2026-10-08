@@ -32,7 +32,7 @@ export default function ReceiptItems({
 
                 "--receipt-nature-x": "50px",
 
-                "--receipt-nature-y": "300px",
+                "--receipt-nature-y": "340px",
 
                 "--receipt-nature-width": "140px",
 
@@ -43,7 +43,7 @@ export default function ReceiptItems({
 
                 "--receipt-account-code-x": "200px",
 
-                "--receipt-account-code-y": "300px",
+                "--receipt-account-code-y": "340px",
 
 
                 /* =====================================================
@@ -56,7 +56,7 @@ export default function ReceiptItems({
 
                 "--receipt-remarks-x": "200px",
 
-                "--receipt-remarks-y": "312px",
+                "--receipt-remarks-y": "352px",
 
                 "--receipt-remarks-width": "70px",
 
@@ -67,7 +67,7 @@ export default function ReceiptItems({
 
                 "--receipt-item-amount-x": "270px",
 
-                "--receipt-item-amount-y": "300px",
+                "--receipt-item-amount-y": "340px",
 
 
                 /* =====================================================

@@ -308,7 +308,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-remarks-x": "45px",
-                "--receipt-remarks-y": "410px",
+                "--receipt-remarks-y": "450px",
                 "--receipt-remarks-width": "100px",
 
 
@@ -317,7 +317,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-total-x": "230px",
-                "--receipt-total-y": "460px",
+                "--receipt-total-y": "500px",
 
 
                 /* =====================================================
@@ -325,7 +325,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-words-x": "50px",
-                "--receipt-words-y": "505px",
+                "--receipt-words-y": "545px",
 
 
                 /* =====================================================
@@ -333,7 +333,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-collector-x": "30px",
-                "--receipt-collector-y": "630px",
+                "--receipt-collector-y": "670px",
 
 
                 /* =====================================================
@@ -341,7 +341,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-collector-first-name-x": "50px",
-                "--receipt-collector-first-name-y": "680px",
+                "--receipt-collector-first-name-y": "740px",
 
 
                 /* =====================================================
@@ -349,7 +349,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-transaction-datetime-x": "30px",
-                "--receipt-transaction-datetime-y": "690px",
+                "--receipt-transaction-datetime-y": "750px",
 
 
                 /* =====================================================
@@ -357,7 +357,7 @@ export default function ReceiptFooter({
                 ===================================================== */
 
                 "--receipt-treasurer-x": "200px",
-                "--receipt-treasurer-y": "630px",
+                "--receipt-treasurer-y": "670px",
 
             } as React.CSSProperties}
         >
