@@ -614,74 +614,97 @@ const totalAmountInWords =
 ===================================================== */
 
 const formatFullName = (
-
     fullName: string
-
 ) => {
 
     if (!fullName) {
-
         return "";
-
     }
 
+    const cleaned =
+        fullName
+            .trim()
+            .replace(/\s+/g, " ");
+
+    if (!cleaned) {
+        return "";
+    }
+
+    /*
+     * CASE 1:
+     *
+     * RIVERA, ERIC HENRY P.
+     *
+     * Keep:
+     *
+     * RIVERA, ERIC HENRY P.
+     */
+
+    if (cleaned.indexOf(",") !== -1) {
+
+        const commaIndex =
+            cleaned.indexOf(",");
+
+        const surname =
+            cleaned
+                .substring(
+                    0,
+                    commaIndex
+                )
+                .trim();
+
+        const firstMiddle =
+            cleaned
+                .substring(
+                    commaIndex + 1
+                )
+                .trim()
+                .replace(
+                    /\s+/g,
+                    " "
+                );
+
+        if (!surname) {
+            return firstMiddle;
+        }
+
+        if (!firstMiddle) {
+            return surname;
+        }
+
+        return `${surname}, ${firstMiddle}`;
+    }
+
+
+    /*
+     * CASE 2:
+     *
+     * ERIC HENRY P. RIVERA
+     *
+     * Convert to:
+     *
+     * RIVERA, ERIC HENRY P.
+     */
 
     const parts =
+        cleaned.split(/\s+/);
 
-        fullName
-
-            .trim()
-
-            .split(
-                /\s+/
-            );
-
-
-    if (
-
-        parts.length === 1
-
-    ) {
-
+    if (parts.length === 1) {
         return parts[0];
-
     }
 
-
-    const firstName =
-
-        parts[0];
-
-
-    const lastName =
-
+    const surname =
         parts[
             parts.length - 1
         ];
 
-
-    const middleName =
-
+    const firstMiddle =
         parts
+            .slice(0, -1)
+            .join(" ");
 
-            .slice(
-                1,
-                -1
-            )
-
-            .join(
-                " "
-            );
-
-
-    return middleName
-
-        ? `${lastName}, ${firstName} ${middleName}`
-
-        : `${lastName}, ${firstName}`;
-
+    return `${surname}, ${firstMiddle}`;
 };
-
 
 return (
 
