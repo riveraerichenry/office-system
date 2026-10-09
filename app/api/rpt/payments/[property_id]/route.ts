@@ -1,204 +1,157 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
+type RouteContext = {
+  params: Promise<{
+    property_id: string;
+  }>;
+};
+
 export async function GET(
-    req: NextRequest,
-    context: {
-        params: Promise<{
-            property_id: string;
-        }>;
-    }
+  _req: NextRequest,
+  context: RouteContext
 ) {
-    try {
-        const { property_id } = await context.params;
+  const client = await pool.connect();
 
-        if (!property_id) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "Property ID is required.",
-                },
-                {
-                    status: 400,
-                }
-            );
-        }
+  try {
+    const { property_id } = await context.params;
+    const propertyPin = decodeURIComponent(property_id || "").trim();
 
-        const propertyId = decodeURIComponent(property_id);
-
-        console.log(
-            "========== RPT PAYMENT HISTORY =========="
-        );
-        console.log("PROPERTY ID:", propertyId);
-        console.log("==========================================");
-
-        /*
-         * ============================================================
-         * RPT PAYMENT HISTORY
-         * ============================================================
-         *
-         * MAIN SOURCE:
-         *
-         *     rpt_payment_items
-         *
-         * All payment-history details such as:
-         *
-         *     TD Number
-         *     Owner
-         *     Property Location
-         *     Assessed Value
-         *     Coverage
-         *     Basic
-         *     SEF
-         *     Penalty
-         *     Discount
-         *     Amount
-         *     Tax Due
-         *     Billing Number
-         *
-         * come from rpt_payment_items.
-         *
-         * rpt_payment is only joined using transaction_id so we can:
-         *
-         *     1. Identify the payment transaction
-         *     2. Filter by property_id
-         *     3. Make sure the payment is PAID
-         *     4. Exclude cancelled payments
-         *     5. Get payment_date
-         *     6. Get taxpayer_name
-         *
-         * Relationship:
-         *
-         *     rpt_payment.transaction_id
-         *              =
-         *     rpt_payment_items.transaction_id
-         *
-         * ============================================================
-         */
-
-        const result = await pool.query(
-            `
-            SELECT
-                /* ====================================================
-                 * rpt_payment_items
-                 * MAIN PAYMENT HISTORY DATA
-                 * ====================================================
-                 */
-                rpi.id,
-                rpi.transaction_id,
-                rpi.billing_id,
-                rpi.tax_declaration_id,
-
-                rpi.td_number,
-                rpi.declared_owner,
-                rpi.property_location,
-
-                rpi.assessed_value,
-
-                rpi.start_quarter,
-                rpi.start_year,
-                rpi.end_quarter,
-                rpi.end_year,
-
-                rpi.basic,
-                rpi.sef,
-                rpi.penalty,
-                rpi.discount,
-                rpi.amount,
-
-                rpi.created_at,
-
-                rpi.tax_due,
-                rpi.billing_number,
-                rpi.billing_item_id,
-                rpi.account_id,
-
-                /* ====================================================
-                 * rpt_payment
-                 * PAYMENT HEADER / FILTER DATA ONLY
-                 * ====================================================
-                 */
-                rp.payment_date,
-                rp.taxpayer_name,
-                rp.status
-
-            FROM rpt_payment_items rpi
-
-            INNER JOIN rpt_payment rp
-                ON rp.transaction_id = rpi.transaction_id
-
-            WHERE
-                rp.property_id = $1
-                AND rp.is_cancelled = FALSE
-                AND rp.status = 'PAID'
-
-            ORDER BY
-                rpi.start_year DESC,
-                rpi.start_quarter DESC,
-                rp.payment_date DESC,
-                rpi.created_at DESC
-            `,
-            [propertyId]
-        );
-
-        /*
-         * ============================================================
-         * TOTAL PAID
-         * ============================================================
-         *
-         * Calculate from rpt_payment_items.amount.
-         *
-         * DO NOT use rpt_payment.total_amount here because the
-         * payment-history records are item-based.
-         *
-         * ============================================================
-         */
-
-        const totalPaid = result.rows.reduce(
-            (total, item) => {
-                return total + Number(item.amount || 0);
-            },
-            0
-        );
-
-        console.log(
-            "PAYMENT ITEMS FOUND:",
-            result.rows.length
-        );
-
-        console.log(
-            "TOTAL PAID:",
-            totalPaid
-        );
-
-        /*
-         * ============================================================
-         * RESPONSE
-         * ============================================================
-         */
-
-        return NextResponse.json({
-            success: true,
-            property_id: propertyId,
-            count: result.rows.length,
-            total_paid: totalPaid,
-            data: result.rows,
-        });
-
-    } catch (error) {
-        console.error(
-            "RPT PAYMENT HISTORY ERROR:",
-            error
-        );
-
-        return NextResponse.json(
-            {
-                success: false,
-                message: "Failed to load payment history.",
-            },
-            {
-                status: 500,
-            }
-        );
+    if (!propertyPin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Property PIN is required.",
+        },
+        { status: 400 }
+      );
     }
+
+    console.log("==========================================");
+    console.log("RPT PAYMENT HISTORY");
+    console.log("PROPERTY PIN:", propertyPin);
+    console.log("==========================================");
+
+    const result = await client.query(
+      `
+      SELECT
+        rpi.id,
+        rpi.payment_id,
+        rpi.transaction_id,
+        rpi.billing_id,
+        rpi.tax_declaration_id,
+        rpi.td_number,
+        rpi.declared_owner,
+        rpi.property_location,
+        rpi.assessed_value,
+        rpi.start_quarter,
+        rpi.start_year,
+        rpi.end_quarter,
+        rpi.end_year,
+        rpi.basic,
+        rpi.sef,
+        rpi.penalty,
+        rpi.discount,
+        rpi.amount,
+        rpi.tax_due,
+        rpi.billing_number,
+        rpi.billing_item_id,
+        rpi.account_id,
+        rpi.created_at AS item_created_at,
+
+        rp.id AS rpt_payment_id,
+        rp.property_id,
+        rp.tdno,
+        rp.payment_date,
+        rp.taxpayer_name,
+        rp.payor,
+        rp.total_amount,
+        rp.status
+
+      FROM rpt_payment_items rpi
+
+      INNER JOIN LATERAL (
+        SELECT
+          p.id,
+          p.property_id,
+          p.transaction_id,
+          p.tdno,
+          p.payment_date,
+          p.taxpayer_name,
+          p.payor,
+          p.total_amount,
+          p.status,
+          p.is_cancelled
+
+        FROM rpt_payment p
+
+        WHERE
+          p.property_id = $1
+          AND p.is_cancelled = FALSE
+          AND UPPER(COALESCE(p.status, 'PAID')) = 'PAID'
+          AND (
+            p.id = rpi.payment_id
+            OR (
+              p.transaction_id IS NOT NULL
+              AND p.transaction_id = rpi.transaction_id
+            )
+          )
+
+        ORDER BY
+          CASE
+            WHEN p.id = rpi.payment_id THEN 1
+            ELSE 2
+          END,
+          p.payment_date DESC
+
+        LIMIT 1
+      ) rp ON TRUE
+
+      ORDER BY
+    rpi.start_year DESC NULLS LAST,
+    rpi.start_quarter DESC NULLS LAST,
+    rp.payment_date DESC,
+    rpi.created_at DESC;
+      `,
+      [propertyPin]
+    );
+
+    const payments = result.rows;
+
+    const totalPaid = payments.reduce(
+      (total, payment) =>
+        total + Number(payment.amount || 0),
+      0
+    );
+
+    console.log("PAYMENT ITEMS FOUND:", payments.length);
+    console.log("TOTAL PAID:", totalPaid);
+    console.log("==========================================");
+
+    return NextResponse.json(
+      {
+        success: true,
+        property_id: propertyPin,
+        count: payments.length,
+        total_paid: totalPaid,
+        data: payments,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("RPT PAYMENT HISTORY ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to retrieve RPT payment history.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    client.release();
+  }
 }

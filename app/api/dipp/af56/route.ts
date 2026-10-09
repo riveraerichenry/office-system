@@ -498,7 +498,8 @@ export async function POST(req: NextRequest) {
                         tax_due,
                         billing_number,
                         billing_item_id,
-                        account_id
+                        account_id,
+                        collector_id
                     )
                     VALUES (
                         $1,
@@ -521,7 +522,8 @@ export async function POST(req: NextRequest) {
                         $17,
                         $18,
                         $19,
-                        $20
+                        $20,
+                        $21
                     )
                 `,
                 [
@@ -588,6 +590,9 @@ export async function POST(req: NextRequest) {
                     item.id ?? null,
 
                     item.account_id ?? null,
+
+                    // ADDED: current logged-in user's ID
+                    user.id,
                 ]
             );
         }
