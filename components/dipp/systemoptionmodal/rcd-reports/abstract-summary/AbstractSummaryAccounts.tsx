@@ -17,38 +17,47 @@ type Props = {
    DATE
 ============================================================ */
 
-function formatDate(
-    value: any
-): string {
 
+function formatDate(value: any): string {
     if (!value) {
         return "—";
     }
 
+    const dateOnly = String(value).substring(0, 10);
+    const parts = dateOnly.split("-");
+
+    if (parts.length !== 3) {
+        return String(value);
+    }
+
+    const [year, month, day] = parts;
+
+    const yearNumber = Number(year);
+    const monthNumber = Number(month);
+    const dayNumber = Number(day);
+
     const date = new Date(
-        `${String(value).substring(
-            0,
-            10
-        )}T00:00:00`
+        yearNumber,
+        monthNumber - 1,
+        dayNumber
     );
 
     if (
-        Number.isNaN(
-            date.getTime()
-        )
+        Number.isNaN(date.getTime()) ||
+        date.getFullYear() !== yearNumber ||
+        date.getMonth() !== monthNumber - 1 ||
+        date.getDate() !== dayNumber
     ) {
         return String(value);
     }
 
-    return date.toLocaleDateString(
-        "en-PH",
-        {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-        }
-    );
+    return date.toLocaleDateString("en-PH", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
+    });
 }
+
 
 
 /* ============================================================

@@ -20,39 +20,51 @@ type Props = {
 };
 
 
+
 function formatDate(
     value?: string | null
 ): string {
-
     if (!value) {
         return "—";
     }
 
-    const date =
-        new Date(
-            `${String(value).substring(
-                0,
-                10
-            )}T00:00:00`
-        );
+    // Preserve the date portion without timezone conversion.
+    const dateOnly = String(value).substring(0, 10);
+    const parts = dateOnly.split("-");
 
+    if (parts.length !== 3) {
+        return String(value);
+    }
+
+    const [year, month, day] = parts;
+
+    const yearNumber = Number(year);
+    const monthNumber = Number(month);
+    const dayNumber = Number(day);
+
+    const date = new Date(
+        yearNumber,
+        monthNumber - 1,
+        dayNumber
+    );
+
+    // Validate the calendar date.
     if (
-        Number.isNaN(
-            date.getTime()
-        )
+        Number.isNaN(date.getTime()) ||
+        date.getFullYear() !== yearNumber ||
+        date.getMonth() !== monthNumber - 1 ||
+        date.getDate() !== dayNumber
     ) {
         return String(value);
     }
 
-    return date.toLocaleDateString(
-        "en-PH",
-        {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        }
-    );
+    return date.toLocaleDateString("en-PH", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
 }
+
 
 
 function formatAmount(

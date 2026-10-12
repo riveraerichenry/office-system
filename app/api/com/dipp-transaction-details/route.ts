@@ -48,226 +48,138 @@ function getAuthenticatedUserId(req: NextRequest): string | null {
 
 export async function GET(req: NextRequest) {
     try {
-        await authorize(
-            req,
-            MODULE_PATHS.DIPP,
-            "view"
-        );
+        // Authorize using COM view permission.
+        // DIPP does not need to be assigned to the user.
+        await authorize(req, "/com", "view");
 
-        const { searchParams } =
-            new URL(req.url);
-
-        const id =
-            searchParams.get("id");
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
 
         if (!id) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Transaction ID is required.",
+                    message: "Transaction ID is required.",
                 },
-                {
-                    status: 400,
-                }
+                { status: 400 }
             );
         }
 
-        /* ========================================================
-           TRANSACTION HEADER
-        ======================================================== */
+        // Transaction header
+        const headerResult = await pool.query(
+            `
+            SELECT
+                dt.id,
+                dt.or_number,
+                dt.receipt_date,
+                dt.booklet_registration_id,
+                dt.lor_release_id,
+                dt.accountable_form_id,
+                dt.collector_id,
+                dt.payor,
+                dt.payment_mode,
+                dt.remarks,
+                dt.grand_total,
+                dt.status,
+                dt.is_cancelled,
+                dt.cancelled_at,
+                dt.cancelled_by,
+                dt.created_at,
+                dt.updated_at,
+                dt.remittance_id,
+                dt.encoded_by,
+                dt.updated_by,
+                dt.posted_by,
+                dt.posted_at,
+                dt.billing_id,
+                dt.transaction_type,
+                dt.is_remitted,
+                dt.gender,
+                dt.payment,
 
-        const headerResult =
-            await pool.query(
-                `
-                SELECT
-                    dt.id,
+                af.form_code,
+                af.form_name,
 
-                    dt.or_number,
-                    dt.receipt_date,
+                collector.full_name AS collector_name,
+                encoder.full_name AS encoded_by_name,
+                cancelled_user.full_name AS cancelled_by_name,
 
-                    dt.booklet_registration_id,
-                    dt.lor_release_id,
-                    dt.accountable_form_id,
-                    dt.collector_id,
+                lr.lor_no,
+                lr.fund_source_id,
 
-                    dt.payor,
-                    dt.payment_mode,
-                    dt.remarks,
-                    dt.grand_total,
+                fs.fund_code,
+                fs.fund_name,
+                fs.acronym AS fund_acronym
 
-                    dt.status,
+            FROM dipp_transactions dt
 
-                    dt.is_cancelled,
-                    dt.cancelled_at,
-                    dt.cancelled_by,
+            LEFT JOIN accountable_forms af
+                ON af.id = dt.accountable_form_id
 
-                    dt.created_at,
-                    dt.updated_at,
+            LEFT JOIN users collector
+                ON collector.id = dt.collector_id
 
-                    dt.remittance_id,
+            LEFT JOIN users encoder
+                ON encoder.id = dt.encoded_by
 
-                    dt.encoded_by,
-                    dt.updated_by,
-                    dt.posted_by,
-                    dt.posted_at,
+            LEFT JOIN users cancelled_user
+                ON cancelled_user.id = dt.cancelled_by
 
-                    dt.billing_id,
-                    dt.transaction_type,
-                    dt.is_remitted,
+            LEFT JOIN lor_releases lr
+                ON lr.id = dt.lor_release_id
 
-                    dt.gender,
-                    dt.payment,
+            LEFT JOIN fund_sources fs
+                ON fs.id = lr.fund_source_id
 
-                    /* ==================================================
-                       ACCOUNTABLE FORM
-                    ================================================== */
+            WHERE dt.id = $1
+            LIMIT 1
+            `,
+            [id]
+        );
 
-                    af.form_code,
-                    af.form_name,
-
-                    /* ==================================================
-                       COLLECTOR
-                    ================================================== */
-
-                    collector.full_name
-                        AS collector_name,
-
-                    /* ==================================================
-                       ENCODER
-                    ================================================== */
-
-                    encoder.full_name
-                        AS encoded_by_name,
-
-                    /* ==================================================
-                       CANCELLATION USER
-                    ================================================== */
-
-                    cancelled_user.full_name
-                        AS cancelled_by_name,
-
-                    /* ==================================================
-                       LOR
-                    ================================================== */
-
-                    lr.lor_no,
-
-                    lr.fund_source_id,
-
-                    /* ==================================================
-                       FUND SOURCE
-                    ================================================== */
-
-                    fs.fund_code,
-
-                    fs.fund_name,
-
-                    fs.acronym
-                        AS fund_acronym
-
-                FROM dipp_transactions dt
-
-                LEFT JOIN accountable_forms af
-                    ON af.id =
-                       dt.accountable_form_id
-
-                LEFT JOIN users collector
-                    ON collector.id =
-                       dt.collector_id
-
-                LEFT JOIN users encoder
-                    ON encoder.id =
-                       dt.encoded_by
-
-                LEFT JOIN users cancelled_user
-                    ON cancelled_user.id =
-                       dt.cancelled_by
-
-                LEFT JOIN lor_releases lr
-                    ON lr.id =
-                       dt.lor_release_id
-
-                LEFT JOIN fund_sources fs
-                    ON fs.id =
-                       lr.fund_source_id
-
-                WHERE dt.id = $1
-
-                LIMIT 1
-                `,
-                [id]
-            );
-
-        if (
-            headerResult.rows.length === 0
-        ) {
+        if (headerResult.rows.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "DIPP transaction not found.",
+                    message: "DIPP transaction not found.",
                 },
-                {
-                    status: 404,
-                }
+                { status: 404 }
             );
         }
 
-        const header =
-            headerResult.rows[0];
+        const header = headerResult.rows[0];
 
-        /* ========================================================
-           TRANSACTION ITEMS
-        ======================================================== */
+        // Transaction items
+        const itemsResult = await pool.query(
+            `
+            SELECT
+                dti.id,
+                dti.transaction_id,
+                dti.account_id,
+                a.account_code,
+                a.account_name,
+                dti.amount,
+                dti.remarks
 
-        const itemsResult =
-            await pool.query(
-                `
-                SELECT
-                    dti.id,
+            FROM dipp_transaction_items dti
 
-                    dti.transaction_id,
+            LEFT JOIN accounts a
+                ON a.id = dti.account_id
 
-                    dti.account_id,
-
-                    a.account_code,
-
-                    a.account_name,
-
-                    dti.amount,
-
-                    dti.remarks
-
-                FROM dipp_transaction_items dti
-
-                LEFT JOIN accounts a
-                    ON a.id =
-                       dti.account_id
-
-                WHERE dti.transaction_id = $1
-
-                ORDER BY
-                    dti.id ASC
-                `,
-                [id]
-            );
+            WHERE dti.transaction_id = $1
+            ORDER BY dti.id ASC
+            `,
+            [id]
+        );
 
         return NextResponse.json(
             {
                 success: true,
-
                 header,
-
-                items:
-                    itemsResult.rows,
-
-                count:
-                    itemsResult.rows.length,
+                items: itemsResult.rows,
+                count: itemsResult.rows.length,
             },
-            {
-                status: 200,
-            }
+            { status: 200 }
         );
     } catch (error: any) {
         console.error(
@@ -275,16 +187,32 @@ export async function GET(req: NextRequest) {
             error
         );
 
+        const message =
+            error?.message ??
+            "Failed to load DIPP transaction details.";
+
+        if (
+            message === "FORBIDDEN" ||
+            message === "Unauthorized"
+        ) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "You do not have permission to view this transaction.",
+                },
+                {
+                    status:
+                        message === "FORBIDDEN" ? 403 : 401,
+                }
+            );
+        }
+
         return NextResponse.json(
             {
                 success: false,
-                message:
-                    error?.message ??
-                    "Failed to load DIPP transaction details.",
+                message,
             },
-            {
-                status: 500,
-            }
+            { status: 500 }
         );
     }
 }
