@@ -1,7 +1,10 @@
+
 "use client";
 
 type Props = {
     totalCollections: number;
+    cashCollections: number;
+    checkCollections: number;
     totalRemittances: number;
     totalDeposits: number;
     balance: number;
@@ -10,6 +13,8 @@ type Props = {
 
 export default function RCDSummary({
     totalCollections,
+    cashCollections,
+    checkCollections,
     totalRemittances,
     totalDeposits,
     balance,
@@ -60,11 +65,7 @@ export default function RCDSummary({
                     </span>
 
                     <span className="right bold">
-
-                        {formatAmount(
-                            totalCollections
-                        )}
-
+                        {formatAmount(totalCollections)}
                     </span>
 
                 </div>
@@ -77,12 +78,8 @@ export default function RCDSummary({
                         CASH
                     </span>
 
-                    <span className="right">
-
-                        {formatAmount(
-                            totalCollections
-                        )}
-
+                    <span className="right summary-payment-value">
+                        {formatAmount(cashCollections)}
                     </span>
 
                 </div>
@@ -95,8 +92,8 @@ export default function RCDSummary({
                         CHECKS
                     </span>
 
-                    <span className="right">
-                        0.00
+                    <span className="right summary-payment-value">
+                        {formatAmount(checkCollections)}
                     </span>
 
                 </div>
@@ -112,12 +109,9 @@ export default function RCDSummary({
                     </span>
 
                     <span className="right">
-
                         {formatAmount(
-                            totalRemittances +
-                            totalDeposits
+                            totalRemittances + totalDeposits
                         )}
-
                     </span>
 
                 </div>
@@ -131,11 +125,7 @@ export default function RCDSummary({
                     </span>
 
                     <span className="right bold">
-
-                        {formatAmount(
-                            balance
-                        )}
-
+                        {formatAmount(balance)}
                     </span>
 
                 </div>
