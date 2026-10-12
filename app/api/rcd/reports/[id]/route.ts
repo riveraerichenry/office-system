@@ -26,8 +26,7 @@ export async function GET(
         // AUTHENTICATION
         // ============================================================
 
-        const token =
-            request.cookies.get("token")?.value;
+        const token = request.cookies.get("token")?.value;
 
         if (!token) {
             return NextResponse.json(
@@ -35,46 +34,36 @@ export async function GET(
                     success: false,
                     message: "Authentication required.",
                 },
-                {
-                    status: 401,
-                }
+                { status: 401 }
             );
         }
 
-        const jwtSecret =
-            process.env.JWT_SECRET;
+        const jwtSecret = process.env.JWT_SECRET;
 
         if (!jwtSecret) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "JWT_SECRET is not configured.",
+                    message: "JWT_SECRET is not configured.",
                 },
-                {
-                    status: 500,
-                }
+                { status: 500 }
             );
         }
 
         let decoded: JwtPayload;
 
         try {
-            decoded =
-                jwt.verify(
-                    token,
-                    jwtSecret
-                ) as JwtPayload;
+            decoded = jwt.verify(
+                token,
+                jwtSecret
+            ) as JwtPayload;
         } catch {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Invalid or expired session.",
+                    message: "Invalid or expired session.",
                 },
-                {
-                    status: 401,
-                }
+                { status: 401 }
             );
         }
 
@@ -82,12 +71,9 @@ export async function GET(
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Unable to determine logged-in user.",
+                    message: "Unable to determine logged-in user.",
                 },
-                {
-                    status: 401,
-                }
+                { status: 401 }
             );
         }
 
@@ -95,339 +81,281 @@ export async function GET(
         // RCD ID
         // ============================================================
 
-        const { id } =
-            await context.params;
+        const { id } = await context.params;
 
         if (!id) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "RCD ID is required.",
+                    message: "RCD ID is required.",
                 },
-                {
-                    status: 400,
-                }
+                { status: 400 }
             );
         }
 
         // ============================================================
-        // RCD
+        // GET RCD
+        //
+        // IMPORTANT:
+        // PostgreSQL DATE values are returned as YYYY-MM-DD strings.
+        // This prevents timezone conversion from changing the date.
         // ============================================================
 
-        const rcdResult =
-            await client.query(
-                `
-                SELECT
-                    rt.id,
-                    rt.report_no,
+        const rcdResult = await client.query(
+            `
+            SELECT
+                rt.id,
+                rt.report_no,
+
+                TO_CHAR(
                     rt.report_date,
-                    rt.fund_source_id,
+                    'YYYY-MM-DD'
+                ) AS report_date,
+
+                rt.fund_source_id,
+
+                TO_CHAR(
                     rt.date_from,
+                    'YYYY-MM-DD'
+                ) AS date_from,
+
+                TO_CHAR(
                     rt.date_to,
-                    rt.total_collections,
-                    rt.total_remittances,
-                    rt.total_deposits,
-                    rt.balance,
-                    rt.status,
-                    rt.rcd_by,
-                    rt.created_at,
-                    rt.updated_at,
+                    'YYYY-MM-DD'
+                ) AS date_to,
 
-                    fs.fund_code,
-                    fs.fund_name,
-                    fs.acronym,
+                rt.total_collections,
+                rt.total_remittances,
+                rt.total_deposits,
+                rt.balance,
+                rt.status,
+                rt.rcd_by,
+                rt.created_at,
+                rt.updated_at,
 
-                    u.id AS user_id,
-                    u.full_name AS user_full_name,
-                    u.username AS user_username
+                fs.fund_code,
+                fs.fund_name,
+                fs.acronym,
 
-                FROM rcd_transaction rt
+                u.id AS user_id,
+                u.full_name AS user_full_name,
+                u.username AS user_username
 
-                LEFT JOIN fund_sources fs
-                    ON fs.id = rt.fund_source_id
+            FROM rcd_transaction rt
 
-                LEFT JOIN users u
-                    ON u.id = rt.rcd_by
+            LEFT JOIN fund_sources fs
+                ON fs.id = rt.fund_source_id
 
-                WHERE rt.id = $1
+            LEFT JOIN users u
+                ON u.id = rt.rcd_by
 
-                LIMIT 1
-                `,
-                [id]
-            );
+            WHERE rt.id = $1
 
-        if (
-            rcdResult.rows.length === 0
-        ) {
+            LIMIT 1
+            `,
+            [id]
+        );
+
+        if (rcdResult.rows.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "RCD was not found.",
+                    message: "RCD was not found.",
                 },
-                {
-                    status: 404,
-                }
+                { status: 404 }
             );
         }
 
-        const rcd =
-            rcdResult.rows[0];
+        const rcd = rcdResult.rows[0];
 
         // ============================================================
-        // RCD ITEMS
+        // GET RCD ITEMS
         // ============================================================
 
-        const itemsResult =
-            await client.query(
-                `
-                SELECT
-                    ri.id,
-                    ri.rcd_transaction_id,
-                    ri.dipp_transaction_id,
-                    ri.or_number,
-                    ri.receipt_date,
-                    ri.collector_id,
-                    ri.payor,
-                    ri.payment_mode,
-                    ri.amount,
-                    ri.created_at,
+        const itemsResult = await client.query(
+            `
+            SELECT
+                ri.id,
+                ri.rcd_transaction_id,
+                ri.dipp_transaction_id,
+                ri.or_number,
+                ri.receipt_date,
+                ri.collector_id,
+                ri.payor,
+                ri.payment_mode,
+                ri.amount,
+                ri.created_at,
 
-                    dt.accountable_form_id,
-                    dt.booklet_registration_id,
-                    dt.remarks,
-                    dt.encoded_by,
-                    dt.status AS transaction_status,
+                dt.accountable_form_id,
+                dt.booklet_registration_id,
+                dt.remarks,
+                dt.encoded_by,
+                dt.status AS transaction_status,
 
-                    af.form_code,
-                    af.form_name,
+                af.form_code,
+                af.form_name,
 
-                    sbr.beginning_or
-                        AS booklet_beginning_or,
+                sbr.beginning_or AS booklet_beginning_or,
+                sbr.ending_or AS booklet_ending_or,
+                sbr.current_or AS booklet_current_or
 
-                    sbr.ending_or
-                        AS booklet_ending_or,
+            FROM rcd_items ri
 
-                    sbr.current_or
-                        AS booklet_current_or
+            LEFT JOIN dipp_transactions dt
+                ON dt.id = ri.dipp_transaction_id
 
-                FROM rcd_items ri
+            LEFT JOIN accountable_forms af
+                ON af.id = dt.accountable_form_id
 
-                LEFT JOIN dipp_transactions dt
-                    ON dt.id =
-                        ri.dipp_transaction_id
+            LEFT JOIN smi_booklet_registration sbr
+                ON sbr.id = dt.booklet_registration_id
 
-                LEFT JOIN accountable_forms af
-                    ON af.id =
-                        dt.accountable_form_id
+            WHERE ri.rcd_transaction_id = $1
 
-                LEFT JOIN smi_booklet_registration sbr
-                    ON sbr.id =
-                        dt.booklet_registration_id
+            ORDER BY
+                ri.receipt_date ASC,
+                ri.or_number ASC
+            `,
+            [id]
+        );
 
-                WHERE
-                    ri.rcd_transaction_id = $1
-
-                ORDER BY
-                    ri.receipt_date ASC,
-                    ri.or_number ASC
-                `,
-                [id]
-            );
-
-        const items =
-            itemsResult.rows;
+        const items = itemsResult.rows;
 
         // ============================================================
-        // COLLECTORS
-        //
-        // IMPORTANT:
-        // Your users table uses full_name.
-        // Do NOT use first_name/middle_name/last_name/suffix.
+        // GET COLLECTORS
         // ============================================================
 
-        const collectorIds =
-            Array.from(
-                new Set(
-                    items
-                        .map(
-                            (item: any) =>
-                                item.collector_id
-                        )
-                        .filter(Boolean)
-                )
-            );
+        const collectorIds = Array.from(
+            new Set(
+                items
+                    .map((item: any) => item.collector_id)
+                    .filter(Boolean)
+            )
+        );
 
         let collectors: any[] = [];
 
-        if (
-            collectorIds.length > 0
-        ) {
-            const collectorResult =
-                await client.query(
-                    `
-                    SELECT
-                        id,
-                        username,
-                        full_name
+        if (collectorIds.length > 0) {
+            const collectorResult = await client.query(
+                `
+                SELECT
+                    id,
+                    username,
+                    full_name
+                FROM users
+                WHERE id = ANY($1::uuid[])
+                `,
+                [collectorIds]
+            );
 
-                    FROM users
-
-                    WHERE id =
-                        ANY($1::uuid[])
-                    `,
-                    [collectorIds]
-                );
-
-            collectors =
-                collectorResult.rows;
+            collectors = collectorResult.rows;
         }
 
         // ============================================================
-        // COLLECTOR MAP
+        // CREATE COLLECTOR MAP
         // ============================================================
 
-        const collectorMap =
-            new Map<string, any>();
+        const collectorMap = new Map<string, any>();
 
-        for (
-            const collector
-            of collectors
-        ) {
+        for (const collector of collectors) {
             collectorMap.set(
-                String(
-                    collector.id
-                ),
+                String(collector.id),
                 collector
             );
         }
 
         // ============================================================
-        // ATTACH COLLECTOR
+        // ATTACH COLLECTOR TO EACH ITEM
         // ============================================================
 
-        const detailedItems =
-            items.map(
-                (item: any) => ({
-                    ...item,
-
-                    collector:
-                        item.collector_id
-                            ? collectorMap.get(
-                                String(
-                                    item.collector_id
-                                )
-                            ) ?? null
-                            : null,
-                })
-            );
+        const detailedItems = items.map((item: any) => ({
+            ...item,
+            collector: item.collector_id
+                ? collectorMap.get(
+                    String(item.collector_id)
+                ) ?? null
+                : null,
+        }));
 
         // ============================================================
-        // RCD USER / ACCOUNTABLE OFFICER
-        //
-        // IMPORTANT:
-        // Use full_name.
+        // GET RCD USER / ACCOUNTABLE OFFICER
         // ============================================================
 
         let rcdUser: any = null;
 
         if (rcd.rcd_by) {
-            const userResult =
-                await client.query(
-                    `
-                    SELECT
-                        id,
-                        username,
-                        full_name
+            const userResult = await client.query(
+                `
+                SELECT
+                    id,
+                    username,
+                    full_name
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [rcd.rcd_by]
+            );
 
-                    FROM users
-
-                    WHERE id = $1
-
-                    LIMIT 1
-                    `,
-                    [rcd.rcd_by]
-                );
-
-            rcdUser =
-                userResult.rows[0] ??
-                null;
+            rcdUser = userResult.rows[0] ?? null;
         }
 
         // ============================================================
-        // REMITTANCE
+        // GET REMITTANCE
         // ============================================================
 
-        const remittanceResult =
-            await client.query(
-                `
-                SELECT
-                    rr.id,
-                    rr.rcd_transaction_id,
-                    rr.payment_type,
-                    rr.cash_amount,
-                    rr.check_amount,
-                    rr.total_amount,
-                    rr.report_date,
-                    rr.remitted_by,
-                    rr.created_by,
-                    rr.created_at,
-                    rr.updated_at
+        const remittanceResult = await client.query(
+            `
+            SELECT
+                rr.id,
+                rr.rcd_transaction_id,
+                rr.payment_type,
+                rr.cash_amount,
+                rr.check_amount,
+                rr.total_amount,
+                rr.report_date,
+                rr.remitted_by,
+                rr.created_by,
+                rr.created_at,
+                rr.updated_at
 
-                FROM rcd_remittance rr
+            FROM rcd_remittance rr
 
-                WHERE
-                    rr.rcd_transaction_id = $1
+            WHERE rr.rcd_transaction_id = $1
 
-                ORDER BY
-                    rr.created_at DESC
+            ORDER BY rr.created_at DESC
 
-                LIMIT 1
-                `,
-                [id]
-            );
+            LIMIT 1
+            `,
+            [id]
+        );
 
         let remittance =
-            remittanceResult.rows[0] ??
-            null;
+            remittanceResult.rows[0] ?? null;
 
         // ============================================================
-        // REMITTED BY NAME
-        //
-        // IMPORTANT:
-        // Use full_name.
+        // GET REMITTED BY NAME
         // ============================================================
 
-        if (
-            remittance?.remitted_by
-        ) {
-            const remittedByResult =
-                await client.query(
-                    `
-                    SELECT
-                        id,
-                        username,
-                        full_name
-
-                    FROM users
-
-                    WHERE id = $1
-
-                    LIMIT 1
-                    `,
-                    [
-                        remittance.remitted_by,
-                    ]
-                );
+        if (remittance?.remitted_by) {
+            const remittedByResult = await client.query(
+                `
+                SELECT
+                    id,
+                    username,
+                    full_name
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [remittance.remitted_by]
+            );
 
             const remittedBy =
-                remittedByResult.rows[0] ??
-                null;
+                remittedByResult.rows[0] ?? null;
 
             remittance = {
                 ...remittance,
-
                 remitted_by_name:
                     remittedBy?.full_name ??
                     remittedBy?.username ??
@@ -436,38 +364,28 @@ export async function GET(
         }
 
         // ============================================================
-        // CREATED BY NAME
+        // GET CREATED BY NAME
         // ============================================================
 
-        if (
-            remittance?.created_by
-        ) {
-            const createdByResult =
-                await client.query(
-                    `
-                    SELECT
-                        id,
-                        username,
-                        full_name
-
-                    FROM users
-
-                    WHERE id = $1
-
-                    LIMIT 1
-                    `,
-                    [
-                        remittance.created_by,
-                    ]
-                );
+        if (remittance?.created_by) {
+            const createdByResult = await client.query(
+                `
+                SELECT
+                    id,
+                    username,
+                    full_name
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [remittance.created_by]
+            );
 
             const createdBy =
-                createdByResult.rows[0] ??
-                null;
+                createdByResult.rows[0] ?? null;
 
             remittance = {
                 ...remittance,
-
                 created_by_name:
                     createdBy?.full_name ??
                     createdBy?.username ??
@@ -476,14 +394,7 @@ export async function GET(
         }
 
         // ============================================================
-        // DENOMINATIONS
-        // ============================================================
-        //
-        // Keep this query isolated so denomination retrieval
-        // remains independent from the main RCD query.
-        //
-        // If your actual denomination table/columns differ,
-        // this is the ONLY section we need to change.
+        // GET REMITTANCE DENOMINATIONS
         // ============================================================
 
         let denominations: any[] = [];
@@ -503,70 +414,43 @@ export async function GET(
 
                         FROM rcd_remittance_denominations
 
-                        WHERE
-                            remittance_id = $1
+                        WHERE remittance_id = $1
 
-                        ORDER BY
-                            denomination DESC
+                        ORDER BY denomination DESC
                         `,
-                        [
-                            remittance.id,
-                        ]
+                        [remittance.id]
                     );
 
                 denominations =
                     denominationResult.rows;
-
             } catch (error: any) {
-                /*
-                ====================================================
-                IMPORTANT
-                ====================================================
-
-                Do NOT make the entire RCD preview fail if the
-                denomination table has a different structure.
-
-                The RCD itself can still be displayed.
-                ====================================================
-                */
-
                 console.error(
                     "LOAD RCD DENOMINATIONS ERROR:",
                     error
                 );
 
+                // Keep the RCD preview available even if
+                // denomination retrieval fails.
                 denominations = [];
             }
         }
 
         // ============================================================
-        // PREVIOUS FORM ROWS
+        // BUILD PREVIOUS FORM ROWS
         // ============================================================
 
         const previousFormRows =
-            buildPreviousFormRows(
-                detailedItems
-            );
+            buildPreviousFormRows(detailedItems);
 
         // ============================================================
-        // FUND SOURCE
+        // BUILD FUND SOURCE OBJECT
         // ============================================================
 
         const fundSource = {
-            id:
-                rcd.fund_source_id,
-
-            fund_code:
-                rcd.fund_code ??
-                null,
-
-            fund_name:
-                rcd.fund_name ??
-                null,
-
-            acronym:
-                rcd.acronym ??
-                null,
+            id: rcd.fund_source_id,
+            fund_code: rcd.fund_code ?? null,
+            fund_name: rcd.fund_name ?? null,
+            acronym: rcd.acronym ?? null,
         };
 
         // ============================================================
@@ -579,28 +463,17 @@ export async function GET(
 
                 rcd: {
                     ...rcd,
-
-                    fund_source:
-                        fundSource,
+                    fund_source: fundSource,
                 },
 
-                items:
-                    detailedItems,
-
+                items: detailedItems,
                 remittance,
-
                 denominations,
-
-                user:
-                    rcdUser,
-
+                user: rcdUser,
                 previousFormRows,
             },
-            {
-                status: 200,
-            }
+            { status: 200 }
         );
-
     } catch (error: any) {
         console.error(
             "GET COMPLETE RCD REPORT ERROR:",
@@ -614,100 +487,52 @@ export async function GET(
                     error?.message ??
                     "Unable to load complete RCD report.",
             },
-            {
-                status: 500,
-            }
+            { status: 500 }
         );
-
     } finally {
         client.release();
     }
 }
 
+// ================================================================
+// BUILD PREVIOUS FORM ROWS
+// ================================================================
 
-/*
-================================================================
-BUILD PREVIOUS FORM ROWS
-================================================================
-*/
-
-function buildPreviousFormRows(
-    items: any[]
-) {
-    if (
-        !Array.isArray(items) ||
-        items.length === 0
-    ) {
+function buildPreviousFormRows(items: any[]) {
+    if (!Array.isArray(items) || items.length === 0) {
         return [];
     }
 
-    const groups =
-        new Map<
-            string,
-            any[]
-        >();
+    const groups = new Map<string, any[]>();
 
-    for (
-        const item
-        of items
-    ) {
-        const formCode =
-            String(
-                item.form_code ??
-                item.form_name ??
-                "—"
-            ).trim();
+    for (const item of items) {
+        const formCode = String(
+            item.form_code ??
+            item.form_name ??
+            "—"
+        ).trim();
 
-        if (
-            !groups.has(
-                formCode
-            )
-        ) {
-            groups.set(
-                formCode,
-                []
-            );
+        if (!groups.has(formCode)) {
+            groups.set(formCode, []);
         }
 
-        groups
-            .get(formCode)!
-            .push(item);
+        groups.get(formCode)!.push(item);
     }
 
     const rows: any[] = [];
 
-    for (
-        const [
-            formCode,
-            groupItems,
-        ]
-        of groups
-    ) {
-        const numbers =
-            groupItems
-                .map(
-                    (item: any) =>
-                        parseORNumber(
-                            item.or_number
-                        )
-                )
-                .filter(
-                    (
-                        value
-                    ): value is number =>
-                        value !== null
-                )
-                .sort(
-                    (
-                        a,
-                        b
-                    ) =>
-                        a - b
-                );
+    for (const [formCode, groupItems] of groups) {
+        const numbers = groupItems
+            .map((item: any) =>
+                parseORNumber(item.or_number)
+            )
+            .filter(
+                (value): value is number =>
+                    value !== null
+            )
+            .sort((a, b) => a - b);
 
-        if (
-            numbers.length === 0
-        ) {
+        if (numbers.length === 0) {
             rows.push({
                 formCode,
                 beginningFrom: null,
@@ -719,93 +544,62 @@ function buildPreviousFormRows(
             continue;
         }
 
-        const first =
-            numbers[0];
-
-        const last =
-            numbers[
-                numbers.length - 1
-            ];
+        const first = numbers[0];
+        const last = numbers[numbers.length - 1];
 
         const bookletItem =
             groupItems.find(
                 (item: any) =>
                     item.booklet_registration_id
-            ) ??
-            groupItems[0];
+            ) ?? groupItems[0];
 
-        const bookletEnding =
-            parseORNumber(
-                bookletItem?.booklet_ending_or
-            );
+        const bookletEnding = parseORNumber(
+            bookletItem?.booklet_ending_or
+        );
 
-        const serialWidth =
-            Math.max(
-                String(
-                    first
-                ).length,
+        const serialWidth = Math.max(
+            String(first).length,
+            bookletEnding !== null
+                ? String(bookletEnding).length
+                : 0
+        );
 
-                bookletEnding !== null
-                    ? String(
-                        bookletEnding
-                    ).length
-                    : 0
-            );
-
-        const beginningFrom =
-            String(
-                first
-            ).padStart(
-                serialWidth,
-                "0"
-            );
+        const beginningFrom = String(first).padStart(
+            serialWidth,
+            "0"
+        );
 
         const beginningTo =
             bookletEnding !== null
-                ? String(
-                    bookletEnding
-                ).padStart(
+                ? String(bookletEnding).padStart(
                     serialWidth,
                     "0"
                 )
                 : null;
 
-        let endingFrom:
-            string | null = null;
-
-        let endingTo:
-            string | null = null;
+        let endingFrom: string | null = null;
+        let endingTo: string | null = null;
 
         if (
             bookletEnding !== null &&
             last < bookletEnding
         ) {
-            endingFrom =
-                String(
-                    last + 1
-                ).padStart(
-                    serialWidth,
-                    "0"
-                );
+            endingFrom = String(last + 1).padStart(
+                serialWidth,
+                "0"
+            );
 
-            endingTo =
-                String(
-                    bookletEnding
-                ).padStart(
-                    serialWidth,
-                    "0"
-                );
+            endingTo = String(bookletEnding).padStart(
+                serialWidth,
+                "0"
+            );
         }
 
         rows.push({
             formCode,
-
             beginningFrom,
-
             beginningTo,
-
             endingFrom,
-
             endingTo,
         });
     }
@@ -813,51 +607,30 @@ function buildPreviousFormRows(
     return rows;
 }
 
+// ================================================================
+// PARSE OR NUMBER
+// ================================================================
 
-/*
-================================================================
-PARSE OR NUMBER
-================================================================
-*/
-
-function parseORNumber(
-    value: any
-): number | null {
-    if (
-        value === null ||
-        value === undefined
-    ) {
+function parseORNumber(value: any): number | null {
+    if (value === null || value === undefined) {
         return null;
     }
 
-    const stringValue =
-        String(
-            value
-        ).trim();
+    const stringValue = String(value).trim();
 
     if (!stringValue) {
         return null;
     }
 
-    const match =
-        stringValue.match(
-            /\d+/
-        );
+    const match = stringValue.match(/\d+/);
 
     if (!match) {
         return null;
     }
 
-    const number =
-        Number(
-            match[0]
-        );
+    const number = Number(match[0]);
 
-    if (
-        !Number.isFinite(
-            number
-        )
-    ) {
+    if (!Number.isFinite(number)) {
         return null;
     }
 
