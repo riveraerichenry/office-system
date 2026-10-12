@@ -144,11 +144,13 @@ export default function SearchPropertyCard({
 
     /* ================================================================
         BILLING CREATED
+        KEEP THE DIALOG OPEN TO DISPLAY THE ASSESSMENT TABLE
     ================================================================ */
 
     function handleBillingCreated(data: any) {
-        setOpenBilling(false);
-
+        // Do not close the dialog here.
+        // CreateBillingDialog displays the assessment table
+        // after the user clicks Create Assessment.
         onBillingCreated(data);
     }
 
@@ -506,8 +508,8 @@ export default function SearchPropertyCard({
             )}
 
             {/* ========================================================
-                EXISTING CREATE BILLING DIALOG
-                DO NOT CHANGE
+                CREATE BILLING DIALOG
+                REMAINS OPEN AFTER CREATE ASSESSMENT
             ======================================================== */}
 
             <CreateBillingDialog
