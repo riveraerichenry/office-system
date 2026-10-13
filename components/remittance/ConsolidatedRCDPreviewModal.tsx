@@ -11,6 +11,8 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { Plus } from "lucide-react";
+
 import ConsolidatedRCDHeader from "./ConsolidatedRCDHeader";
 import ConsolidatedRCDCollections from "./ConsolidatedRCDCollections";
 import CAccountabilityTable from "./CAccountabilityTable";
@@ -953,12 +955,26 @@ export default function ConsolidatedRCDPreviewModal({
                           }
                         />
                       </section>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Connect this to your existing deposit form or page.
+                        }}
+                        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-4 text-sm font-semibold text-white shadow-xl transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+                      >
+                        <Plus size={20} />
+                        Make a Deposit
+                      </button>
                     </div>
                   )
                 )}
+                 
               </div>
             )}
+            
         </div>
+
+       
       </div>
     </div>
   );

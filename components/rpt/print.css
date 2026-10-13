@@ -5,231 +5,98 @@
 .print-paper {
     width: 210mm;
     min-height: 297mm;
-
     box-sizing: border-box;
-
     background: #ffffff;
 }
-
 
 /* ============================================================
    PRINT
 ============================================================ */
 
-@media print {
+@page {
+    size: A4 portrait;
+    margin: 10mm;
+}
 
+@media print {
     html,
     body {
         margin: 0 !important;
         padding: 0 !important;
-
+        width: 100% !important;
+        min-height: 0 !important;
         background: #ffffff !important;
-
-        width: 100% !important;
-
         overflow: visible !important;
     }
 
-
-    @page {
-        size: A4 portrait;
-
-        margin: 10mm;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    PRINT AREA
-    ------------------------------------------------------------
-    
-    IMPORTANT:
-    Do NOT use:
-    
-        height: 297mm;
-        max-height: 297mm;
-        overflow: hidden;
-    
-    Otherwise long content will be cut off.
-    */
-
-    #print-area {
-
-        width: 100% !important;
-
-        min-height: 277mm !important;
-
-        height: auto !important;
-
-        max-height: none !important;
-
-        margin: 0 !important;
-
-        padding: 0 !important;
-
-        box-sizing: border-box !important;
-
-        background: white !important;
-
-        box-shadow: none !important;
-
-        overflow: visible !important;
-
-        display: block !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    TABLE
-    ------------------------------------------------------------
-    */
-
-    table {
-
-        width: 100% !important;
-
-        border-collapse: collapse !important;
-
-        page-break-inside: auto !important;
-
-        break-inside: auto !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    REPEAT TABLE HEADER
-    ------------------------------------------------------------
-    
-    If the table continues to page 2, 3, etc.,
-    the header will be printed again.
-    */
-
-    thead {
-
-        display: table-header-group !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    TABLE FOOTER
-    ------------------------------------------------------------
-    
-    Don't force the footer to repeat.
-    The subtotal should remain at the end of
-    the table.
-    */
-
-    tfoot {
-
-        display: table-row-group !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    DON'T SPLIT ROWS
-    ------------------------------------------------------------
-    */
-
-    tr {
-
-        page-break-inside: avoid !important;
-
-        break-inside: avoid !important;
-    }
-
-
-    td,
-    th {
-
-        page-break-inside: avoid !important;
-
-        break-inside: avoid !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    SECTIONS
-    ------------------------------------------------------------
-    */
-
-    .print-section {
-
-        page-break-inside: avoid;
-
-        break-inside: avoid;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    SIGNATURES
-    ------------------------------------------------------------
-    */
-
-    .print-signatures {
-
-        page-break-inside: avoid;
-
-        break-inside: avoid;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    NOTES
-    ------------------------------------------------------------
-    */
-
-    .print-notes {
-
-        page-break-inside: avoid;
-
-        break-inside: avoid;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    FOOTER
-    ------------------------------------------------------------
-    */
-
-    .print-footer {
-
-        page-break-inside: avoid;
-
-        break-inside: avoid;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    HIDE NON-PRINT ELEMENTS
-    ------------------------------------------------------------
-    */
-
-    .no-print {
-
-        display: none !important;
-    }
-
-
-    /*
-    ------------------------------------------------------------
-    COLORS
-    ------------------------------------------------------------
-    */
-
-    * {
-
+    body {
         -webkit-print-color-adjust: exact !important;
-
         print-color-adjust: exact !important;
     }
 
+    /* Print the referenced content without modal sizing */
+    #print-area {
+        display: block !important;
+        position: static !important;
+        width: 190mm !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+        visibility: visible !important;
+    }
+
+    #print-area * {
+        visibility: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Preserve the report layout */
+    #print-area table {
+        display: table !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+    }
+
+    #print-area thead {
+        display: table-header-group !important;
+    }
+
+    #print-area tfoot {
+        display: table-row-group !important;
+    }
+
+    #print-area tr {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    #print-area td,
+    #print-area th {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    #print-area .print-section,
+    #print-area .print-signatures,
+    #print-area .print-notes,
+    #print-area .print-footer {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* Hide elements explicitly marked as non-printable */
+    .no-print {
+        display: none !important;
+    }
 }
