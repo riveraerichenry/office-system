@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
                     $8,
                     $9,
                     $10,
-                    'POSTED',
+                    'ISSUED',
                     $11,
                     $12,
                     'RPT',
