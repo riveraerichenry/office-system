@@ -21,6 +21,7 @@ jobs:
 
       # --------------------------------------------------
       # 2. Update production source code
+      # Preserve the existing server .env.local file.
       # --------------------------------------------------
       - name: Pull Latest Code
         shell: powershell
@@ -28,75 +29,73 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           $projectPath = "C:\Deployment\office-system"
+          $envFile = Join-Path $projectPath ".env.local"
+          $backupFile = Join-Path $env:TEMP "office-system-production-env.local"
 
-          if (-not (Test-Path $projectPath)) {
+          if (-not (Test-Path -LiteralPath $projectPath -PathType Container)) {
             throw "Project directory does not exist: $projectPath"
+          }
+
+          if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
+            throw "Production .env.local is missing. Deployment stopped to protect the server configuration."
           }
 
           Set-Location $projectPath
 
-          git fetch origin main
+          # Save the exact existing server environment file outside
+          # the repository before updating the source code.
+          Copy-Item -LiteralPath $envFile -Destination $backupFile -Force
 
-          if ($LASTEXITCODE -ne 0) {
-            throw "Git fetch failed."
+          try {
+            git fetch origin main
+            if ($LASTEXITCODE -ne 0) {
+              throw "Git fetch failed."
+            }
+
+            git reset --hard origin/main
+            if ($LASTEXITCODE -ne 0) {
+              throw "Git reset failed."
+            }
+          }
+          finally {
+            # Restore the original server file even if Git fails.
+            if (Test-Path -LiteralPath $backupFile -PathType Leaf) {
+              Copy-Item -LiteralPath $backupFile -Destination $envFile -Force
+              Remove-Item -LiteralPath $backupFile -Force
+            }
           }
 
-          git reset --hard origin/main
-
-          if ($LASTEXITCODE -ne 0) {
-            throw "Git reset failed."
+          if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
+            throw "Production .env.local is missing after source update."
           }
 
-          Write-Host "Source code updated successfully."
+          Write-Host "Source code updated."
+          Write-Host "Existing server .env.local preserved."
 
       # --------------------------------------------------
-      # 3. Restore production environment
+      # 3. Verify production environment exists
+      # Do not copy or modify it.
       # --------------------------------------------------
-      - name: Restore and Verify Production Environment
+      - name: Verify Production Environment
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
 
-          $source = "C:\Deployment\config\office-system.env.local"
-          $destination = "C:\Deployment\office-system\.env.local"
+          $projectPath = "C:\Deployment\office-system"
+          $envFile = Join-Path $projectPath ".env.local"
 
-          # Ensure the production configuration backup exists.
-          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "Production environment backup is missing: $source"
+          if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
+            throw "Production .env.local is missing."
           }
 
-          # Ensure the destination directory exists.
-          $destinationDirectory = Split-Path -Parent $destination
+          $file = Get-Item -LiteralPath $envFile
 
-          if (-not (Test-Path -LiteralPath $destinationDirectory)) {
-            throw "Project directory is missing: $destinationDirectory"
+          if ($file.Length -eq 0) {
+            throw "Production .env.local is empty. Deployment stopped."
           }
 
-          # Restore production configuration.
-          Copy-Item `
-            -LiteralPath $source `
-            -Destination $destination `
-            -Force
-
-          if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
-            throw "Production .env.local was not restored."
-          }
-
-          # Verify the restored file matches the backup.
-          $sourceHash = (
-            Get-FileHash -LiteralPath $source -Algorithm SHA256
-          ).Hash
-
-          $destinationHash = (
-            Get-FileHash -LiteralPath $destination -Algorithm SHA256
-          ).Hash
-
-          if ($sourceHash -ne $destinationHash) {
-            throw "Environment verification failed. The files do not match."
-          }
-
-          Write-Host "Production environment restored and verified."
-          # Do not print environment variables or secrets.
+          Write-Host "Production .env.local exists and is non-empty."
+          # Never print environment variables or secret values.
 
       # --------------------------------------------------
       # 4. Verify Node.js and npm
@@ -107,19 +106,44 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           node --version
-
           if ($LASTEXITCODE -ne 0) {
             throw "Node.js is unavailable."
           }
 
           npm --version
-
           if ($LASTEXITCODE -ne 0) {
             throw "npm is unavailable."
           }
 
       # --------------------------------------------------
-      # 5. Install dependencies
+      # 5. Stop PM2 before installing dependencies.
+      # Helps release locked Windows SWC files.
+      # --------------------------------------------------
+      - name: Stop PM2 Before Deployment
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          Set-Location "C:\Deployment\office-system"
+
+          pm2 describe office-system
+          $pm2ExitCode = $LASTEXITCODE
+
+          if ($pm2ExitCode -eq 0) {
+            pm2 stop office-system
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not stop office-system in PM2."
+            }
+
+            Write-Host "Office System stopped for deployment."
+          }
+          else {
+            Write-Host "PM2 process is not registered or is unavailable. Continuing with dependency installation."
+          }
+
+      # --------------------------------------------------
+      # 6. Install dependencies
       # --------------------------------------------------
       - name: Install Dependencies
         shell: powershell
@@ -128,23 +152,41 @@ jobs:
 
           Set-Location "C:\Deployment\office-system"
 
-          if (Test-Path "package-lock.json") {
+          if (-not (Test-Path "package.json" -PathType Leaf)) {
+            throw "package.json is missing."
+          }
+
+          if (Test-Path "package-lock.json" -PathType Leaf) {
             npm ci
 
             if ($LASTEXITCODE -ne 0) {
-              throw "npm ci failed."
+              throw "npm ci failed. Check the npm error output."
             }
           }
           else {
             npm install
 
             if ($LASTEXITCODE -ne 0) {
-              throw "npm install failed."
+              throw "npm install failed. Check the npm error output."
             }
           }
 
+          # Verify the Next.js executable exists after installation.
+          if (-not (Test-Path ".\node_modules\.bin\next.cmd" -PathType Leaf)) {
+            throw "Next.js executable is missing after dependency installation."
+          }
+
+          # Verify that the installed Next.js package can be resolved.
+          node -e "console.log('Next.js version:', require('next/package.json').version)"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Next.js package verification failed."
+          }
+
+          Write-Host "Dependencies installed and Next.js verified."
+
       # --------------------------------------------------
-      # 6. Build Next.js application
+      # 7. Build the production application
       # --------------------------------------------------
       - name: Build Application
         shell: powershell
@@ -153,39 +195,25 @@ jobs:
 
           Set-Location "C:\Deployment\office-system"
 
-          # Restore and verify the environment immediately before
-          # building so Next.js reads the production configuration.
-          $source = "C:\Deployment\config\office-system.env.local"
-          $destination = "C:\Deployment\office-system\.env.local"
-
-          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "Production environment backup is missing."
-          }
-
-          Copy-Item -LiteralPath $source -Destination $destination -Force
-
-          $sourceHash = (
-            Get-FileHash -LiteralPath $source -Algorithm SHA256
-          ).Hash
-
-          $destinationHash = (
-            Get-FileHash -LiteralPath $destination -Algorithm SHA256
-          ).Hash
-
-          if ($sourceHash -ne $destinationHash) {
-            throw "Environment verification failed before build."
+          # Verify the server environment is still present.
+          if (-not (Test-Path ".env.local" -PathType Leaf)) {
+            throw "Production .env.local is missing before build."
           }
 
           npm run build
 
           if ($LASTEXITCODE -ne 0) {
-            throw "Next.js production build failed. PM2 was not restarted."
+            throw "Next.js production build failed. PM2 restart skipped."
+          }
+
+          if (-not (Test-Path ".next\BUILD_ID" -PathType Leaf)) {
+            throw "Build completed without the expected .next\BUILD_ID file."
           }
 
           Write-Host "Production build completed successfully."
 
       # --------------------------------------------------
-      # 7. Restart production application
+      # 8. Restart PM2 only after a successful build
       # --------------------------------------------------
       - name: Restart PM2
         shell: powershell
@@ -197,7 +225,7 @@ jobs:
           pm2 describe office-system
 
           if ($LASTEXITCODE -ne 0) {
-            throw "PM2 process office-system was not found."
+            throw "PM2 process office-system is not registered. Register the application before deploying."
           }
 
           pm2 restart office-system --update-env
@@ -205,5 +233,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to restart office-system."
           }
+
+          pm2 status
 
           Write-Host "Office System restarted successfully."
