@@ -19,29 +19,20 @@ const pool = new Pool({
 */
 
 type AbstractRow = {
-
     id: string;
-
     no: number;
-
     date: string | null;
-
     or_number: string | null;
-
     payor: string | null;
-
     account_id: string | null;
-
     account_code: string;
-
     account_name: string;
-
     particulars: string;
-
     remarks: string | null;
-
     amount: number;
 
+    is_cancelled?: boolean;
+    transaction_status?: string | null;
 };
 
 
@@ -786,6 +777,76 @@ export async function GET(
 
             const transactionId =
                 transaction.dipp_transaction_id;
+
+
+            /*
+            ============================================================
+            CANCELLED TRANSACTION — DISPLAY ONLY
+            ============================================================
+
+            Keep the receipt visible in the Abstract Summary, but show
+            its amount as zero. Do not query or total its RPT or normal
+            transaction detail rows. No database records are modified.
+
+            The transaction status is the source of truth for this
+            display override.
+            ============================================================
+            */
+
+            const transactionStatus =
+                String(
+                    transaction.status ?? ""
+                )
+                    .trim()
+                    .toUpperCase();
+
+            const isCancelled =
+                transactionStatus === "CANCELLED" ||
+                transactionStatus === "CANCELED";
+
+            if (isCancelled) {
+
+                nonRptRows.push({
+
+                    id:
+                        `${transactionId}-cancelled`,
+
+                    no: 0,
+
+                    date:
+                        transaction.receipt_date ?? null,
+
+                    or_number:
+                        transaction.or_number != null
+                            ? String(transaction.or_number)
+                            : null,
+
+                    payor:
+                        transaction.payor ?? null,
+
+                    account_id: null,
+
+                    account_code: "",
+
+                    account_name: "",
+
+                    particulars: "CANCELLED TRANSACTION",
+
+                    remarks:
+                        transaction.remarks ?? null,
+
+                    amount: 0,
+
+                    is_cancelled: true,
+
+                    transaction_status:
+                        transaction.status ?? null,
+
+                });
+
+                continue;
+
+            }
 
 
             /*

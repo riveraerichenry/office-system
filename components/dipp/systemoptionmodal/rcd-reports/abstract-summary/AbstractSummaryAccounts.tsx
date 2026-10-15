@@ -1,53 +1,25 @@
+
 "use client";
 
 type Props = {
     items?: any[];
-
-    formatAmount: (
-        value: any
-    ) => string;
-
-    showGrandTotal?: boolean;
-
-    grandTotalOverride?: number;
+    formatAmount: (value: any) => string;
 };
-
 
 /* ============================================================
    DATE
 ============================================================ */
-
 
 function formatDate(value: any): string {
     if (!value) {
         return "—";
     }
 
-    const dateOnly = String(value).substring(0, 10);
-    const parts = dateOnly.split("-");
-
-    if (parts.length !== 3) {
-        return String(value);
-    }
-
-    const [year, month, day] = parts;
-
-    const yearNumber = Number(year);
-    const monthNumber = Number(month);
-    const dayNumber = Number(day);
-
     const date = new Date(
-        yearNumber,
-        monthNumber - 1,
-        dayNumber
+        `${String(value).substring(0, 10)}T00:00:00`
     );
 
-    if (
-        Number.isNaN(date.getTime()) ||
-        date.getFullYear() !== yearNumber ||
-        date.getMonth() !== monthNumber - 1 ||
-        date.getDate() !== dayNumber
-    ) {
+    if (Number.isNaN(date.getTime())) {
         return String(value);
     }
 
@@ -58,16 +30,11 @@ function formatDate(value: any): string {
     });
 }
 
-
-
 /* ============================================================
    TEXT HELPERS
 ============================================================ */
 
-function getORNumber(
-    item: any
-): string {
-
+function getORNumber(item: any): string {
     return (
         item?.or_number ??
         item?.or_no ??
@@ -78,11 +45,7 @@ function getORNumber(
     );
 }
 
-
-function getPayor(
-    item: any
-): string {
-
+function getPayor(item: any): string {
     return (
         item?.payor ??
         item?.payor_name ??
@@ -92,11 +55,7 @@ function getPayor(
     );
 }
 
-
-function getAccountCode(
-    item: any
-): string {
-
+function getAccountCode(item: any): string {
     return (
         item?.account_code ??
         item?.code ??
@@ -104,11 +63,7 @@ function getAccountCode(
     );
 }
 
-
-function getParticulars(
-    item: any
-): string {
-
+function getParticulars(item: any): string {
     return (
         item?.particulars ??
         item?.account_name ??
@@ -118,11 +73,7 @@ function getParticulars(
     );
 }
 
-
-function getRemarks(
-    item: any
-): string {
-
+function getRemarks(item: any): string {
     return (
         item?.remarks ??
         item?.remark ??
@@ -132,19 +83,41 @@ function getRemarks(
     );
 }
 
+/* ============================================================
+   DISPLAY-ONLY CANCELLATION
+============================================================ */
 
-function getAmount(
-    item: any
-): number {
+function isCancelled(item: any): boolean {
+    const status = String(
+        item?.transaction_status ??
+        item?.status ??
+        ""
+    )
+        .trim()
+        .toUpperCase();
 
-    return Number(
+    return (
+        status === "CANCELLED" ||
+        status === "CANCELED"
+    );
+}
+
+function getAmount(item: any): number {
+    // Display-only override.
+    // Do not modify the database transaction or account details.
+    if (isCancelled(item)) {
+        return 0;
+    }
+
+    const amount = Number(
         item?.amount ??
         item?.total ??
         item?.value ??
         0
     );
-}
 
+    return Number.isFinite(amount) ? amount : 0;
+}
 
 /* ============================================================
    COMPONENT
@@ -153,110 +126,57 @@ function getAmount(
 export default function AbstractSummaryAccounts({
     items = [],
     formatAmount,
-    showGrandTotal = true,
-    grandTotalOverride,
 }: Props) {
+    const rows: any[] = Array.isArray(items)
+        ? items
+        : [];
 
-    const rows: any[] =
-        Array.isArray(items)
-            ? items
-            : [];
-
-
-    const pageGrandTotal =
-        rows.reduce(
-            (
-                total: number,
-                item: any
-            ) =>
-                total +
-                getAmount(item),
-            0
-        );
-
-    const grandTotal =
-        grandTotalOverride ??
-        pageGrandTotal;
-
+    /*
+     * This component calculates the displayed row total.
+     * If the parent supplies a separately calculated Grand Total,
+     * preserve that parent's existing RPT discount calculation.
+     */
+    const grandTotal = rows.reduce(
+        (total: number, item: any) => {
+            return total + getAmount(item);
+        },
+        0
+    );
 
     return (
-
         <div className="abstract-summary-section">
-
             <table className="abstract-summary-table">
-
-                {/* ====================================================
-                    HEADER
-                ==================================================== */}
-
+                {/* HEADER */}
                 <thead>
-
                     <tr>
-
-                        <th>
-                            Date
-                        </th>
-
-                        <th>
-                            O.R. No
-                        </th>
-
-                        <th>
-                            PAYOR
-                        </th>
-
+                        <th>Date</th>
+                        <th>O.R. No</th>
+                        <th>PAYOR</th>
                         <th>
                             ACCT
                             <br />
                             CODE
                         </th>
-
-                        <th>
-                            PARTICULARS
-                        </th>
-
-                        <th>
-                            REMARKS
-                        </th>
-
-                        <th>
-                            Amount
-                        </th>
-
+                        <th>PARTICULARS</th>
+                        <th>REMARKS</th>
+                        <th>Amount</th>
                     </tr>
-
                 </thead>
 
-
-                {/* ====================================================
-                    BODY
-                ==================================================== */}
-
+                {/* BODY */}
                 <tbody>
-
                     {rows.length === 0 ? (
-
                         <tr>
-
                             <td
                                 colSpan={7}
-                                className="
-                                    abstract-summary-empty
-                                "
+                                className="abstract-summary-empty"
                             >
                                 No collection records found.
                             </td>
-
                         </tr>
-
                     ) : (
-
                         rows.map(
-                            (
-                                item: any,
-                                index: number
-                            ) => (
-
+                            (item: any, index: number) => (
                                 <tr
                                     key={
                                         item?.id ??
@@ -264,167 +184,84 @@ export default function AbstractSummaryAccounts({
                                         `${getORNumber(item)}-${getAccountCode(item)}-${index}`
                                     }
                                 >
-
                                     {/* DATE */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-date
-                                        "
-                                    >
-                                        {
-                                            formatDate(
-                                                item?.date ??
-                                                item?.transaction_date ??
-                                                item?.collection_date ??
-                                                item?.or_date ??
-                                                item?.receipt_date
-                                            )
-                                        }
+                                    <td className="abstract-summary-date">
+                                        {formatDate(
+                                            item?.date ??
+                                            item?.transaction_date ??
+                                            item?.collection_date ??
+                                            item?.or_date ??
+                                            item?.receipt_date
+                                        )}
                                     </td>
-
 
                                     {/* O.R. NUMBER */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-or
-                                        "
-                                    >
-                                        {
-                                            getORNumber(
-                                                item
-                                            )
-                                        }
+                                    <td className="abstract-summary-or">
+                                        {getORNumber(item)}
                                     </td>
-
 
                                     {/* PAYOR */}
+                                    <td className="abstract-summary-payor">
+                                        <span>
+                                            {getPayor(item)}
+                                        </span>
 
-                                    <td
-                                        className="
-                                            abstract-summary-payor
-                                        "
-                                    >
-                                        {
-                                            getPayor(
-                                                item
-                                            )
-                                        }
+                                        {isCancelled(item) && (
+                                            <span
+                                                style={{
+                                                    color: "#dc2626",
+                                                    fontWeight: 700,
+                                                    marginLeft: "5px",
+                                                }}
+                                            >
+                                                (CANCELLED)
+                                            </span>
+                                        )}
                                     </td>
-
 
                                     {/* ACCOUNT CODE */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-account-code
-                                        "
-                                    >
-                                        {
-                                            getAccountCode(
-                                                item
-                                            )
-                                        }
+                                    <td className="abstract-summary-account-code">
+                                        {getAccountCode(item)}
                                     </td>
-
 
                                     {/* PARTICULARS */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-particulars
-                                        "
-                                    >
-                                        {
-                                            getParticulars(
-                                                item
-                                            )
-                                        }
+                                    <td className="abstract-summary-particulars">
+                                        {getParticulars(item)}
                                     </td>
-
 
                                     {/* REMARKS */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-remarks
-                                        "
-                                    >
-                                        {
-                                            getRemarks(
-                                                item
-                                            )
-                                        }
+                                    <td className="abstract-summary-remarks">
+                                        {getRemarks(item)}
                                     </td>
-
 
                                     {/* AMOUNT */}
-
-                                    <td
-                                        className="
-                                            abstract-summary-amount
-                                        "
-                                    >
-                                        {
-                                            formatAmount(
-                                                getAmount(
-                                                    item
-                                                )
-                                            )
-                                        }
+                                    <td className="abstract-summary-amount">
+                                        {formatAmount(
+                                            getAmount(item)
+                                        )}
                                     </td>
-
                                 </tr>
-
                             )
                         )
-
                     )}
-
                 </tbody>
 
+                {/* GRAND TOTAL */}
+                <tfoot>
+                    <tr>
+                        <td
+                            colSpan={6}
+                            className="abstract-summary-total-label"
+                        >
+                            Grand Total:
+                        </td>
 
-                {/* ====================================================
-                    GRAND TOTAL
-                ==================================================== */}
-
-                {showGrandTotal && (
-
-                    <tfoot>
-
-                        <tr>
-
-                            <td
-                                colSpan={6}
-                                className="
-                                    abstract-summary-total-label
-                                "
-                            >
-                                Grand Total:
-                            </td>
-
-                            <td
-                                className="
-                                    abstract-summary-total
-                                "
-                            >
-                                {
-                                    formatAmount(
-                                        grandTotal
-                                    )
-                                }
-                            </td>
-
-                        </tr>
-
-                    </tfoot>
-
-                )}
-
+                        <td className="abstract-summary-total">
+                            {formatAmount(grandTotal)}
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
-
         </div>
-
     );
 }

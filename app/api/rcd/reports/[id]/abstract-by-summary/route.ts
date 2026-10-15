@@ -682,6 +682,24 @@ export async function GET(
                 transaction.dipp_transaction_id;
 
 
+            // Exclude cancelled transactions from account summaries.
+            // This is display/report logic only; no database records are changed.
+            const transactionStatus =
+                String(transaction.status ?? "")
+                    .trim()
+                    .toUpperCase();
+
+            const isCancelled =
+                transaction.is_cancelled === true ||
+                String(transaction.is_cancelled).toLowerCase() === "true" ||
+                transactionStatus === "CANCELLED" ||
+                transactionStatus === "CANCELED";
+
+            if (isCancelled) {
+                continue;
+            }
+
+
             const formCode =
                 transaction.form_code
                     ? String(

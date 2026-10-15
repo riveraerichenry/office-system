@@ -1,3 +1,4 @@
+
 import {
     NextRequest,
     NextResponse,
@@ -29,43 +30,26 @@ type JwtPayload = {
 
 type PreviousFormRow = {
     formCode: string;
-
-    beginningFrom:
-        | string
-        | null;
-
-    beginningTo:
-        | string
-        | null;
-
-    endingFrom:
-        | string
-        | null;
-
-    endingTo:
-        | string
-        | null;
+    beginningFrom: string | null;
+    beginningTo: string | null;
+    endingFrom: string | null;
+    endingTo: string | null;
 };
 
 // =============================================================
 // POST
 // =============================================================
 
-export async function POST(
-    request: NextRequest
-) {
-
-    const client =
-        await pool.connect();
+export async function POST(request: NextRequest) {
+    const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
-
         // =====================================================
         // REQUEST BODY
         // =====================================================
 
-        const body =
-            await request.json();
+        const body = await request.json();
 
         const {
             fund_source_id,
@@ -78,327 +62,245 @@ export async function POST(
         // VALIDATION
         // =====================================================
 
-        if (
-            !fund_source_id
-        ) {
-
+        if (!fund_source_id) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Fund source is required.",
+                    message: "Fund source is required.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
-        if (
-            !date_from ||
-            !date_to
-        ) {
-
+        if (!date_from || !date_to) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Date range is required.",
+                    message: "Date range is required.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
-        if (
-            date_from >
-            date_to
-        ) {
-
+        if (date_from > date_to) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Date From cannot be later than Date To.",
+                    message: "Date From cannot be later than Date To.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
         // =====================================================
         // TRANSACTION IDS VALIDATION
         // =====================================================
 
-        if (
-            !Array.isArray(transaction_ids)
-        ) {
-
+        if (!Array.isArray(transaction_ids)) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "transaction_ids must be an array.",
+                    message: "transaction_ids must be an array.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
-        if (
-            transaction_ids.length === 0
-        ) {
-
+        if (transaction_ids.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Please select at least one transaction for the RCD.",
+                    message: "Please select at least one transaction for the RCD.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
         // =====================================================
         // CLEAN TRANSACTION IDS
         // =====================================================
 
-        const selectedTransactionIds =
-            Array.from(
-                new Set(
-                    transaction_ids
-                        .filter(
-                            (id: unknown) =>
-                                typeof id === "string" &&
-                                id.trim() !== ""
-                        )
-                        .map(
-                            (id: string) =>
-                                id.trim()
-                        )
-                )
-            );
+        const selectedTransactionIds = Array.from(
+            new Set(
+                transaction_ids
+                    .filter(
+                        (id: unknown) =>
+                            typeof id === "string" &&
+                            id.trim() !== ""
+                    )
+                    .map(
+                        (id: string) => id.trim()
+                    )
+            )
+        );
 
-        if (
-            selectedTransactionIds.length === 0
-        ) {
-
+        if (selectedTransactionIds.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "No valid transactions were selected.",
+                    message: "No valid transactions were selected.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
         // =====================================================
         // AUTHENTICATION
         // =====================================================
 
-        const token =
-            request.cookies.get(
-                "token"
-            )?.value;
+        const token = request.cookies.get("token")?.value;
 
-        if (
-            !token
-        ) {
-
+        if (!token) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Authentication required.",
+                    message: "Authentication required.",
                 },
                 {
                     status: 401,
                 }
             );
-
         }
 
-        const jwtSecret =
-            process.env.JWT_SECRET;
+        const jwtSecret = process.env.JWT_SECRET;
 
-        if (
-            !jwtSecret
-        ) {
-
-            console.error(
-                "JWT_SECRET is not configured."
-            );
+        if (!jwtSecret) {
+            console.error("JWT_SECRET is not configured.");
 
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Authentication configuration error.",
+                    message: "Authentication configuration error.",
                 },
                 {
                     status: 500,
                 }
             );
-
         }
 
         // =====================================================
         // VERIFY JWT
         // =====================================================
 
-        let decoded:
-            JwtPayload;
+        let decoded: JwtPayload;
 
         try {
-
-            decoded =
-                jwt.verify(
-                    token,
-                    jwtSecret
-                ) as JwtPayload;
-
-        } catch (
-            error
-        ) {
-
-            console.error(
-                "RCD JWT ERROR:",
-                error
-            );
+            decoded = jwt.verify(
+                token,
+                jwtSecret
+            ) as JwtPayload;
+        } catch (error) {
+            console.error("RCD JWT ERROR:", error);
 
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Invalid or expired session.",
+                    message: "Invalid or expired session.",
                 },
                 {
                     status: 401,
                 }
             );
-
         }
 
-        if (
-            !decoded?.id
-        ) {
-
+        if (!decoded?.id) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Unable to determine logged-in user.",
+                    message: "Unable to determine logged-in user.",
                 },
                 {
                     status: 401,
                 }
             );
-
         }
 
         // =====================================================
         // VERIFY LOGGED-IN USER
         // =====================================================
 
-        const userResult =
-            await client.query(
-                `
-                    SELECT
-                        id,
-                        username,
-                        full_name
-                    FROM users
-                    WHERE id = $1
-                    LIMIT 1
-                `,
-                [
-                    decoded.id,
-                ]
-            );
+        const userResult = await client.query(
+            `
+                SELECT
+                    id,
+                    username,
+                    full_name
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+            `,
+            [
+                decoded.id,
+            ]
+        );
 
-        if (
-            userResult.rows.length === 0
-        ) {
-
+        if (userResult.rows.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Logged-in user was not found.",
+                    message: "Logged-in user was not found.",
                 },
                 {
                     status: 401,
                 }
             );
-
         }
 
-        const loggedInUser =
-            userResult.rows[0];
+        const loggedInUser = userResult.rows[0];
 
         // =====================================================
         // VERIFY FUND SOURCE
         // =====================================================
 
-        const fundSourceResult =
-            await client.query(
-                `
-                    SELECT
-                        id,
-                        fund_code,
-                        fund_name,
-                        acronym
-                    FROM fund_sources
-                    WHERE id = $1
+        const fundSourceResult = await client.query(
+            `
+                SELECT
+                    id,
+                    fund_code,
+                    fund_name,
+                    acronym
+                FROM fund_sources
+                WHERE id = $1
                     AND is_active = TRUE
-                    LIMIT 1
-                `,
-                [
-                    fund_source_id,
-                ]
-            );
+                LIMIT 1
+            `,
+            [
+                fund_source_id,
+            ]
+        );
 
-        if (
-            fundSourceResult.rows.length === 0
-        ) {
-
+        if (fundSourceResult.rows.length === 0) {
             return NextResponse.json(
                 {
                     success: false,
-                    message:
-                        "Fund source not found or inactive.",
+                    message: "Fund source not found or inactive.",
                 },
                 {
                     status: 404,
                 }
             );
-
         }
 
-        const fundSource =
-            fundSourceResult.rows[0];
+        const fundSource = fundSourceResult.rows[0];
 
         // =====================================================
         // BEGIN DATABASE TRANSACTION
         // =====================================================
 
-        await client.query(
-            "BEGIN"
-        );
+        await client.query("BEGIN");
+        transactionStarted = true;
 
         // =====================================================
         // LOCK RCD NUMBER GENERATION
@@ -407,9 +309,7 @@ export async function POST(
         await client.query(
             `
                 SELECT pg_advisory_xact_lock(
-                    hashtext(
-                        'RCD_REPORT_NUMBER_GENERATION'
-                    )
+                    hashtext('RCD_REPORT_NUMBER_GENERATION')
                 )
             `
         );
@@ -417,281 +317,131 @@ export async function POST(
         // =====================================================
         // GET SELECTED DIPP TRANSACTIONS
         //
-        // IMPORTANT:
-        // Only transactions selected by the collector
-        // are allowed into this RCD.
+        // Cancelled transactions are permitted and assigned
+        // an amount of zero.
+        //
+        // Keep the fund source, date range, collector, selected
+        // IDs, and duplicate-RCD protections.
         // =====================================================
 
-        const transactionsResult =
-            await client.query(
-                `
-                    SELECT
+        const transactionsResult = await client.query(
+            `
+                SELECT
+                    dt.id,
+                    dt.or_number,
+                    dt.receipt_date,
+                    dt.collector_id,
+                    dt.payor,
+                    dt.payment_mode,
+                    dt.remarks,
 
-                        dt.id,
+                    CASE
+                        WHEN
+                            COALESCE(dt.is_cancelled, FALSE) = TRUE
+                            OR UPPER(COALESCE(dt.status, '')) = 'CANCELLED'
+                        THEN 0::numeric
+                        ELSE COALESCE(dt.grand_total, 0)
+                    END AS amount,
 
-                        dt.or_number,
+                    dt.accountable_form_id,
+                    dt.booklet_registration_id,
 
-                        dt.receipt_date,
+                    sbr.beginning_or AS booklet_beginning_or,
+                    sbr.ending_or AS booklet_ending_or,
+                    sbr.current_or AS booklet_current_or,
 
-                        dt.collector_id,
+                    dt.lor_release_id,
+                    dt.encoded_by,
+                    dt.status,
+                    dt.transaction_type,
+                    dt.is_cancelled,
+                    dt.is_remitted,
+                    dt.remittance_id,
 
-                        dt.payor,
+                    af.form_code,
+                    af.form_name
 
-                        dt.payment_mode,
+                FROM dipp_transactions dt
 
-                        dt.remarks,
+                INNER JOIN lor_releases lr
+                    ON lr.id = dt.lor_release_id
 
-                        COALESCE(
-                            dt.grand_total,
-                            0
-                        ) AS amount,
+                LEFT JOIN accountable_forms af
+                    ON af.id = dt.accountable_form_id
 
-                        dt.accountable_form_id,
+                LEFT JOIN smi_booklet_registration sbr
+                    ON sbr.id = dt.booklet_registration_id
 
-                        dt.booklet_registration_id,
+                WHERE
+                    lr.fund_source_id = $1
 
-                        /*
-                        =================================================
-                        BOOKLET
-                        =================================================
-                        */
+                    AND dt.receipt_date >= $2::date
 
-                        sbr.beginning_or
-                            AS booklet_beginning_or,
+                    AND dt.receipt_date <
+                        ($3::date + INTERVAL '1 day')
 
-                        sbr.ending_or
-                            AS booklet_ending_or,
+                    AND dt.collector_id = $4
 
-                        sbr.current_or
-                            AS booklet_current_or,
+                    AND dt.id = ANY($5::uuid[])
 
-                        dt.lor_release_id,
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM rcd_items ri
+                        WHERE ri.dipp_transaction_id = dt.id
+                    )
 
-                        dt.encoded_by,
+                ORDER BY
+                    af.form_code ASC,
+                    dt.receipt_date ASC,
 
-                        dt.status,
+                    CASE
+                        WHEN NULLIF(
+                            TRIM(dt.or_number),
+                            ''
+                        ) ~ '^[0-9]+$'
+                        THEN NULLIF(
+                            TRIM(dt.or_number),
+                            ''
+                        )::BIGINT
+                        ELSE NULL
+                    END ASC,
 
-                        dt.transaction_type,
+                    dt.or_number ASC
+            `,
+            [
+                fund_source_id,
+                date_from,
+                date_to,
+                loggedInUser.id,
+                selectedTransactionIds,
+            ]
+        );
 
-                        dt.is_cancelled,
-
-                        dt.is_remitted,
-
-                        dt.remittance_id,
-
-                        /*
-                        =================================================
-                        ACCOUNTABLE FORM
-                        =================================================
-                        */
-
-                        af.form_code,
-
-                        af.form_name
-
-                    FROM dipp_transactions dt
-
-                    /*
-                    =====================================================
-                    LOR RELEASE
-                    =====================================================
-                    */
-
-                    INNER JOIN lor_releases lr
-                        ON lr.id =
-                            dt.lor_release_id
-
-                    /*
-                    =====================================================
-                    ACCOUNTABLE FORM
-                    =====================================================
-                    */
-
-                    LEFT JOIN accountable_forms af
-                        ON af.id =
-                            dt.accountable_form_id
-
-                    /*
-                    =====================================================
-                    BOOKLET
-                    =====================================================
-                    */
-
-                    LEFT JOIN smi_booklet_registration sbr
-                        ON sbr.id =
-                            dt.booklet_registration_id
-
-                    WHERE
-
-                        /*
-                        =================================================
-                        FUND SOURCE
-                        =================================================
-                        */
-
-                        lr.fund_source_id =
-                            $1
-
-                        /*
-                        =================================================
-                        DATE FROM
-                        =================================================
-                        */
-
-                        AND dt.receipt_date >=
-                            $2::date
-
-                        /*
-                        =================================================
-                        DATE TO
-                        =================================================
-                        */
-
-                        AND dt.receipt_date <
-                            (
-                                $3::date
-                                + INTERVAL '1 day'
-                            )
-
-                        /*
-                        =================================================
-                        LOGGED-IN COLLECTOR
-                        =================================================
-
-                        The RCD transaction list is based on
-                        collector_id, so generation uses the
-                        same collector restriction.
-                        */
-
-                        AND dt.collector_id =
-                            $4
-
-                        /*
-                        =================================================
-                        SELECTED TRANSACTIONS ONLY
-                        =================================================
-                        */
-
-                        AND dt.id = ANY($5::uuid[])
-
-                        /*
-                        =================================================
-                        ISSUED ONLY
-                        =================================================
-                        */
-
-                        AND dt.status =
-                            'ISSUED'
-
-                        /*
-                        =================================================
-                        NOT CANCELLED
-                        =================================================
-                        */
-
-                        AND COALESCE(
-                            dt.is_cancelled,
-                            FALSE
-                        ) = FALSE
-
-                        /*
-                        =================================================
-                        NOT ALREADY IN RCD
-                        =================================================
-                        */
-
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM rcd_items ri
-                            WHERE
-                                ri.dipp_transaction_id =
-                                    dt.id
-                        )
-
-                    ORDER BY
-
-                        af.form_code ASC,
-
-                        dt.receipt_date ASC,
-
-                        CASE
-                            WHEN
-                                NULLIF(
-                                    TRIM(
-                                        dt.or_number
-                                    ),
-                                    ''
-                                ) ~ '^[0-9]+$'
-
-                            THEN
-                                NULLIF(
-                                    TRIM(
-                                        dt.or_number
-                                    ),
-                                    ''
-                                )::BIGINT
-
-                            ELSE
-                                NULL
-
-                        END ASC,
-
-                        dt.or_number ASC
-                `,
-                [
-                    fund_source_id,
-                    date_from,
-                    date_to,
-                    loggedInUser.id,
-                    selectedTransactionIds,
-                ]
-            );
-
-        const transactions =
-            transactionsResult.rows;
+        const transactions = transactionsResult.rows;
 
         // =====================================================
         // VERIFY ALL SELECTED TRANSACTIONS WERE FOUND
         // =====================================================
 
-        if (
-            transactions.length !==
-            selectedTransactionIds.length
-        ) {
+        const foundIds = new Set(
+            transactions.map(
+                (transaction: any) => String(transaction.id)
+            )
+        );
 
-            const foundIds =
-                new Set(
-                    transactions.map(
-                        (
-                            transaction: any
-                        ) =>
-                            String(
-                                transaction.id
-                            )
-                    )
-                );
+        const missingIds = selectedTransactionIds.filter(
+            (id: string) => !foundIds.has(id)
+        );
 
-            const missingIds =
-                selectedTransactionIds.filter(
-                    (
-                        id: string
-                    ) =>
-                        !foundIds.has(id)
-                );
-
-            await client.query(
-                "ROLLBACK"
-            );
+        if (missingIds.length > 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
 
             console.error(
                 "RCD SELECTED TRANSACTIONS VALIDATION FAILED",
                 {
-                    selectedCount:
-                        selectedTransactionIds.length,
-
-                    foundCount:
-                        transactions.length,
-
+                    selectedCount: selectedTransactionIds.length,
+                    foundCount: transactions.length,
                     missingIds,
                 }
             );
@@ -699,216 +449,127 @@ export async function POST(
             return NextResponse.json(
                 {
                     success: false,
-
                     message:
-                        "One or more selected transactions are no longer eligible for this RCD. Please refresh the transaction list and try again.",
-
-                    missing_transaction_ids:
-                        missingIds,
+                        "One or more selected transactions could not be found for this collector, fund source, or date range, or were already added to an RCD. Refresh the list and try again.",
+                    missing_transaction_ids: missingIds,
                 },
                 {
                     status: 409,
                 }
             );
-
         }
 
         // =====================================================
         // NO TRANSACTIONS
         // =====================================================
 
-        if (
-            transactions.length === 0
-        ) {
-
-            await client.query(
-                "ROLLBACK"
-            );
+        if (transactions.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
 
             return NextResponse.json(
                 {
                     success: false,
-
-                    message:
-                        "No selected DIPP transactions were found for the RCD.",
+                    message: "No selected DIPP transactions were found for the RCD.",
                 },
                 {
                     status: 404,
                 }
             );
-
         }
 
         // =====================================================
         // TOTAL COLLECTIONS
+        // Cancelled transactions have amount = 0.
         // =====================================================
 
-        const totalCollections =
-            transactions.reduce(
-                (
-                    total: number,
-                    transaction: any
-                ) => {
-
-                    return (
-                        total +
-                        Number(
-                            transaction.amount ??
-                                0
-                        )
-                    );
-
-                },
-                0
-            );
+        const totalCollections = transactions.reduce(
+            (
+                total: number,
+                transaction: any
+            ) => {
+                return total + Number(transaction.amount ?? 0);
+            },
+            0
+        );
 
         // =====================================================
         // BUILD ACCOUNTABILITY DATA
         // =====================================================
 
-        const previousFormRows:
-            PreviousFormRow[] = [];
+        const previousFormRows: PreviousFormRow[] = [];
 
-        const formGroups =
-            new Map<
-                string,
-                any[]
-            >();
+        const formGroups = new Map<string, any[]>();
 
         // =====================================================
         // GROUP TRANSACTIONS BY FORM
         // =====================================================
 
-        for (
-            const transaction
-            of transactions
-        ) {
+        for (const transaction of transactions) {
+            const formCode = String(
+                transaction.form_code ?? "—"
+            ).trim();
 
-            const formCode =
-                String(
-                    transaction.form_code ??
-                        "—"
-                ).trim();
-
-            if (
-                !formGroups.has(
-                    formCode
-                )
-            ) {
-
-                formGroups.set(
-                    formCode,
-                    []
-                );
-
+            if (!formGroups.has(formCode)) {
+                formGroups.set(formCode, []);
             }
 
-            formGroups
-                .get(
-                    formCode
-                )!
-                .push(
-                    transaction
-                );
-
+            formGroups.get(formCode)!.push(transaction);
         }
 
         // =====================================================
         // BUILD ACCOUNTABILITY ROWS
         // =====================================================
 
-        for (
-            const [
-                formCode,
-                groupTransactions,
-            ]
-            of formGroups.entries()
-        ) {
+        for (const [
+            formCode,
+            groupTransactions,
+        ] of formGroups.entries()) {
 
             // =================================================
             // CURRENT RCD ORs
             // =================================================
 
-            const serials =
-                groupTransactions
-                    .map(
-                        (
-                            transaction: any
-                        ) =>
-                            String(
-                                transaction.or_number ??
-                                    ""
-                            ).trim()
-                    )
-                    .filter(
-                        (
-                            value: string
-                        ) =>
-                            value !== ""
-                    );
+            const serials = groupTransactions
+                .map(
+                    (transaction: any) =>
+                        String(transaction.or_number ?? "").trim()
+                )
+                .filter(
+                    (value: string) => value !== ""
+                );
 
-            const numericSerials =
-                serials
-                    .map(
-                        (
-                            value: string
-                        ) =>
-                            Number(
-                                value
-                            )
-                    )
-                    .filter(
-                        (
-                            value: number
-                        ) =>
-                            !Number.isNaN(
-                                value
-                            )
-                    );
+            const numericSerials = serials
+                .map(
+                    (value: string) => Number(value)
+                )
+                .filter(
+                    (value: number) => !Number.isNaN(value)
+                );
 
-            if (
-                numericSerials.length === 0
-            ) {
-
+            if (numericSerials.length === 0) {
                 previousFormRows.push({
-
                     formCode,
-
-                    beginningFrom:
-                        null,
-
-                    beginningTo:
-                        null,
-
-                    endingFrom:
-                        null,
-
-                    endingTo:
-                        null,
-
+                    beginningFrom: null,
+                    beginningTo: null,
+                    endingFrom: null,
+                    endingTo: null,
                 });
 
                 continue;
-
             }
 
             // =================================================
             // FIRST OR
             // =================================================
 
-            const currentMin =
-                Math.min(
-                    ...numericSerials
-                );
+            const currentMin = Math.min(...numericSerials);
 
             // =================================================
             // LAST OR
             // =================================================
 
-            const currentMax =
-                Math.max(
-                    ...numericSerials
-                );
+            const currentMax = Math.max(...numericSerials);
 
             // =================================================
             // FIND BOOKLET
@@ -916,41 +577,26 @@ export async function POST(
 
             const bookletTransaction =
                 groupTransactions.find(
-                    (
-                        transaction: any
-                    ) =>
-                        transaction
-                            .booklet_ending_or !==
-                            null &&
-                        transaction
-                            .booklet_ending_or !==
-                            undefined &&
+                    (transaction: any) =>
+                        transaction.booklet_ending_or !== null &&
+                        transaction.booklet_ending_or !== undefined &&
                         String(
-                            transaction
-                                .booklet_ending_or
+                            transaction.booklet_ending_or
                         ).trim() !== ""
-                ) ??
-                groupTransactions[0];
+                ) ?? groupTransactions[0];
 
             // =================================================
             // BOOKLET ENDING OR
             // =================================================
 
             const bookletEndingRaw =
-                bookletTransaction
-                    ?.booklet_ending_or;
+                bookletTransaction?.booklet_ending_or;
 
             const bookletEnding =
-                bookletEndingRaw !==
-                    null &&
-                bookletEndingRaw !==
-                    undefined &&
-                String(
-                    bookletEndingRaw
-                ).trim() !== ""
-                    ? Number(
-                        bookletEndingRaw
-                    )
+                bookletEndingRaw !== null &&
+                bookletEndingRaw !== undefined &&
+                String(bookletEndingRaw).trim() !== ""
+                    ? Number(bookletEndingRaw)
                     : null;
 
             // =================================================
@@ -958,54 +604,33 @@ export async function POST(
             // =================================================
 
             const firstSerialString =
-                serials[0] ??
-                String(
-                    currentMin
-                );
+                serials[0] ?? String(currentMin);
 
             const endingSerialString =
-                bookletEndingRaw !==
-                    null &&
-                bookletEndingRaw !==
-                    undefined
-                    ? String(
-                        bookletEndingRaw
-                    )
+                bookletEndingRaw !== null &&
+                bookletEndingRaw !== undefined
+                    ? String(bookletEndingRaw)
                     : "";
 
-            const serialWidth =
-                Math.max(
-                    firstSerialString.length,
-                    endingSerialString.length
-                );
+            const serialWidth = Math.max(
+                firstSerialString.length,
+                endingSerialString.length
+            );
 
             // =================================================
             // BEGINNING BALANCE
-            //
-            // Example:
-            //
-            // Current RCD starts at 103
-            // Booklet ends at 150
-            //
-            // Beginning:
-            //
-            // 103 - 150
             // =================================================
 
-            const beginningFrom =
-                String(
-                    currentMin
-                ).padStart(
-                    serialWidth,
-                    "0"
-                );
+            const beginningFrom = String(
+                currentMin
+            ).padStart(
+                serialWidth,
+                "0"
+            );
 
             const beginningTo =
-                bookletEnding !==
-                    null
-                    ? String(
-                        bookletEnding
-                    ).padStart(
+                bookletEnding !== null
+                    ? String(bookletEnding).padStart(
                         serialWidth,
                         "0"
                     )
@@ -1013,47 +638,28 @@ export async function POST(
 
             // =================================================
             // ENDING BALANCE
-            //
-            // Example:
-            //
-            // Issued: 103
-            //
-            // Ending:
-            //
-            // 104 - 150
             // =================================================
 
-            let endingFrom:
-                string | null =
-                null;
-
-            let endingTo:
-                string | null =
-                null;
+            let endingFrom: string | null = null;
+            let endingTo: string | null = null;
 
             if (
-                bookletEnding !==
-                    null &&
-                currentMax <
-                    bookletEnding
+                bookletEnding !== null &&
+                currentMax < bookletEnding
             ) {
+                endingFrom = String(
+                    currentMax + 1
+                ).padStart(
+                    serialWidth,
+                    "0"
+                );
 
-                endingFrom =
-                    String(
-                        currentMax + 1
-                    ).padStart(
-                        serialWidth,
-                        "0"
-                    );
-
-                endingTo =
-                    String(
-                        bookletEnding
-                    ).padStart(
-                        serialWidth,
-                        "0"
-                    );
-
+                endingTo = String(
+                    bookletEnding
+                ).padStart(
+                    serialWidth,
+                    "0"
+                );
             }
 
             // =================================================
@@ -1061,19 +667,12 @@ export async function POST(
             // =================================================
 
             previousFormRows.push({
-
                 formCode,
-
                 beginningFrom,
-
                 beginningTo,
-
                 endingFrom,
-
                 endingTo,
-
             });
-
         }
 
         // =====================================================
@@ -1084,8 +683,7 @@ export async function POST(
             "RCD SELECTED TRANSACTIONS",
             {
                 selectedTransactionIds,
-                transactionCount:
-                    transactions.length,
+                transactionCount: transactions.length,
                 totalCollections,
             }
         );
@@ -1098,94 +696,62 @@ export async function POST(
         // =====================================================
         // REPORT NUMBER
         //
-        // FORMAT:
-        //
-        // YYMMDDNNNNN-ACRONYM
-        //
-        // Example:
-        //
-        // 26081700001-GF
+        // FORMAT: YYMMDDNNNNN-ACRONYM
+        // Example: 26081700001-GF
         // =====================================================
 
-        const reportDate =
-            new Date();
+        const reportDate = new Date();
 
-        const yy =
-            String(
-                reportDate.getFullYear()
-            ).slice(-2);
+        const yy = String(
+            reportDate.getFullYear()
+        ).slice(-2);
 
-        const mm =
-            String(
-                reportDate.getMonth() + 1
-            ).padStart(
-                2,
-                "0"
-            );
+        const mm = String(
+            reportDate.getMonth() + 1
+        ).padStart(2, "0");
 
-        const dd =
-            String(
-                reportDate.getDate()
-            ).padStart(
-                2,
-                "0"
-            );
+        const dd = String(
+            reportDate.getDate()
+        ).padStart(2, "0");
 
-        const datePrefix =
-            `${yy}${mm}${dd}`;
+        const datePrefix = `${yy}${mm}${dd}`;
 
         // =====================================================
         // GET NEXT DAILY SEQUENCE
         // =====================================================
 
-        const sequenceResult =
-            await client.query(
-                `
-                    SELECT
-                        COUNT(*) + 1
-                            AS sequence
-                    FROM rcd_transaction
-                    WHERE report_date =
-                        CURRENT_DATE
-                `
-            );
+        const sequenceResult = await client.query(
+            `
+                SELECT
+                    COUNT(*) + 1 AS sequence
+                FROM rcd_transaction
+                WHERE report_date = CURRENT_DATE
+            `
+        );
 
-        const sequence =
-            String(
-                sequenceResult
-                    .rows[0]
-                    .sequence
-            ).padStart(
-                5,
-                "0"
-            );
+        const sequence = String(
+            sequenceResult.rows[0].sequence
+        ).padStart(5, "0");
 
         // =====================================================
         // FUND SOURCE ACRONYM
         // =====================================================
 
-        const fundSourceAcronym =
-            String(
-                fundSource.acronym ??
-                    ""
-            )
-                .trim()
-                .toUpperCase();
+        const fundSourceAcronym = String(
+            fundSource.acronym ?? ""
+        ).trim().toUpperCase();
 
         // =====================================================
         // FALLBACK
         // =====================================================
 
-        const reportSuffix =
-            fundSourceAcronym ||
-            "RPT";
+        const reportSuffix = fundSourceAcronym || "RPT";
 
         // =====================================================
         // FINAL REPORT NUMBER
         // =====================================================
 
-        const reportNo =
-            `${datePrefix}${sequence}-${reportSuffix}`;
+        const reportNo = `${datePrefix}${sequence}-${reportSuffix}`;
 
         console.log(
             "RCD REPORT NUMBER",
@@ -1201,177 +767,99 @@ export async function POST(
         // CREATE RCD
         // =====================================================
 
-        const rcdId =
-            randomUUID();
+        const rcdId = randomUUID();
 
-        const rcdResult =
-            await client.query(
-                `
-                    INSERT INTO rcd_transaction (
-
-                        id,
-
-                        report_no,
-
-                        report_date,
-
-                        fund_source_id,
-
-                        date_from,
-
-                        date_to,
-
-                        total_collections,
-
-                        total_remittances,
-
-                        total_deposits,
-
-                        balance,
-
-                        status,
-
-                        rcd_by,
-
-                        created_at,
-
-                        updated_at
-
-                    )
-
-                    VALUES (
-
-                        $1,
-
-                        $2,
-
-                        CURRENT_DATE,
-
-                        $3,
-
-                        $4,
-
-                        $5,
-
-                        $6,
-
-                        0,
-
-                        0,
-
-                        $6,
-
-                        'FOR REMITTANCE',
-
-                        $7,
-
-                        CURRENT_TIMESTAMP,
-
-                        CURRENT_TIMESTAMP
-
-                    )
-
-                    RETURNING *
-                `,
-                [
-                    rcdId,
-
-                    reportNo,
-
+        const rcdResult = await client.query(
+            `
+                INSERT INTO rcd_transaction (
+                    id,
+                    report_no,
+                    report_date,
                     fund_source_id,
-
                     date_from,
-
                     date_to,
+                    total_collections,
+                    total_remittances,
+                    total_deposits,
+                    balance,
+                    status,
+                    rcd_by,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    CURRENT_DATE,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    0,
+                    0,
+                    $6,
+                    'FOR REMITTANCE',
+                    $7,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+                RETURNING *
+            `,
+            [
+                rcdId,
+                reportNo,
+                fund_source_id,
+                date_from,
+                date_to,
+                totalCollections,
+                loggedInUser.id,
+            ]
+        );
 
-                    totalCollections,
-
-                    loggedInUser.id,
-                ]
-            );
-
-        const rcd =
-            rcdResult.rows[0];
+        const rcd = rcdResult.rows[0];
 
         // =====================================================
         // INSERT ONLY SELECTED RCD ITEMS
         // =====================================================
 
-        for (
-            const transaction
-            of transactions
-        ) {
-
+        for (const transaction of transactions) {
             await client.query(
                 `
                     INSERT INTO rcd_items (
-
                         id,
-
                         rcd_transaction_id,
-
                         dipp_transaction_id,
-
                         or_number,
-
                         receipt_date,
-
                         collector_id,
-
                         payor,
-
                         payment_mode,
-
                         amount,
-
                         created_at
-
                     )
-
                     VALUES (
-
                         $1,
-
                         $2,
-
                         $3,
-
                         $4,
-
                         $5,
-
                         $6,
-
                         $7,
-
                         $8,
-
                         $9,
-
                         CURRENT_TIMESTAMP
-
                     )
                 `,
                 [
-
                     randomUUID(),
-
                     rcdId,
-
                     transaction.id,
-
                     transaction.or_number,
-
                     transaction.receipt_date,
-
                     transaction.collector_id,
-
                     transaction.payor,
-
                     transaction.payment_mode,
-
                     transaction.amount,
-
                 ]
             );
 
@@ -1391,127 +879,86 @@ export async function POST(
                     transaction.id,
                 ]
             );
-
         }
-
-        // =====================================================
-        // REMITTANCE DETAILS CLEARED
-        //
-        // RCD generation does not mark DIPP transactions
-        // as remitted.
-        // =====================================================
 
         // =====================================================
         // COMMIT
         // =====================================================
 
-        await client.query(
-            "COMMIT"
-        );
+        await client.query("COMMIT");
+        transactionStarted = false;
 
         // =====================================================
         // FORMAT RCD
         // =====================================================
 
         const formattedRCD = {
-
             ...rcd,
 
-            total_collections:
-                Number(
-                    rcd.total_collections ??
-                        0
-                ),
+            total_collections: Number(
+                rcd.total_collections ?? 0
+            ),
 
-            total_remittances:
-                Number(
-                    rcd.total_remittances ??
-                        0
-                ),
+            total_remittances: Number(
+                rcd.total_remittances ?? 0
+            ),
 
-            total_deposits:
-                Number(
-                    rcd.total_deposits ??
-                        0
-                ),
+            total_deposits: Number(
+                rcd.total_deposits ?? 0
+            ),
 
-            balance:
-                Number(
-                    rcd.balance ??
-                        0
-                ),
-
+            balance: Number(
+                rcd.balance ?? 0
+            ),
         };
 
         // =====================================================
         // FORMAT ITEMS FOR PREVIEW
         // =====================================================
 
-        const formattedItems =
-            transactions.map(
-                (
-                    transaction: any
-                ) => {
+        const formattedItems = transactions.map(
+            (transaction: any) => {
+                return {
+                    id: transaction.id,
 
-                    return {
+                    dipp_transaction_id: transaction.id,
 
-                        id:
-                            transaction.id,
+                    or_number: transaction.or_number,
 
-                        dipp_transaction_id:
-                            transaction.id,
+                    receipt_date: transaction.receipt_date,
 
-                        or_number:
-                            transaction.or_number,
+                    collector_id: transaction.collector_id,
 
-                        receipt_date:
-                            transaction.receipt_date,
+                    payor: transaction.payor,
 
-                        collector_id:
-                            transaction.collector_id,
+                    payment_mode: transaction.payment_mode,
 
-                        payor:
-                            transaction.payor,
+                    amount: Number(
+                        transaction.amount ?? 0
+                    ),
 
-                        payment_mode:
-                            transaction.payment_mode,
+                    form_code: transaction.form_code,
 
-                        amount:
-                            Number(
-                                transaction.amount ??
-                                    0
-                            ),
+                    form_name: transaction.form_name,
 
-                        form_code:
-                            transaction.form_code,
+                    // =====================================
+                    // BOOKLET
+                    // =====================================
 
-                        form_name:
-                            transaction.form_name,
+                    booklet_registration_id:
+                        transaction.booklet_registration_id,
 
-                        // =====================================
-                        // BOOKLET
-                        // =====================================
+                    booklet_beginning_or:
+                        transaction.booklet_beginning_or,
 
-                        booklet_registration_id:
-                            transaction
-                                .booklet_registration_id,
+                    booklet_ending_or:
+                        transaction.booklet_ending_or,
 
-                        booklet_beginning_or:
-                            transaction
-                                .booklet_beginning_or,
-
-                        booklet_ending_or:
-                            transaction
-                                .booklet_ending_or,
-
-                        booklet_current_or:
-                            transaction
-                                .booklet_current_or,
-
-                    };
-
-                }
-            );
+                    booklet_current_or:
+                        transaction.booklet_current_or,
+                };
+            }
+        );
 
         // =====================================================
         // RESPONSE
@@ -1519,54 +966,38 @@ export async function POST(
 
         return NextResponse.json(
             {
-
                 success: true,
 
-                message:
-                    "RCD generated successfully.",
+                message: "RCD generated successfully.",
 
                 // =================================================
                 // RCD
                 // =================================================
 
-                rcd:
-                    formattedRCD,
+                rcd: formattedRCD,
 
                 // =================================================
                 // ITEMS
                 // =================================================
 
-                items:
-                    formattedItems,
+                items: formattedItems,
 
                 // =================================================
                 // ACCOUNTABILITY
                 // =================================================
 
-                previous_form_rows:
-                    previousFormRows,
+                previous_form_rows: previousFormRows,
 
                 // =================================================
                 // SUMMARY
                 // =================================================
 
                 summary: {
-
-                    transaction_count:
-                        transactions.length,
-
-                    total_collections:
-                        totalCollections,
-
-                    total_remittances:
-                        0,
-
-                    total_deposits:
-                        0,
-
-                    balance:
-                        totalCollections,
-
+                    transaction_count: transactions.length,
+                    total_collections: totalCollections,
+                    total_remittances: 0,
+                    total_deposits: 0,
+                    balance: totalCollections,
                 },
 
                 // =================================================
@@ -1574,19 +1005,10 @@ export async function POST(
                 // =================================================
 
                 fund_source: {
-
-                    id:
-                        fundSource.id,
-
-                    fund_code:
-                        fundSource.fund_code,
-
-                    fund_name:
-                        fundSource.fund_name,
-
-                    acronym:
-                        fundSource.acronym,
-
+                    id: fundSource.id,
+                    fund_code: fundSource.fund_code,
+                    fund_name: fundSource.fund_name,
+                    acronym: fundSource.acronym,
                 },
 
                 // =================================================
@@ -1594,47 +1016,30 @@ export async function POST(
                 // =================================================
 
                 user: {
-
-                    id:
-                        loggedInUser.id,
-
-                    username:
-                        loggedInUser.username,
-
-                    full_name:
-                        loggedInUser.full_name,
-
+                    id: loggedInUser.id,
+                    username: loggedInUser.username,
+                    full_name: loggedInUser.full_name,
                 },
-
             },
             {
                 status: 201,
             }
         );
 
-    } catch (
-        error: any
-    ) {
-
+    } catch (error: any) {
         // =====================================================
         // ROLLBACK
         // =====================================================
 
-        try {
-
-            await client.query(
-                "ROLLBACK"
-            );
-
-        } catch (
-            rollbackError
-        ) {
-
-            console.error(
-                "RCD ROLLBACK ERROR:",
-                rollbackError
-            );
-
+        if (transactionStarted) {
+            try {
+                await client.query("ROLLBACK");
+            } catch (rollbackError) {
+                console.error(
+                    "RCD ROLLBACK ERROR:",
+                    rollbackError
+                );
+            }
         }
 
         // =====================================================
@@ -1648,13 +1053,10 @@ export async function POST(
 
         return NextResponse.json(
             {
-
                 success: false,
-
                 message:
                     error?.message ||
                     "Failed to generate RCD.",
-
             },
             {
                 status: 500,
@@ -1662,9 +1064,6 @@ export async function POST(
         );
 
     } finally {
-
         client.release();
-
     }
-
 }
