@@ -1,9 +1,10 @@
-
 "use client";
 
 type Props = {
     items?: any[];
     formatAmount: (value: any) => string;
+    showGrandTotal?: boolean;
+    grandTotalOverride?: number;
 };
 
 /* ============================================================
@@ -98,7 +99,9 @@ function isCancelled(item: any): boolean {
 
     return (
         status === "CANCELLED" ||
-        status === "CANCELED"
+        status === "CANCELED" ||
+        item?.is_cancelled === true ||
+        String(item?.is_cancelled).toLowerCase() === "true"
     );
 }
 
@@ -126,22 +129,29 @@ function getAmount(item: any): number {
 export default function AbstractSummaryAccounts({
     items = [],
     formatAmount,
+    showGrandTotal = true,
+    grandTotalOverride,
 }: Props) {
     const rows: any[] = Array.isArray(items)
         ? items
         : [];
 
     /*
-     * This component calculates the displayed row total.
-     * If the parent supplies a separately calculated Grand Total,
-     * preserve that parent's existing RPT discount calculation.
+     * Preserve the parent's calculated Grand Total when supplied.
+     * This keeps the existing RPT discount calculation intact.
      */
-    const grandTotal = rows.reduce(
+    const calculatedGrandTotal = rows.reduce(
         (total: number, item: any) => {
             return total + getAmount(item);
         },
         0
     );
+
+    const grandTotal =
+        typeof grandTotalOverride === "number" &&
+        Number.isFinite(grandTotalOverride)
+            ? grandTotalOverride
+            : calculatedGrandTotal;
 
     return (
         <div className="abstract-summary-section">
@@ -247,20 +257,22 @@ export default function AbstractSummaryAccounts({
                 </tbody>
 
                 {/* GRAND TOTAL */}
-                <tfoot>
-                    <tr>
-                        <td
-                            colSpan={6}
-                            className="abstract-summary-total-label"
-                        >
-                            Grand Total:
-                        </td>
+                {showGrandTotal && (
+                    <tfoot>
+                        <tr>
+                            <td
+                                colSpan={6}
+                                className="abstract-summary-total-label"
+                            >
+                                Grand Total:
+                            </td>
 
-                        <td className="abstract-summary-total">
-                            {formatAmount(grandTotal)}
-                        </td>
-                    </tr>
-                </tfoot>
+                            <td className="abstract-summary-total">
+                                {formatAmount(grandTotal)}
+                            </td>
+                        </tr>
+                    </tfoot>
+                )}
             </table>
         </div>
     );
