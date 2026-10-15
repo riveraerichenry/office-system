@@ -102,9 +102,15 @@ export async function GET(request: NextRequest) {
         let decoded: JwtPayload;
 
         try {
-            decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+            decoded = jwt.verify(
+                token,
+                jwtSecret
+            ) as JwtPayload;
         } catch (error) {
-            console.error("RCD TRANSACTION JWT ERROR:", error);
+            console.error(
+                "RCD TRANSACTION JWT ERROR:",
+                error
+            );
 
             return NextResponse.json(
                 {
@@ -186,19 +192,12 @@ export async function GET(request: NextRequest) {
         const fundSource = fundResult.rows[0];
 
         // =====================================================
-        // GET ALL TRANSACTIONS
+        // GET ELIGIBLE RCD TRANSACTIONS
         //
-        // Filters ONLY:
+        // Filters:
         // 1. Selected fund source
         // 2. Selected receipt date range
-        //
-        // No filters for:
-        // - Collector
-        // - Transaction status
-        // - Cancelled transactions
-        // - Remitted transactions
-        // - Remittance ID
-        // - Transactions already included in an RCD
+        // 3. Transactions not yet included in an RCD
         //
         // Do not filter transaction_type = 'RPT'.
         // This allows different accountable forms, such as
@@ -268,6 +267,13 @@ export async function GET(request: NextRequest) {
                     $3::date + INTERVAL '1 day'
                 )
 
+                -- EXCLUDE TRANSACTIONS ALREADY IN AN RCD
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM rcd_items ri
+                    WHERE ri.dipp_transaction_id = dt.id
+                )
+
             ORDER BY
                 af.form_code ASC,
                 dt.receipt_date ASC,
@@ -297,48 +303,51 @@ export async function GET(request: NextRequest) {
         // FORMAT TRANSACTIONS
         // =====================================================
 
-        const transactions = transactionResult.rows.map((row) => ({
-            id: row.id,
-            or_number: row.or_number,
-            receipt_date: row.receipt_date,
-            payor: row.payor,
-            remarks: row.remarks,
+        const transactions = transactionResult.rows.map(
+            (row) => ({
+                id: row.id,
+                or_number: row.or_number,
+                receipt_date: row.receipt_date,
+                payor: row.payor,
+                remarks: row.remarks,
 
-            form_code: row.form_code,
-            form_name: row.form_name,
+                form_code: row.form_code,
+                form_name: row.form_name,
 
-            status: row.status,
+                status: row.status,
 
-            amount: Number(row.grand_total ?? 0),
+                amount: Number(row.grand_total ?? 0),
 
-            payment_mode: row.payment_mode,
-            transaction_type: row.transaction_type,
+                payment_mode: row.payment_mode,
+                transaction_type: row.transaction_type,
 
-            is_cancelled: row.is_cancelled,
-            is_remitted: row.is_remitted,
-            remittance_id: row.remittance_id,
+                is_cancelled: row.is_cancelled,
+                is_remitted: row.is_remitted,
+                remittance_id: row.remittance_id,
 
-            accountable_form_id: row.accountable_form_id,
+                accountable_form_id:
+                    row.accountable_form_id,
 
-            // Booklet information
-            booklet_registration_id:
-                row.booklet_registration_id,
+                // Booklet information
+                booklet_registration_id:
+                    row.booklet_registration_id,
 
-            booklet_beginning_or:
-                row.booklet_beginning_or,
+                booklet_beginning_or:
+                    row.booklet_beginning_or,
 
-            booklet_ending_or:
-                row.booklet_ending_or,
+                booklet_ending_or:
+                    row.booklet_ending_or,
 
-            booklet_current_or:
-                row.booklet_current_or,
+                booklet_current_or:
+                    row.booklet_current_or,
 
-            // Other information
-            lor_release_id: row.lor_release_id,
-            collector_id: row.collector_id,
-            encoded_by: row.encoded_by,
-            created_at: row.created_at,
-        }));
+                // Other information
+                lor_release_id: row.lor_release_id,
+                collector_id: row.collector_id,
+                encoded_by: row.encoded_by,
+                created_at: row.created_at,
+            })
+        );
 
         // =====================================================
         // TOTAL AMOUNT
@@ -413,6 +422,7 @@ export async function GET(request: NextRequest) {
             formSummary,
 
             forms: transactions.map((transaction) => ({
+                id: transaction.id,
                 form_code: transaction.form_code,
                 form_name: transaction.form_name,
                 or_number: transaction.or_number,
@@ -466,8 +476,7 @@ export async function GET(request: NextRequest) {
                 acronym: fundSource.acronym,
             },
 
-            // All transactions matching the fund source
-            // and receipt date range
+            // Transactions eligible under the filters above
             transactions,
 
             // Summary grouped by accountable form
@@ -479,7 +488,7 @@ export async function GET(request: NextRequest) {
                 total_amount: totalAmount,
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(
             "RCD TRANSACTIONS API ERROR:",
             error
@@ -489,8 +498,9 @@ export async function GET(request: NextRequest) {
             {
                 success: false,
                 message:
-                    error?.message ??
-                    "Unable to load RCD transactions.",
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to load RCD transactions.",
             },
             { status: 500 }
         );

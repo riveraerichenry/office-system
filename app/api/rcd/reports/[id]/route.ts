@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import jwt from "jsonwebtoken";
@@ -11,21 +12,25 @@ type JwtPayload = {
     user_id?: string;
 };
 
+const RPT_GENERAL_ID =
+    "87dc32f3-418e-4cab-a024-673321df1ef5";
+
+const RPT_BASIC_ID =
+    "a30624dd-f490-424a-984d-fe5f5e93277a";
+
+const RPT_SEF_ID =
+    "2a29a5c5-01d8-4202-8cf9-8a6659865f01";
+
 export async function GET(
     request: NextRequest,
     context: {
-        params: Promise<{
-            id: string;
-        }>;
+        params: Promise<{ id: string }>;
     }
 ) {
     const client = await pool.connect();
 
     try {
-        // ============================================================
         // AUTHENTICATION
-        // ============================================================
-
         const token = request.cookies.get("token")?.value;
 
         if (!token) {
@@ -77,10 +82,6 @@ export async function GET(
             );
         }
 
-        // ============================================================
-        // RCD ID
-        // ============================================================
-
         const { id } = await context.params;
 
         if (!id) {
@@ -93,37 +94,19 @@ export async function GET(
             );
         }
 
-        // ============================================================
-        // GET RCD
-        //
-        // IMPORTANT:
-        // PostgreSQL DATE values are returned as YYYY-MM-DD strings.
-        // This prevents timezone conversion from changing the date.
-        // ============================================================
-
+        // GET THE SELECTED RCD
         const rcdResult = await client.query(
             `
             SELECT
                 rt.id,
                 rt.report_no,
-
-                TO_CHAR(
-                    rt.report_date,
-                    'YYYY-MM-DD'
-                ) AS report_date,
-
+                TO_CHAR(rt.report_date, 'YYYY-MM-DD')
+                    AS report_date,
                 rt.fund_source_id,
-
-                TO_CHAR(
-                    rt.date_from,
-                    'YYYY-MM-DD'
-                ) AS date_from,
-
-                TO_CHAR(
-                    rt.date_to,
-                    'YYYY-MM-DD'
-                ) AS date_to,
-
+                TO_CHAR(rt.date_from, 'YYYY-MM-DD')
+                    AS date_from,
+                TO_CHAR(rt.date_to, 'YYYY-MM-DD')
+                    AS date_to,
                 rt.total_collections,
                 rt.total_remittances,
                 rt.total_deposits,
@@ -132,25 +115,18 @@ export async function GET(
                 rt.rcd_by,
                 rt.created_at,
                 rt.updated_at,
-
                 fs.fund_code,
                 fs.fund_name,
                 fs.acronym,
-
                 u.id AS user_id,
                 u.full_name AS user_full_name,
                 u.username AS user_username
-
-            FROM rcd_transaction rt
-
-            LEFT JOIN fund_sources fs
+            FROM public.rcd_transaction rt
+            LEFT JOIN public.fund_sources fs
                 ON fs.id = rt.fund_source_id
-
-            LEFT JOIN users u
+            LEFT JOIN public.users u
                 ON u.id = rt.rcd_by
-
             WHERE rt.id = $1
-
             LIMIT 1
             `,
             [id]
@@ -168,10 +144,83 @@ export async function GET(
 
         const rcd = rcdResult.rows[0];
 
-        // ============================================================
-        // GET RCD ITEMS
-        // ============================================================
+        // FIND THE MATCHING BASIC OR SEF REPORT.
+        // Match the opposite fund source and the actual
+        // DIPP transactions associated with both reports.
+        let pairedRcdId: string | null = null;
 
+        const isBasic =
+            String(rcd.fund_source_id) === RPT_BASIC_ID;
+
+        const isSef =
+            String(rcd.fund_source_id) === RPT_SEF_ID;
+
+        if (isBasic || isSef) {
+            const counterpartFundSourceId = isBasic
+                ? RPT_SEF_ID
+                : RPT_BASIC_ID;
+
+            const pairedResult = await client.query(
+                `
+                WITH current_items AS (
+                    SELECT dipp_transaction_id
+                    FROM public.rcd_items
+                    WHERE rcd_transaction_id = $1
+                ),
+                candidates AS (
+                    SELECT
+                        sibling.id,
+                        sibling.created_at,
+                        COUNT(DISTINCT ci.dipp_transaction_id)
+                            AS shared_items,
+                        (
+                            SELECT COUNT(*)
+                            FROM public.rcd_items sibling_item
+                            WHERE sibling_item.rcd_transaction_id =
+                                  sibling.id
+                        ) AS sibling_item_count,
+                        (
+                            SELECT COUNT(*)
+                            FROM current_items
+                        ) AS current_item_count
+                    FROM public.rcd_transaction sibling
+                    JOIN public.rcd_items sibling_item
+                        ON sibling_item.rcd_transaction_id =
+                           sibling.id
+                    JOIN current_items ci
+                        ON ci.dipp_transaction_id =
+                           sibling_item.dipp_transaction_id
+                    WHERE sibling.id <> $1
+                      AND sibling.fund_source_id = $2
+                      AND sibling.rcd_by IS NOT DISTINCT FROM $3
+                      AND sibling.report_date = $4
+                      AND sibling.date_from IS NOT DISTINCT FROM $5
+                      AND sibling.date_to IS NOT DISTINCT FROM $6
+                    GROUP BY sibling.id, sibling.created_at
+                )
+                SELECT id
+                FROM candidates
+                WHERE shared_items > 0
+                  AND shared_items = sibling_item_count
+                  AND shared_items = current_item_count
+                ORDER BY created_at DESC
+                LIMIT 1
+                `,
+                [
+                    rcd.id,
+                    counterpartFundSourceId,
+                    rcd.rcd_by,
+                    rcd.report_date,
+                    rcd.date_from,
+                    rcd.date_to,
+                ]
+            );
+
+            pairedRcdId =
+                pairedResult.rows[0]?.id ?? null;
+        }
+
+        // GET SELECTED RCD ITEMS
         const itemsResult = await client.query(
             `
             SELECT
@@ -185,46 +234,32 @@ export async function GET(
                 ri.payment_mode,
                 ri.amount,
                 ri.created_at,
-
                 dt.accountable_form_id,
                 dt.booklet_registration_id,
                 dt.remarks,
                 dt.encoded_by,
                 dt.status AS transaction_status,
-
                 af.form_code,
                 af.form_name,
-
                 sbr.beginning_or AS booklet_beginning_or,
                 sbr.ending_or AS booklet_ending_or,
                 sbr.current_or AS booklet_current_or
-
-            FROM rcd_items ri
-
-            LEFT JOIN dipp_transactions dt
+            FROM public.rcd_items ri
+            LEFT JOIN public.dipp_transactions dt
                 ON dt.id = ri.dipp_transaction_id
-
-            LEFT JOIN accountable_forms af
+            LEFT JOIN public.accountable_forms af
                 ON af.id = dt.accountable_form_id
-
-            LEFT JOIN smi_booklet_registration sbr
+            LEFT JOIN public.smi_booklet_registration sbr
                 ON sbr.id = dt.booklet_registration_id
-
             WHERE ri.rcd_transaction_id = $1
-
-            ORDER BY
-                ri.receipt_date ASC,
-                ri.or_number ASC
+            ORDER BY ri.receipt_date ASC, ri.or_number ASC
             `,
             [id]
         );
 
         const items = itemsResult.rows;
 
-        // ============================================================
         // GET COLLECTORS
-        // ============================================================
-
         const collectorIds = Array.from(
             new Set(
                 items
@@ -238,11 +273,8 @@ export async function GET(
         if (collectorIds.length > 0) {
             const collectorResult = await client.query(
                 `
-                SELECT
-                    id,
-                    username,
-                    full_name
-                FROM users
+                SELECT id, username, full_name
+                FROM public.users
                 WHERE id = ANY($1::uuid[])
                 `,
                 [collectorIds]
@@ -250,10 +282,6 @@ export async function GET(
 
             collectors = collectorResult.rows;
         }
-
-        // ============================================================
-        // CREATE COLLECTOR MAP
-        // ============================================================
 
         const collectorMap = new Map<string, any>();
 
@@ -264,10 +292,6 @@ export async function GET(
             );
         }
 
-        // ============================================================
-        // ATTACH COLLECTOR TO EACH ITEM
-        // ============================================================
-
         const detailedItems = items.map((item: any) => ({
             ...item,
             collector: item.collector_id
@@ -277,20 +301,14 @@ export async function GET(
                 : null,
         }));
 
-        // ============================================================
-        // GET RCD USER / ACCOUNTABLE OFFICER
-        // ============================================================
-
+        // GET ACCOUNTABLE OFFICER
         let rcdUser: any = null;
 
         if (rcd.rcd_by) {
             const userResult = await client.query(
                 `
-                SELECT
-                    id,
-                    username,
-                    full_name
-                FROM users
+                SELECT id, username, full_name
+                FROM public.users
                 WHERE id = $1
                 LIMIT 1
                 `,
@@ -300,10 +318,7 @@ export async function GET(
             rcdUser = userResult.rows[0] ?? null;
         }
 
-        // ============================================================
         // GET REMITTANCE
-        // ============================================================
-
         const remittanceResult = await client.query(
             `
             SELECT
@@ -318,13 +333,9 @@ export async function GET(
                 rr.created_by,
                 rr.created_at,
                 rr.updated_at
-
-            FROM rcd_remittance rr
-
+            FROM public.rcd_remittance rr
             WHERE rr.rcd_transaction_id = $1
-
             ORDER BY rr.created_at DESC
-
             LIMIT 1
             `,
             [id]
@@ -333,70 +344,53 @@ export async function GET(
         let remittance =
             remittanceResult.rows[0] ?? null;
 
-        // ============================================================
         // GET REMITTED BY NAME
-        // ============================================================
-
         if (remittance?.remitted_by) {
-            const remittedByResult = await client.query(
+            const result = await client.query(
                 `
-                SELECT
-                    id,
-                    username,
-                    full_name
-                FROM users
+                SELECT id, username, full_name
+                FROM public.users
                 WHERE id = $1
                 LIMIT 1
                 `,
                 [remittance.remitted_by]
             );
 
-            const remittedBy =
-                remittedByResult.rows[0] ?? null;
+            const person = result.rows[0] ?? null;
 
             remittance = {
                 ...remittance,
                 remitted_by_name:
-                    remittedBy?.full_name ??
-                    remittedBy?.username ??
+                    person?.full_name ??
+                    person?.username ??
                     "—",
             };
         }
 
-        // ============================================================
         // GET CREATED BY NAME
-        // ============================================================
-
         if (remittance?.created_by) {
-            const createdByResult = await client.query(
+            const result = await client.query(
                 `
-                SELECT
-                    id,
-                    username,
-                    full_name
-                FROM users
+                SELECT id, username, full_name
+                FROM public.users
                 WHERE id = $1
                 LIMIT 1
                 `,
                 [remittance.created_by]
             );
 
-            const createdBy =
-                createdByResult.rows[0] ?? null;
+            const person = result.rows[0] ?? null;
 
             remittance = {
                 ...remittance,
                 created_by_name:
-                    createdBy?.full_name ??
-                    createdBy?.username ??
+                    person?.full_name ??
+                    person?.username ??
                     "—",
             };
         }
 
-        // ============================================================
         // GET REMITTANCE DENOMINATIONS
-        // ============================================================
-
         let denominations: any[] = [];
 
         if (remittance?.id) {
@@ -411,40 +405,27 @@ export async function GET(
                             quantity,
                             amount,
                             created_at
-
-                        FROM rcd_remittance_denominations
-
+                        FROM public.rcd_remittance_denominations
                         WHERE remittance_id = $1
-
                         ORDER BY denomination DESC
                         `,
                         [remittance.id]
                     );
 
-                denominations =
-                    denominationResult.rows;
-            } catch (error: any) {
+                denominations = denominationResult.rows;
+            } catch (error) {
                 console.error(
                     "LOAD RCD DENOMINATIONS ERROR:",
                     error
                 );
 
-                // Keep the RCD preview available even if
-                // denomination retrieval fails.
                 denominations = [];
             }
         }
 
-        // ============================================================
-        // BUILD PREVIOUS FORM ROWS
-        // ============================================================
-
+        // BUILD ACCOUNTABLE-FORM ROWS
         const previousFormRows =
             buildPreviousFormRows(detailedItems);
-
-        // ============================================================
-        // BUILD FUND SOURCE OBJECT
-        // ============================================================
 
         const fundSource = {
             id: rcd.fund_source_id,
@@ -453,19 +434,15 @@ export async function GET(
             acronym: rcd.acronym ?? null,
         };
 
-        // ============================================================
-        // FINAL RESPONSE
-        // ============================================================
-
         return NextResponse.json(
             {
                 success: true,
-
                 rcd: {
                     ...rcd,
                     fund_source: fundSource,
+                    paired_rcd_id: pairedRcdId,
                 },
-
+                paired_rcd_id: pairedRcdId,
                 items: detailedItems,
                 remittance,
                 denominations,
@@ -523,9 +500,7 @@ function buildPreviousFormRows(items: any[]) {
 
     for (const [formCode, groupItems] of groups) {
         const numbers = groupItems
-            .map((item: any) =>
-                parseORNumber(item.or_number)
-            )
+            .map((item: any) => parseORNumber(item.or_number))
             .filter(
                 (value): value is number =>
                     value !== null

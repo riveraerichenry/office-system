@@ -99,11 +99,12 @@ export default function GenerateRCDModal({
   // =========================================================
 
   const [
-    generatedRCD,
-    setGeneratedRCD,
-  ] = useState<GeneratedRCD | null>(
-    null
-  );
+    generatedRCDs,
+    setGeneratedRCDs,
+  ] = useState<GeneratedRCD[]>([]);
+
+  // Backward-compatible first RCD reference for status/actions.
+  const generatedRCD = generatedRCDs[0] ?? null;
 
   // =========================================================
   // GENERATING
@@ -246,9 +247,33 @@ export default function GenerateRCDModal({
         // SAVE GENERATED RCD
         // =============================================
 
-        setGeneratedRCD(
-          data
-        );
+        // The updated API returns `rcds` for multi-RCD generation.
+        // Older responses return one RCD at the top level.
+        const generatedReports: GeneratedRCD[] = Array.isArray(data?.rcds)
+          ? data.rcds
+          : data?.rcd
+            ? [{
+                rcd: data.rcd,
+                items: data.items ?? [],
+                summary: data.summary ?? {
+                  transaction_count: (data.items ?? []).length,
+                  total_collections: Number(data.rcd.total_collections ?? 0),
+                  total_remittances: Number(data.rcd.total_remittances ?? 0),
+                  total_deposits: Number(data.rcd.total_deposits ?? 0),
+                  balance: Number(data.rcd.balance ?? 0),
+                },
+                fund_source: data.fund_source,
+                user: data.user,
+                previous_form_rows: data.previous_form_rows ?? [],
+              }]
+            : [];
+
+        if (generatedReports.length === 0) {
+          throw new Error("The API did not return any generated RCD reports.");
+        }
+
+        // API order is preserved: RPT Basic first, then RPT SEF.
+        setGeneratedRCDs(generatedReports);
 
       } catch (
         error: any
@@ -286,7 +311,7 @@ export default function GenerateRCDModal({
     () => {
 
       if (
-        !generatedRCD
+        generatedRCDs.length === 0
       ) {
         return;
       }
@@ -514,34 +539,32 @@ export default function GenerateRCDModal({
               "
             >
 
-              <RCDPreview
-
-                rcd={
-                  generatedRCD?.rcd ??
-                  null
-                }
-
-                items={
-                  generatedRCD?.items ??
-                  []
-                }
-
-                fundSource={
-                  generatedRCD?.fund_source ??
-                  null
-                }
-
-                user={
-                  generatedRCD?.user ??
-                  null
-                }
-
-                previousFormRows={
-                  generatedRCD?.previous_form_rows ??
-                  []
-                }
-
-              />
+              {generatedRCDs.length > 0 ? (
+                <div className="rcd-generated-pages">
+                  {generatedRCDs.map((report, index) => (
+                    <div
+                      key={report.rcd.id ?? report.rcd.report_no ?? index}
+                      className="rcd-generated-page"
+                    >
+                      <RCDPreview
+                        rcd={report.rcd}
+                        items={report.items ?? []}
+                        fundSource={report.fund_source ?? null}
+                        user={report.user ?? null}
+                        previousFormRows={report.previous_form_rows ?? []}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <RCDPreview
+                  rcd={null}
+                  items={[]}
+                  fundSource={null}
+                  user={null}
+                  previousFormRows={[]}
+                />
+              )}
 
             </div>
 
@@ -599,9 +622,10 @@ export default function GenerateRCDModal({
                   "
                 >
                   {
-                    generatedRCD
-                      .rcd
-                      .report_no
+                    generatedRCDs
+                      .map((report) => report.rcd.report_no)
+                      .filter(Boolean)
+                      .join(" / ")
                   }
                 </span>
 
@@ -647,7 +671,7 @@ export default function GenerateRCDModal({
                 Only appears after RCD generation.
             ============================================== */}
 
-            {generatedRCD && (
+            {generatedRCDs.length > 0 && (
 
               <button
                 type="button"
@@ -711,7 +735,7 @@ export default function GenerateRCDModal({
 
               {generating
                 ? "Generating..."
-                : generatedRCD
+                : generatedRCDs.length > 0
                   ? "Generate New RCD"
                   : "Generate RCD"}
 

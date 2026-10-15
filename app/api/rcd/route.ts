@@ -13,19 +13,11 @@ import {
     randomUUID,
 } from "crypto";
 
-// =============================================================
-// JWT PAYLOAD
-// =============================================================
-
 type JwtPayload = {
     id?: string;
     username?: string;
     full_name?: string;
 };
-
-// =============================================================
-// PREVIOUS FORM ROW
-// =============================================================
 
 type PreviousFormRow = {
     formCode: string;
@@ -47,10 +39,6 @@ type PreviousFormRow = {
         | null;
 };
 
-// =============================================================
-// POST
-// =============================================================
-
 export async function POST(
     request: NextRequest
 ) {
@@ -59,10 +47,6 @@ export async function POST(
         await pool.connect();
 
     try {
-
-        // =====================================================
-        // REQUEST BODY
-        // =====================================================
 
         const body =
             await request.json();
@@ -73,10 +57,6 @@ export async function POST(
             date_to,
             transaction_ids,
         } = body;
-
-        // =====================================================
-        // VALIDATION
-        // =====================================================
 
         if (
             !fund_source_id
@@ -131,10 +111,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // TRANSACTION IDS VALIDATION
-        // =====================================================
-
         if (
             !Array.isArray(transaction_ids)
         ) {
@@ -169,10 +145,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // CLEAN TRANSACTION IDS
-        // =====================================================
-
         const selectedTransactionIds =
             Array.from(
                 new Set(
@@ -205,10 +177,6 @@ export async function POST(
             );
 
         }
-
-        // =====================================================
-        // AUTHENTICATION
-        // =====================================================
 
         const token =
             request.cookies.get(
@@ -255,10 +223,6 @@ export async function POST(
             );
 
         }
-
-        // =====================================================
-        // VERIFY JWT
-        // =====================================================
 
         let decoded:
             JwtPayload;
@@ -310,10 +274,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // VERIFY LOGGED-IN USER
-        // =====================================================
-
         const userResult =
             await client.query(
                 `
@@ -349,10 +309,6 @@ export async function POST(
 
         const loggedInUser =
             userResult.rows[0];
-
-        // =====================================================
-        // VERIFY FUND SOURCE
-        // =====================================================
 
         const fundSourceResult =
             await client.query(
@@ -392,17 +348,9 @@ export async function POST(
         const fundSource =
             fundSourceResult.rows[0];
 
-        // =====================================================
-        // BEGIN DATABASE TRANSACTION
-        // =====================================================
-
         await client.query(
             "BEGIN"
         );
-
-        // =====================================================
-        // LOCK RCD NUMBER GENERATION
-        // =====================================================
 
         await client.query(
             `
@@ -413,14 +361,6 @@ export async function POST(
                 )
             `
         );
-
-        // =====================================================
-        // GET SELECTED DIPP TRANSACTIONS
-        //
-        // IMPORTANT:
-        // Only transactions selected by the collector
-        // are allowed into this RCD.
-        // =====================================================
 
         const transactionsResult =
             await client.query(
@@ -650,10 +590,6 @@ export async function POST(
         const transactions =
             transactionsResult.rows;
 
-        // =====================================================
-        // VERIFY ALL SELECTED TRANSACTIONS WERE FOUND
-        // =====================================================
-
         if (
             transactions.length !==
             selectedTransactionIds.length
@@ -713,10 +649,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // NO TRANSACTIONS
-        // =====================================================
-
         if (
             transactions.length === 0
         ) {
@@ -739,10 +671,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // TOTAL COLLECTIONS
-        // =====================================================
-
         const totalCollections =
             transactions.reduce(
                 (
@@ -762,10 +690,6 @@ export async function POST(
                 0
             );
 
-        // =====================================================
-        // BUILD ACCOUNTABILITY DATA
-        // =====================================================
-
         const previousFormRows:
             PreviousFormRow[] = [];
 
@@ -774,10 +698,6 @@ export async function POST(
                 string,
                 any[]
             >();
-
-        // =====================================================
-        // GROUP TRANSACTIONS BY FORM
-        // =====================================================
 
         for (
             const transaction
@@ -813,10 +733,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // BUILD ACCOUNTABILITY ROWS
-        // =====================================================
-
         for (
             const [
                 formCode,
@@ -824,10 +740,6 @@ export async function POST(
             ]
             of formGroups.entries()
         ) {
-
-            // =================================================
-            // CURRENT RCD ORs
-            // =================================================
 
             const serials =
                 groupTransactions
@@ -892,27 +804,15 @@ export async function POST(
 
             }
 
-            // =================================================
-            // FIRST OR
-            // =================================================
-
             const currentMin =
                 Math.min(
                     ...numericSerials
                 );
 
-            // =================================================
-            // LAST OR
-            // =================================================
-
             const currentMax =
                 Math.max(
                     ...numericSerials
                 );
-
-            // =================================================
-            // FIND BOOKLET
-            // =================================================
 
             const bookletTransaction =
                 groupTransactions.find(
@@ -932,10 +832,6 @@ export async function POST(
                 ) ??
                 groupTransactions[0];
 
-            // =================================================
-            // BOOKLET ENDING OR
-            // =================================================
-
             const bookletEndingRaw =
                 bookletTransaction
                     ?.booklet_ending_or;
@@ -952,10 +848,6 @@ export async function POST(
                         bookletEndingRaw
                     )
                     : null;
-
-            // =================================================
-            // SERIAL WIDTH
-            // =================================================
 
             const firstSerialString =
                 serials[0] ??
@@ -979,19 +871,6 @@ export async function POST(
                     endingSerialString.length
                 );
 
-            // =================================================
-            // BEGINNING BALANCE
-            //
-            // Example:
-            //
-            // Current RCD starts at 103
-            // Booklet ends at 150
-            //
-            // Beginning:
-            //
-            // 103 - 150
-            // =================================================
-
             const beginningFrom =
                 String(
                     currentMin
@@ -1010,18 +889,6 @@ export async function POST(
                         "0"
                     )
                     : null;
-
-            // =================================================
-            // ENDING BALANCE
-            //
-            // Example:
-            //
-            // Issued: 103
-            //
-            // Ending:
-            //
-            // 104 - 150
-            // =================================================
 
             let endingFrom:
                 string | null =
@@ -1056,10 +923,6 @@ export async function POST(
 
             }
 
-            // =================================================
-            // SAVE
-            // =================================================
-
             previousFormRows.push({
 
                 formCode,
@@ -1076,10 +939,6 @@ export async function POST(
 
         }
 
-        // =====================================================
-        // DEBUG
-        // =====================================================
-
         console.log(
             "RCD SELECTED TRANSACTIONS",
             {
@@ -1095,530 +954,276 @@ export async function POST(
             previousFormRows
         );
 
-        // =====================================================
-        // REPORT NUMBER
-        //
-        // FORMAT:
-        //
-        // YYMMDDNNNNN-ACRONYM
-        //
-        // Example:
-        //
-        // 26081700001-GF
-        // =====================================================
+        const RPT_GENERAL_ID = "87dc32f3-418e-4cab-a024-673321df1ef5";
+        const BASIC_FUND_ID = "a30624dd-f490-424a-984d-fe5f5e93277a";
+        const SEF_FUND_ID = "2a29a5c5-01d8-4202-8cf9-8a6659865f01";
 
-        const reportDate =
-            new Date();
+        const isRptGeneral =
+            String(fund_source_id).toLowerCase() === RPT_GENERAL_ID.toLowerCase();
 
-        const yy =
-            String(
-                reportDate.getFullYear()
-            ).slice(-2);
+        let reportFundSources: any[] = [fundSource];
 
-        const mm =
-            String(
-                reportDate.getMonth() + 1
-            ).padStart(
-                2,
-                "0"
-            );
-
-        const dd =
-            String(
-                reportDate.getDate()
-            ).padStart(
-                2,
-                "0"
-            );
-
-        const datePrefix =
-            `${yy}${mm}${dd}`;
-
-        // =====================================================
-        // GET NEXT DAILY SEQUENCE
-        // =====================================================
-
-        const sequenceResult =
-            await client.query(
+        if (isRptGeneral) {
+            const targetSourcesResult = await client.query(
                 `
-                    SELECT
-                        COUNT(*) + 1
-                            AS sequence
-                    FROM rcd_transaction
-                    WHERE report_date =
-                        CURRENT_DATE
-                `
+                    SELECT id, fund_code, fund_name, acronym
+                    FROM fund_sources
+                    WHERE id = ANY($1::uuid[])
+                      AND is_active = TRUE
+                `,
+                [[BASIC_FUND_ID, SEF_FUND_ID]]
             );
 
-        const sequence =
-            String(
-                sequenceResult
-                    .rows[0]
-                    .sequence
-            ).padStart(
-                5,
-                "0"
+            const sourcesById = new Map<string, any>(
+                targetSourcesResult.rows.map((source: any) => [
+                    String(source.id).toLowerCase(),
+                    source,
+                ])
             );
 
-        // =====================================================
-        // FUND SOURCE ACRONYM
-        // =====================================================
+            const basicFund = sourcesById.get(BASIC_FUND_ID.toLowerCase());
+            const sefFund = sourcesById.get(SEF_FUND_ID.toLowerCase());
 
-        const fundSourceAcronym =
-            String(
-                fundSource.acronym ??
-                    ""
-            )
-                .trim()
-                .toUpperCase();
-
-        // =====================================================
-        // FALLBACK
-        // =====================================================
-
-        const reportSuffix =
-            fundSourceAcronym ||
-            "RPT";
-
-        // =====================================================
-        // FINAL REPORT NUMBER
-        // =====================================================
-
-        const reportNo =
-            `${datePrefix}${sequence}-${reportSuffix}`;
-
-        console.log(
-            "RCD REPORT NUMBER",
-            {
-                reportNo,
-                datePrefix,
-                sequence,
-                fundSourceAcronym,
+            if (!basicFund || !sefFund) {
+                throw new Error(
+                    "RPT General generation requires active BASIC and SEF fund sources."
+                );
             }
+
+            reportFundSources = [basicFund, sefFund];
+        }
+
+        const reportDate = new Date();
+        const yy = String(reportDate.getFullYear()).slice(-2);
+        const mm = String(reportDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(reportDate.getDate()).padStart(2, "0");
+        const datePrefix = `${yy}${mm}${dd}`;
+
+        const sequenceResult = await client.query(
+            `
+                SELECT COUNT(*)::integer AS total
+                FROM rcd_transaction
+                WHERE report_date = CURRENT_DATE
+            `
         );
 
-        // =====================================================
-        // CREATE RCD
-        // =====================================================
+        let nextSequence = Number(sequenceResult.rows[0]?.total ?? 0) + 1;
 
-        const rcdId =
-            randomUUID();
+        const amountRows = transactions.map((transaction: any) => {
+            const originalCents = Math.round(
+                Number(transaction.amount ?? 0) * 100
+            );
+            const basicCents = Math.round(originalCents / 2);
+            const sefCents = originalCents - basicCents;
 
-        const rcdResult =
-            await client.query(
+            return {
+                transaction,
+                originalAmount: originalCents / 100,
+                basicAmount: basicCents / 100,
+                sefAmount: sefCents / 100,
+            };
+        });
+
+        const createdRcds: any[] = [];
+
+        for (let index = 0; index < reportFundSources.length; index++) {
+            const targetFundSource = reportFundSources[index];
+            const isBasic = isRptGeneral && index === 0;
+            const isSef = isRptGeneral && index === 1;
+
+            const suffix = isBasic
+                ? "RPT-BASIC"
+                : isSef
+                    ? "RPT-SEF"
+                    : String(targetFundSource.acronym ?? "").trim().toUpperCase() || "RPT";
+
+            const sequence = String(nextSequence++).padStart(5, "0");
+            const reportNo = `${datePrefix}${sequence}-${suffix}`;
+            const rcdId = randomUUID();
+
+            const rcdTotalCents = amountRows.reduce(
+                (sum: number, row: any) => {
+                    const amount = isBasic
+                        ? row.basicAmount
+                        : isSef
+                            ? row.sefAmount
+                            : row.originalAmount;
+
+                    return sum + Math.round(amount * 100);
+                },
+                0
+            );
+
+            const rcdTotal = rcdTotalCents / 100;
+
+            const rcdResult = await client.query(
                 `
                     INSERT INTO rcd_transaction (
-
                         id,
-
                         report_no,
-
                         report_date,
-
                         fund_source_id,
-
                         date_from,
-
                         date_to,
-
                         total_collections,
-
                         total_remittances,
-
                         total_deposits,
-
                         balance,
-
                         status,
-
                         rcd_by,
-
                         created_at,
-
                         updated_at
-
                     )
-
                     VALUES (
-
-                        $1,
-
-                        $2,
-
-                        CURRENT_DATE,
-
-                        $3,
-
-                        $4,
-
-                        $5,
-
-                        $6,
-
-                        0,
-
-                        0,
-
-                        $6,
-
-                        'FOR REMITTANCE',
-
-                        $7,
-
-                        CURRENT_TIMESTAMP,
-
-                        CURRENT_TIMESTAMP
-
+                        $1, $2, CURRENT_DATE, $3, $4, $5,
+                        $6, 0, 0, $6, 'FOR REMITTANCE',
+                        $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                     )
-
                     RETURNING *
                 `,
                 [
                     rcdId,
-
                     reportNo,
-
-                    fund_source_id,
-
+                    targetFundSource.id,
                     date_from,
-
                     date_to,
-
-                    totalCollections,
-
+                    rcdTotal,
                     loggedInUser.id,
                 ]
             );
 
-        const rcd =
-            rcdResult.rows[0];
+            const rcd = rcdResult.rows[0];
+            const formattedItems: any[] = [];
 
-        // =====================================================
-        // INSERT ONLY SELECTED RCD ITEMS
-        // =====================================================
+            for (const row of amountRows) {
+                const transaction = row.transaction;
+                const itemAmount = isBasic
+                    ? row.basicAmount
+                    : isSef
+                        ? row.sefAmount
+                        : row.originalAmount;
 
-        for (
-            const transaction
-            of transactions
-        ) {
+                await client.query(
+                    `
+                        INSERT INTO rcd_items (
+                            id,
+                            rcd_transaction_id,
+                            dipp_transaction_id,
+                            or_number,
+                            receipt_date,
+                            collector_id,
+                            payor,
+                            payment_mode,
+                            amount,
+                            created_at
+                        )
+                        VALUES (
+                            $1, $2, $3, $4, $5, $6, $7, $8, $9,
+                            CURRENT_TIMESTAMP
+                        )
+                    `,
+                    [
+                        randomUUID(),
+                        rcdId,
+                        transaction.id,
+                        transaction.or_number,
+                        transaction.receipt_date,
+                        transaction.collector_id,
+                        transaction.payor,
+                        transaction.payment_mode,
+                        itemAmount,
+                    ]
+                );
 
-            await client.query(
-                `
-                    INSERT INTO rcd_items (
+                formattedItems.push({
+                    id: transaction.id,
+                    dipp_transaction_id: transaction.id,
+                    or_number: transaction.or_number,
+                    receipt_date: transaction.receipt_date,
+                    collector_id: transaction.collector_id,
+                    payor: transaction.payor,
+                    payment_mode: transaction.payment_mode,
+                    amount: Number(itemAmount ?? 0),
+                    form_code: transaction.form_code,
+                    form_name: transaction.form_name,
+                    booklet_registration_id: transaction.booklet_registration_id,
+                    booklet_beginning_or: transaction.booklet_beginning_or,
+                    booklet_ending_or: transaction.booklet_ending_or,
+                    booklet_current_or: transaction.booklet_current_or,
+                });
+            }
 
-                        id,
+            const formattedRCD = {
+                ...rcd,
+                total_collections: Number(rcd.total_collections ?? 0),
+                total_remittances: Number(rcd.total_remittances ?? 0),
+                total_deposits: Number(rcd.total_deposits ?? 0),
+                balance: Number(rcd.balance ?? 0),
+            };
 
-                        rcd_transaction_id,
+            createdRcds.push({
+                rcd: formattedRCD,
+                items: formattedItems,
+                previous_form_rows: previousFormRows,
+                summary: {
+                    transaction_count: transactions.length,
+                    total_collections: rcdTotal,
+                    total_remittances: 0,
+                    total_deposits: 0,
+                    balance: rcdTotal,
+                },
+                fund_source: {
+                    id: targetFundSource.id,
+                    fund_code: targetFundSource.fund_code,
+                    fund_name: targetFundSource.fund_name,
+                    acronym: targetFundSource.acronym,
+                },
+                user: {
+                    id: loggedInUser.id,
+                    username: loggedInUser.username,
+                    full_name: loggedInUser.full_name,
+                },
+            });
 
-                        dipp_transaction_id,
+            console.log("RCD CREATED", {
+                reportNo,
+                rcdId,
+                fundSourceId: targetFundSource.id,
+                itemCount: formattedItems.length,
+                totalCollections: rcdTotal,
+            });
+        }
 
-                        or_number,
-
-                        receipt_date,
-
-                        collector_id,
-
-                        payor,
-
-                        payment_mode,
-
-                        amount,
-
-                        created_at
-
-                    )
-
-                    VALUES (
-
-                        $1,
-
-                        $2,
-
-                        $3,
-
-                        $4,
-
-                        $5,
-
-                        $6,
-
-                        $7,
-
-                        $8,
-
-                        $9,
-
-                        CURRENT_TIMESTAMP
-
-                    )
-                `,
-                [
-
-                    randomUUID(),
-
-                    rcdId,
-
-                    transaction.id,
-
-                    transaction.or_number,
-
-                    transaction.receipt_date,
-
-                    transaction.collector_id,
-
-                    transaction.payor,
-
-                    transaction.payment_mode,
-
-                    transaction.amount,
-
-                ]
-            );
-
-            // =================================================
-            // CLEAR DIPP REMITTANCE DETAILS
-            // =================================================
-
+        for (const transaction of transactions) {
             await client.query(
                 `
                     UPDATE dipp_transactions
-                    SET
-                        remittance_id = NULL,
+                    SET remittance_id = NULL,
                         is_remitted = FALSE
                     WHERE id = $1
                 `,
-                [
-                    transaction.id,
-                ]
+                [transaction.id]
             );
-
         }
 
-        // =====================================================
-        // REMITTANCE DETAILS CLEARED
-        //
-        // RCD generation does not mark DIPP transactions
-        // as remitted.
-        // =====================================================
+        await client.query("COMMIT");
 
-        // =====================================================
-        // COMMIT
-        // =====================================================
-
-        await client.query(
-            "COMMIT"
-        );
-
-        // =====================================================
-        // FORMAT RCD
-        // =====================================================
-
-        const formattedRCD = {
-
-            ...rcd,
-
-            total_collections:
-                Number(
-                    rcd.total_collections ??
-                        0
-                ),
-
-            total_remittances:
-                Number(
-                    rcd.total_remittances ??
-                        0
-                ),
-
-            total_deposits:
-                Number(
-                    rcd.total_deposits ??
-                        0
-                ),
-
-            balance:
-                Number(
-                    rcd.balance ??
-                        0
-                ),
-
+        const responseBody: any = {
+            success: true,
+            message: isRptGeneral
+                ? "RPT BASIC and RPT SEF RCDs generated successfully."
+                : "RCD generated successfully.",
+            rcds: createdRcds,
         };
 
-        // =====================================================
-        // FORMAT ITEMS FOR PREVIEW
-        // =====================================================
+        if (!isRptGeneral && createdRcds.length > 0) {
+            Object.assign(responseBody, createdRcds[0]);
+        }
 
-        const formattedItems =
-            transactions.map(
-                (
-                    transaction: any
-                ) => {
-
-                    return {
-
-                        id:
-                            transaction.id,
-
-                        dipp_transaction_id:
-                            transaction.id,
-
-                        or_number:
-                            transaction.or_number,
-
-                        receipt_date:
-                            transaction.receipt_date,
-
-                        collector_id:
-                            transaction.collector_id,
-
-                        payor:
-                            transaction.payor,
-
-                        payment_mode:
-                            transaction.payment_mode,
-
-                        amount:
-                            Number(
-                                transaction.amount ??
-                                    0
-                            ),
-
-                        form_code:
-                            transaction.form_code,
-
-                        form_name:
-                            transaction.form_name,
-
-                        // =====================================
-                        // BOOKLET
-                        // =====================================
-
-                        booklet_registration_id:
-                            transaction
-                                .booklet_registration_id,
-
-                        booklet_beginning_or:
-                            transaction
-                                .booklet_beginning_or,
-
-                        booklet_ending_or:
-                            transaction
-                                .booklet_ending_or,
-
-                        booklet_current_or:
-                            transaction
-                                .booklet_current_or,
-
-                    };
-
-                }
-            );
-
-        // =====================================================
-        // RESPONSE
-        // =====================================================
-
-        return NextResponse.json(
-            {
-
-                success: true,
-
-                message:
-                    "RCD generated successfully.",
-
-                // =================================================
-                // RCD
-                // =================================================
-
-                rcd:
-                    formattedRCD,
-
-                // =================================================
-                // ITEMS
-                // =================================================
-
-                items:
-                    formattedItems,
-
-                // =================================================
-                // ACCOUNTABILITY
-                // =================================================
-
-                previous_form_rows:
-                    previousFormRows,
-
-                // =================================================
-                // SUMMARY
-                // =================================================
-
-                summary: {
-
-                    transaction_count:
-                        transactions.length,
-
-                    total_collections:
-                        totalCollections,
-
-                    total_remittances:
-                        0,
-
-                    total_deposits:
-                        0,
-
-                    balance:
-                        totalCollections,
-
-                },
-
-                // =================================================
-                // FUND SOURCE
-                // =================================================
-
-                fund_source: {
-
-                    id:
-                        fundSource.id,
-
-                    fund_code:
-                        fundSource.fund_code,
-
-                    fund_name:
-                        fundSource.fund_name,
-
-                    acronym:
-                        fundSource.acronym,
-
-                },
-
-                // =================================================
-                // USER
-                // =================================================
-
-                user: {
-
-                    id:
-                        loggedInUser.id,
-
-                    username:
-                        loggedInUser.username,
-
-                    full_name:
-                        loggedInUser.full_name,
-
-                },
-
-            },
-            {
-                status: 201,
-            }
-        );
-
+        return NextResponse.json(responseBody, { status: 201 });
     } catch (
         error: any
     ) {
-
-        // =====================================================
-        // ROLLBACK
-        // =====================================================
 
         try {
 
@@ -1636,10 +1241,6 @@ export async function POST(
             );
 
         }
-
-        // =====================================================
-        // ERROR
-        // =====================================================
 
         console.error(
             "RCD GENERATION ERROR:",

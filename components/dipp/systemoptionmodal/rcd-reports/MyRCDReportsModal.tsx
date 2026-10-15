@@ -86,6 +86,10 @@ export type RCDReportItem = {
     has_remittance?:
         boolean;
 
+    paired_rcd_id?:
+        string |
+        null;
+
 
     remittance?: {
 
@@ -212,6 +216,11 @@ export default function MyRCDReportsModal({
         null
     );
 
+    const [
+        pairedRCD,
+        setPairedRCD,
+    ] = useState<RCDReportItem | null>(null);
+
 
     /*
     ============================================================
@@ -331,6 +340,8 @@ export default function MyRCDReportsModal({
             setSelectedRCD(
                 null
             );
+
+            setPairedRCD(null);
 
             setActiveTab(
                 "rcd"
@@ -675,6 +686,8 @@ export default function MyRCDReportsModal({
             null
         );
 
+        setPairedRCD(null);
+
 
         setTimeout(
             () => {
@@ -723,6 +736,8 @@ export default function MyRCDReportsModal({
             null
         );
 
+        setPairedRCD(null);
+
         setActiveTab(
             "rcd"
         );
@@ -739,88 +754,81 @@ export default function MyRCDReportsModal({
     */
 
     async function handleSelectRCD(
-        rcd:
-            RCDReportItem
+        rcd: RCDReportItem
     ) {
-
         try {
+            setSelectedRCD(rcd);
+            setPairedRCD(null);
+            setActiveTab("rcd");
+            setLoadingDetail(true);
+            setError("");
 
-            setSelectedRCD(
-                rcd
+            const response = await axios.get(
+                `/api/rcd/reports/${rcd.id}`,
+                { withCredentials: true }
             );
 
-            setActiveTab(
-                "rcd"
-            );
-
-            setLoadingDetail(
-                true
-            );
-
-
-            const response =
-                await axios.get(
-                    `/api/rcd/reports/${rcd.id}`,
-                    {
-                        withCredentials:
-                            true,
-                    }
-                );
-
-
-            if (
-                !response.data?.success
-            ) {
-
+            if (!response.data?.success) {
                 throw new Error(
                     response.data?.message ||
                     "Unable to load RCD details."
                 );
-
             }
 
+            const detail = response.data;
 
-            /*
-            ====================================================
-            STORE COMPLETE RCD RESPONSE
-            ====================================================
+            const selectedReport = {
+                ...detail.rcd,
+                items: detail.items ?? [],
+                remittance: detail.remittance ?? null,
+                denominations: detail.denominations ?? [],
+                user: detail.user ?? null,
+                previousFormRows: detail.previousFormRows ?? [],
+            } as RCDReportItem;
 
-            The detailed API response contains:
+            setSelectedRCD(selectedReport);
 
-            rcd
-            items
-            remittance
-            denominations
-            user
-            previousFormRows
+            const pairedId =
+                detail.paired_rcd_id ??
+                detail.rcd?.paired_rcd_id ??
+                null;
 
-            ====================================================
-            */
+            if (!pairedId || pairedId === rcd.id) {
+                setPairedRCD(null);
+                return;
+            }
 
-            setSelectedRCD(
-                {
-                    ...response.data.rcd,
+            try {
+                const pairedResponse = await axios.get(
+                    `/api/rcd/reports/${pairedId}`,
+                    { withCredentials: true }
+                );
 
-                    items:
-                        response.data.items,
+                if (!pairedResponse.data?.success) {
+                    throw new Error(
+                        pairedResponse.data?.message ||
+                        "Unable to load the paired RCD report."
+                    );
+                }
 
-                    remittance:
-                        response.data.remittance,
+                const pairedDetail = pairedResponse.data;
 
-                    denominations:
-                        response.data.denominations,
-
-                    user:
-                        response.data.user,
-
-                    previousFormRows:
-                        response.data.previousFormRows,
-
-                } as RCDReportItem
-            );
-
+                setPairedRCD({
+                    ...pairedDetail.rcd,
+                    items: pairedDetail.items ?? [],
+                    remittance: pairedDetail.remittance ?? null,
+                    denominations: pairedDetail.denominations ?? [],
+                    user: pairedDetail.user ?? null,
+                    previousFormRows: pairedDetail.previousFormRows ?? [],
+                } as RCDReportItem);
+            } catch (pairedError) {
+                console.error(
+                    "LOAD PAIRED RCD ERROR:",
+                    pairedError
+                );
+                setPairedRCD(null);
+            }
         } catch (error: any) {
-
             console.error(
                 "LOAD RCD DETAIL ERROR:",
                 error
@@ -831,15 +839,9 @@ export default function MyRCDReportsModal({
                 error?.message ||
                 "Unable to load RCD details."
             );
-
         } finally {
-
-            setLoadingDetail(
-                false
-            );
-
+            setLoadingDetail(false);
         }
-
     }
 
 
@@ -2103,6 +2105,12 @@ export default function MyRCDReportsModal({
                             bg-gray-100
                             p-6
                         ">
+
+                            {pairedRCD && activeTab === "rcd" && (
+                                <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                                    Paired RCD loaded: {pairedRCD.report_no} ({pairedRCD.fund_code ?? pairedRCD.fund_name ?? "paired fund source"}). The viewer will display both reports after Step 3.
+                                </div>
+                            )}
 
                             {
                                 renderReport()
