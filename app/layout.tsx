@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Treasury Management Systems",
-  description: "Treasury Management Systems",
+  title: "Taytay Integrated System",
+  description: "Taytay Integrated System",
 };
 
 export default function RootLayout({

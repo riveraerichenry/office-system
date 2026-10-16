@@ -198,6 +198,7 @@ export async function GET(request: NextRequest) {
         // 1. Selected fund source
         // 2. Selected receipt date range
         // 3. Transactions not yet included in an RCD
+        // 4. Transactions encoded by the logged-in user
         //
         // Do not filter transaction_type = 'RPT'.
         // This allows different accountable forms, such as
@@ -267,6 +268,9 @@ export async function GET(request: NextRequest) {
                     $3::date + INTERVAL '1 day'
                 )
 
+                -- ONLY TRANSACTIONS ENCODED BY THE LOGGED-IN USER
+                AND dt.encoded_by = $4
+
                 -- EXCLUDE TRANSACTIONS ALREADY IN AN RCD
                 AND NOT EXISTS (
                     SELECT 1
@@ -296,6 +300,7 @@ export async function GET(request: NextRequest) {
                 fundSourceId,
                 dateFrom,
                 dateTo,
+                loggedInUser.id,
             ]
         );
 

@@ -955,7 +955,7 @@ export default function ConsolidatedRCDPreviewModal({
                           }
                         />
                       </section>
-                      <button
+                      {/* <button
                         type="button"
                         onClick={() => {
                           // Connect this to your existing deposit form or page.
@@ -964,7 +964,7 @@ export default function ConsolidatedRCDPreviewModal({
                       >
                         <Plus size={20} />
                         Make a Deposit
-                      </button>
+                      </button> */}
                     </div>
                   )
                 )}
