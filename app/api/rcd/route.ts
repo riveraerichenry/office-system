@@ -495,15 +495,14 @@ export async function POST(
 
                         /*
                         =================================================
-                        LOGGED-IN COLLECTOR
+                        LOGGED-IN USER
                         =================================================
 
-                        The RCD transaction list is based on
-                        collector_id, so generation uses the
-                        same collector restriction.
+                        Match the GET transaction-list API:
+                        include transactions encoded by the logged-in user.
                         */
 
-                        AND dt.collector_id =
+                        AND dt.encoded_by =
                             $4
 
                         /*
@@ -516,23 +515,12 @@ export async function POST(
 
                         /*
                         =================================================
-                        ISSUED ONLY
+                        CANCELLED TRANSACTIONS ARE ALLOWED
                         =================================================
+
+                        Do not filter by dt.status or dt.is_cancelled.
+                        Cancelled transactions must be included in the RCD.
                         */
-
-                        AND dt.status =
-                            'ISSUED'
-
-                        /*
-                        =================================================
-                        NOT CANCELLED
-                        =================================================
-                        */
-
-                        AND COALESCE(
-                            dt.is_cancelled,
-                            FALSE
-                        ) = FALSE
 
                         /*
                         =================================================
