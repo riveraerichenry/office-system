@@ -1,3 +1,4 @@
+
 "use client";
 
 type Props = {
@@ -8,7 +9,7 @@ type Props = {
 };
 
 /* ============================================================
-   DATE
+   DATE — TIMEZONE SAFE
 ============================================================ */
 
 function formatDate(value: any): string {
@@ -16,19 +17,21 @@ function formatDate(value: any): string {
         return "—";
     }
 
-    const date = new Date(
-        `${String(value).substring(0, 10)}T00:00:00`
+    // Extract YYYY-MM-DD without converting the date to a
+    // JavaScript Date object or applying timezone conversion.
+    const dateString = String(value).substring(0, 10);
+
+    const match = dateString.match(
+        /^(\d{4})-(\d{2})-(\d{2})$/
     );
 
-    if (Number.isNaN(date.getTime())) {
+    if (!match) {
         return String(value);
     }
 
-    return date.toLocaleDateString("en-PH", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-    });
+    const [, year, month, day] = match;
+
+    return `${month}/${day}/${year}`;
 }
 
 /* ============================================================

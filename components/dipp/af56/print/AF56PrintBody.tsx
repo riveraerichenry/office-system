@@ -333,13 +333,13 @@ export default function AF56PrintBody({
                     "90px",
 
                 "--af56-body-owner-width":
-                    "120px",
+                    "130px",
 
                 "--af56-body-owner-font-size":
-                    "12px",
+                    "14px",
 
                 "--af56-body-owner-line-height":
-                    "14px",
+                    "20px",
 
 
                 /*
@@ -349,7 +349,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-barangay-x":
-                    "235px",
+                    "265px",
 
                 "--af56-body-barangay-y":
                     "90px",
@@ -368,7 +368,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-tax-declaration-x":
-                    "345px",
+                    "400px",
 
                 "--af56-body-tax-declaration-y":
                     "90px",
