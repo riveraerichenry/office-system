@@ -2264,20 +2264,16 @@ if (
             [
                 ...rptRows,
                 ...nonRptRows,
-            ]
-                .map(
-                    (
-                        row,
-                        index
-                    ) => ({
+            ].map((row, index) => ({
+                ...row,
 
-                        ...row,
+                // The source row's date is taken from
+                // dipp_transactions.receipt_date.
+                // Expose it under receipt_date for the frontend.
+                receipt_date: row.date ?? null,
 
-                        no:
-                            index + 1,
-
-                    })
-                );
+                no: index + 1,
+            }));
 
 
         /*
