@@ -343,70 +343,38 @@ export async function GET(
         ALL COME FROM dipp_transactions.
         */
 
-        const transactionsResult =
-            await pool.query(
-                `
-                SELECT
+        const transactionsResult = await pool.query(
+            `
+            SELECT
+                ri.id AS rcd_item_id,
+                ri.dipp_transaction_id,
+                dt.or_number,
+                dt.receipt_date::text AS receipt_date,
+                dt.payor,
+                dt.payment_mode,
+                dt.grand_total,
+                dt.transaction_type,
+                dt.accountable_form_id,
+                af.form_code,
+                dt.status,
+                dt.is_cancelled,
+                dt.is_remitted,
+                dt.created_at
+            FROM rcd_items ri
+            INNER JOIN dipp_transactions dt
+                ON dt.id = ri.dipp_transaction_id
+            LEFT JOIN accountable_forms af
+                ON af.id = dt.accountable_form_id
+            WHERE ri.rcd_transaction_id = $1
+            ORDER BY
+                dt.receipt_date,
+                dt.or_number,
+                dt.created_at
+            `,
+            [rcdId]
+        );
 
-                    ri.id
-                        AS rcd_item_id,
-
-                    ri.dipp_transaction_id,
-
-                    dt.or_number,
-
-                    dt.receipt_date,
-
-                    dt.payor,
-
-                    dt.payment_mode,
-
-                    dt.grand_total,
-
-                    dt.transaction_type,
-
-                    dt.accountable_form_id,
-
-                    af.form_code,
-
-                    dt.status,
-
-                    dt.is_cancelled,
-
-                    dt.is_remitted,
-
-                    dt.created_at
-
-                FROM rcd_items ri
-
-                INNER JOIN dipp_transactions dt
-                    ON dt.id =
-                       ri.dipp_transaction_id
-
-                LEFT JOIN accountable_forms af
-                    ON af.id =
-                       dt.accountable_form_id
-
-                WHERE
-                    ri.rcd_transaction_id =
-                    $1
-
-                ORDER BY
-
-                    dt.receipt_date,
-
-                    dt.or_number,
-
-                    dt.created_at
-                `,
-                [
-                    rcdId,
-                ]
-            );
-
-
-        const transactions =
-            transactionsResult.rows;
+        const transactions = transactionsResult.rows;
 
 
         /*

@@ -12,58 +12,24 @@ type Props = {
    TIMEZONE SAFE FOR YYYY-MM-DD / ISO VALUES
 ============================================================ */
 
-function formatDate(value: any): string {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
+function formatDate(value: unknown): string {
+    if (value === null || value === undefined || value === "") {
         return "—";
     }
 
-    const rawValue = String(value).trim();
+    const dateString = String(value).trim().substring(0, 10);
 
-    // Extract the calendar date directly, avoiding timezone shifts.
-    const match = rawValue.match(
-        /^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/
+    const match = dateString.match(
+        /^(\d{4})-(\d{2})-(\d{2})$/
     );
 
-    if (match) {
-        const [, year, month, day] = match;
-        const yearNumber = Number(year);
-        const monthNumber = Number(month);
-        const dayNumber = Number(day);
-
-        const checkDate = new Date(
-            yearNumber,
-            monthNumber - 1,
-            dayNumber
-        );
-
-        if (
-            checkDate.getFullYear() !== yearNumber ||
-            checkDate.getMonth() !== monthNumber - 1 ||
-            checkDate.getDate() !== dayNumber
-        ) {
-            return "—";
-        }
-
-        return `${month}/${day}/${year}`;
+    if (!match) {
+        return "—";
     }
 
-    // Fallback for other formats, if the API returns one.
-    const parsedDate = new Date(rawValue);
+    const [, year, month, day] = match;
 
-    if (Number.isNaN(parsedDate.getTime())) {
-        return rawValue;
-    }
-
-    return parsedDate.toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-        timeZone: "Asia/Manila",
-    });
+    return `${month}/${day}/${year}`;
 }
 
 /* ============================================================

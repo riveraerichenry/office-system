@@ -1,64 +1,52 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
-
 
 /* ============================================================
    AUTHENTICATION
 ============================================================ */
 
-async function authenticateUser(
-  request: NextRequest
-) {
-  const token =
-    request.cookies.get("token")?.value;
+async function authenticateUser(request: NextRequest) {
+  const token = request.cookies.get("token")?.value;
 
   if (!token) {
     throw new Error("Unauthorized");
   }
 
-  let decoded: {
-    id: string;
-  };
+  const jwtSecret = process.env.JWT_SECRET;
 
-  try {
-    decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as {
-      id: string;
-    };
-  } catch {
-    throw new Error(
-      "Invalid or expired token"
-    );
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET is not configured.");
   }
 
-  const userResult =
-    await pool.query(
-      `
-        SELECT
-          id,
-          full_name,
-          username
-        FROM users
-        WHERE id = $1
-        LIMIT 1
-      `,
-      [decoded.id]
-    );
+  let decoded: { id: string };
 
-  if (
-    userResult.rows.length === 0
-  ) {
-    throw new Error(
-      "User not found"
-    );
+  try {
+    decoded = jwt.verify(token, jwtSecret) as { id: string };
+  } catch {
+    throw new Error("Invalid or expired token");
+  }
+
+  const userResult = await pool.query(
+    `
+      SELECT
+        id,
+        full_name,
+        username
+      FROM public.users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [decoded.id]
+  );
+
+  if (userResult.rows.length === 0) {
+    throw new Error("User not found");
   }
 
   return userResult.rows[0];
 }
-
 
 /* ============================================================
    GET ONE CONSOLIDATED RCD
@@ -75,413 +63,270 @@ export async function GET(
   }
 ) {
   try {
-
     /* ========================================================
-       AUTH
+       AUTHENTICATION
     ======================================================== */
 
-    await authenticateUser(
-      request
-    );
-
+    await authenticateUser(request);
 
     /* ========================================================
-       ID
+       GET ID
     ======================================================== */
 
-    const { id } =
-      await params;
+    const { id } = await params;
 
-    console.log(
-      "Loading Consolidated RCD ID:",
-      id
-    );
-
+    console.log("Loading Consolidated RCD ID:", id);
 
     if (!id) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Consolidated RCD ID is required.",
+          error: "Consolidated RCD ID is required.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-
     /* ========================================================
-       HEADER
+       GET CONSOLIDATED RCD HEADER
     ======================================================== */
 
-    const headerResult =
-      await pool.query(
-        `
-          SELECT
-            c.id,
-            c.consolidated_no,
-            c.consolidated_date,
+    const headerResult = await pool.query(
+      `
+        SELECT
+          c.id,
+          c.consolidated_no,
+          c.consolidated_date,
+          c.fund_source_id,
+          c.total_amount,
+          c.status,
+          c.remarks,
+          c.prepared_by,
+          c.approved_by,
+          c.approved_at,
+          c.created_at,
+          c.updated_at,
 
-            c.fund_source_id,
+          fs.fund_code,
+          fs.fund_name,
+          fs.acronym,
 
-            c.total_amount,
+          prepared_user.full_name AS accountable,
+          approved_user.full_name AS approved_by_name
 
-            c.status,
-            c.remarks,
+        FROM public.rcd_consolidated_transaction c
 
-            c.prepared_by,
-            c.approved_by,
-            c.approved_at,
+        LEFT JOIN public.fund_sources fs
+          ON fs.id = c.fund_source_id
 
-            c.created_at,
-            c.updated_at,
+        LEFT JOIN public.users prepared_user
+          ON prepared_user.id = c.prepared_by
 
-            fs.fund_code,
-            fs.fund_name,
-            fs.acronym,
+        LEFT JOIN public.users approved_user
+          ON approved_user.id = c.approved_by
 
-            prepared_user.full_name
-              AS accountable,
+        WHERE c.id = $1
 
-            approved_user.full_name
-              AS approved_by_name
+        LIMIT 1
+      `,
+      [id]
+    );
 
-          FROM
-            rcd_consolidated_transaction c
-
-          LEFT JOIN fund_sources fs
-            ON fs.id =
-               c.fund_source_id
-
-          LEFT JOIN users prepared_user
-            ON prepared_user.id =
-               c.prepared_by
-
-          LEFT JOIN users approved_user
-            ON approved_user.id =
-               c.approved_by
-
-          WHERE c.id = $1
-
-          LIMIT 1
-        `,
-        [id]
-      );
-
-
-    /* ========================================================
-       NOT FOUND
-    ======================================================== */
-
-    if (
-      headerResult.rows.length === 0
-    ) {
-
+    if (headerResult.rows.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Consolidated RCD not found.",
+          error: "Consolidated RCD not found.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
-
     }
 
-
-    const header =
-      headerResult.rows[0];
-
+    const header = headerResult.rows[0];
 
     /* ========================================================
-       REMITTANCE ITEMS
+       GET CONSOLIDATED REMITTANCE ITEMS
 
-       IMPORTANT:
+       FIX:
+       Use public.rcd_remittance_transactions.
 
-       One consolidated item
-       represents one remittance.
+       Each consolidated item represents one remittance.
     ======================================================== */
 
-    const itemsResult =
-      await pool.query(
-        `
-          SELECT
-            cti.id,
+    const itemsResult = await pool.query(
+      `
+        SELECT
+          cti.id,
+          cti.remittance_id,
+          cti.rcd_transaction_id,
+          cti.amount,
 
-            cti.remittance_id,
+          /* REMITTANCE DETAILS */
 
-            cti.rcd_transaction_id,
+          rmt.remittance_no,
+          rmt.remittance_date,
+          rmt.total_amount AS remittance_amount,
+          rmt.status AS remittance_status,
 
-            cti.amount,
+          /* ORIGINAL RCD DETAILS */
 
-            /* REMITTANCE */
+          rt.report_no AS rcd_no,
+          rt.report_date AS rcd_date,
+          rt.date_from,
+          rt.date_to,
+          rt.rcd_by,
 
-            rmt.remittance_no,
+          /* COLLECTOR */
 
-            rmt.remittance_date,
+          collector.full_name AS collector,
 
-            rmt.total_amount
-              AS remittance_amount,
+          /* OFFICIAL RECEIPT RANGE */
 
-            /* ORIGINAL RCD */
+          MIN(ri.or_number) AS or_from,
+          MAX(ri.or_number) AS or_to,
+          COUNT(ri.id)::integer AS or_count
 
-            rt.report_no
-              AS rcd_no,
+        FROM public.rcd_consolidated_transaction_items cti
 
-            rt.report_date
-              AS rcd_date,
+        INNER JOIN public.rcd_remittance_transactions rmt
+          ON rmt.id = cti.remittance_id
 
-            rt.date_from,
+        INNER JOIN public.rcd_transaction rt
+          ON rt.id = cti.rcd_transaction_id
 
-            rt.date_to,
+        LEFT JOIN public.users collector
+          ON collector.id = rt.rcd_by
 
-            rt.rcd_by,
+        LEFT JOIN public.rcd_items ri
+          ON ri.rcd_transaction_id = rt.id
 
-            /* COLLECTOR */
+        WHERE cti.consolidated_transaction_id = $1
 
-            collector.full_name
-              AS collector,
+        GROUP BY
+          cti.id,
+          cti.remittance_id,
+          cti.rcd_transaction_id,
+          cti.amount,
 
-            /* OR RANGE */
+          rmt.remittance_no,
+          rmt.remittance_date,
+          rmt.total_amount,
+          rmt.status,
 
-            MIN(
-              ri.or_number
-            ) AS or_from,
+          rt.report_no,
+          rt.report_date,
+          rt.date_from,
+          rt.date_to,
+          rt.rcd_by,
 
-            MAX(
-              ri.or_number
-            ) AS or_to
+          collector.full_name
 
-          FROM
-            rcd_consolidated_transaction_items cti
+        ORDER BY
+          rmt.remittance_date ASC NULLS LAST,
+          rmt.remittance_no ASC
+      `,
+      [id]
+    );
 
-          INNER JOIN
-            remittance_transactions rmt
-            ON rmt.id =
-               cti.remittance_id
-
-          INNER JOIN
-            rcd_transaction rt
-            ON rt.id =
-               cti.rcd_transaction_id
-
-          LEFT JOIN
-            users collector
-            ON collector.id =
-               rt.rcd_by
-
-          LEFT JOIN
-            rcd_items ri
-            ON ri.rcd_transaction_id =
-               rt.id
-
-          WHERE
-            cti.consolidated_transaction_id =
-            $1
-
-          GROUP BY
-
-            cti.id,
-
-            cti.remittance_id,
-
-            cti.rcd_transaction_id,
-
-            cti.amount,
-
-            rmt.remittance_no,
-
-            rmt.remittance_date,
-
-            rmt.total_amount,
-
-            rt.report_no,
-
-            rt.report_date,
-
-            rt.date_from,
-
-            rt.date_to,
-
-            rt.rcd_by,
-
-            collector.full_name
-
-          ORDER BY
-            rmt.remittance_date ASC,
-            rmt.remittance_no ASC
-        `,
-        [id]
-      );
-
+    console.log(
+      "Consolidated RCD items found:",
+      itemsResult.rows.length
+    );
 
     /* ========================================================
-       MAP ITEMS
+       MAP ITEMS TO FRONTEND RESPONSE
     ======================================================== */
 
-    const items =
-      itemsResult.rows.map(
-        (
-          item,
-          index
-        ) => ({
+    const items = itemsResult.rows.map((item, index) => ({
+      id: item.id,
 
-          id:
-            item.id,
+      no: index + 1,
 
-          no:
-            index + 1,
+      collector: item.collector || "",
 
-          collector:
-            item.collector ||
-            "",
+      rcdId: item.rcd_transaction_id,
+      rcdNo: item.rcd_no || "",
+      rcdDate: item.rcd_date ?? null,
 
-          rcdId:
-            item.rcd_transaction_id,
+      dateFrom: item.date_from ?? null,
+      dateTo: item.date_to ?? null,
 
-          rcdNo:
-            item.rcd_no ||
-            "",
+      rcdBy: item.rcd_by || "",
 
-          rcdDate:
-            item.rcd_date,
+      orFrom:
+        item.or_from !== null && item.or_from !== undefined
+          ? String(item.or_from)
+          : "",
 
-          dateFrom:
-            item.date_from,
+      orTo:
+        item.or_to !== null && item.or_to !== undefined
+          ? String(item.or_to)
+          : "",
 
-          dateTo:
-            item.date_to,
+      orCount: Number(item.or_count || 0),
 
-          orFrom:
-            item.or_from !== null
-              ? String(
-                  item.or_from
-                )
-              : "",
+      remittanceId: item.remittance_id,
+      remittanceNo: item.remittance_no || "",
+      remittanceDate: item.remittance_date ?? null,
+      remittanceStatus: item.remittance_status || "",
 
-          orTo:
-            item.or_to !== null
-              ? String(
-                  item.or_to
-                )
-              : "",
-
-          remittanceId:
-            item.remittance_id,
-
-          remittanceNo:
-            item.remittance_no ||
-            "",
-
-          remittanceDate:
-            item.remittance_date,
-
-          amount:
-            Number(
-              item.amount || 0
-            ),
-
-          remittanceAmount:
-            Number(
-              item.remittance_amount ||
-                0
-            ),
-
-          rcdBy:
-            item.rcd_by ||
-            "",
-
-        })
-      );
-
+      amount: Number(item.amount || 0),
+      remittanceAmount: Number(item.remittance_amount || 0),
+    }));
 
     /* ========================================================
        FINAL RESPONSE
     ======================================================== */
 
-    return NextResponse.json({
+    const consolidated = {
+      id: header.id,
 
-      success: true,
+      consolidatedNo: header.consolidated_no,
+      consolidatedDate: header.consolidated_date,
 
-      consolidated: {
+      fundSourceId:
+        header.fund_source_id !== null
+          ? String(header.fund_source_id)
+          : null,
 
-        id:
-          header.id,
+      fundCode: header.fund_code || "",
+      fundName: header.fund_name || "",
+      fundAcronym: header.acronym || null,
 
-        consolidatedNo:
-          header.consolidated_no,
+      accountable: header.accountable || "",
 
-        consolidatedDate:
-          header.consolidated_date,
+      preparedBy: header.prepared_by,
+      approvedBy: header.approved_by,
+      approvedByName: header.approved_by_name || "",
+      approvedAt: header.approved_at ?? null,
 
-        fundSourceId:
-          header.fund_source_id,
+      totalAmount: Number(header.total_amount || 0),
 
-        fundCode:
-          header.fund_code ||
-          "",
+      totalRemittances: items.length,
 
-        fundName:
-          header.fund_name ||
-          "",
+      status: header.status,
+      remarks: header.remarks ?? null,
 
-        fundAcronym:
-          header.acronym ||
-          null,
+      createdAt: header.created_at,
+      updatedAt: header.updated_at,
 
-        accountable:
-          header.accountable ||
-          "",
+      items,
+    };
 
-        preparedBy:
-          header.prepared_by,
+    console.log(
+      "Consolidated RCD loaded successfully:",
+      consolidated.consolidatedNo
+    );
 
-        approvedBy:
-          header.approved_by,
-
-        approvedByName:
-          header.approved_by_name ||
-          "",
-
-        approvedAt:
-          header.approved_at,
-
-        totalAmount:
-          Number(
-            header.total_amount ||
-              0
-          ),
-
-        totalRemittances:
-          items.length,
-
-        status:
-          header.status,
-
-        remarks:
-          header.remarks,
-
-        createdAt:
-          header.created_at,
-
-        updatedAt:
-          header.updated_at,
-
-        items,
-
+    return NextResponse.json(
+      {
+        success: true,
+        consolidated,
+        count: items.length,
       },
-
-      count:
-        items.length,
-
-    });
-
+      { status: 200 }
+    );
   } catch (error) {
-
     console.error(
       "GET /api/remittance/consolidated/[id] error:",
       error
@@ -492,21 +337,24 @@ export async function GET(
         ? error.message
         : "Failed to load Consolidated RCD.";
 
-    const status =
+    let status = 500;
+
+    if (
       message === "Unauthorized" ||
-      message ===
-        "Invalid or expired token"
-        ? 401
-        : 500;
+      message === "Invalid or expired token" ||
+      message === "User not found"
+    ) {
+      status = 401;
+    } else if (message === "JWT_SECRET is not configured.") {
+      status = 500;
+    }
 
     return NextResponse.json(
       {
         success: false,
         error: message,
       },
-      {
-        status,
-      }
+      { status }
     );
   }
 }

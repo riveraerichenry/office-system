@@ -191,10 +191,8 @@ export default function CTCIReceiptModal({
     | Month(s)
     |--------------------------------------------------------------------------
     |
-    | January = 1
-    | February = 2
-    | ...
-    | August = 8
+    | January and February are exempt from penalty collection.
+    | March = first penalty month for Rule B.
     |
     */
 
@@ -218,9 +216,79 @@ export default function CTCIReceiptModal({
                 return 0;
             }
 
+            const month = date.getMonth() + 1;
+
+            // January and February are exempt.
+            if (month < 3) {
+                return 0;
+            }
+
+            // March = 1, April = 2, ..., December = 10.
+            return month - 2;
+
+        }, [
+            issueDate,
+        ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tax Base for Rule A
+    |--------------------------------------------------------------------------
+    |
+    | Basic tax + income tax
+    |
+    */
+
+    const taxBase =
+        useMemo(() => {
+
             return (
-                date.getMonth() + 1
+                Number(basicTax) +
+                Number(incomeTax)
             );
+
+        }, [
+            incomeTax,
+        ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rule A Penalty Rate
+    |--------------------------------------------------------------------------
+    |
+    | Gross income > ₱45,000:
+    | March = 6%, April = 8%, ..., October = 20%.
+    | January and February are exempt from collection.
+    |
+    */
+
+    const penaltyRate =
+        useMemo(() => {
+
+            if (!issueDate) {
+                return 0;
+            }
+
+            const date =
+                new Date(
+                    `${issueDate}T00:00:00`
+                );
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+                return 0;
+            }
+
+            const month = date.getMonth() + 1;
+
+            if (month < 3) {
+                return 0;
+            }
+
+            return month * 0.02;
 
         }, [
             issueDate,
@@ -231,25 +299,36 @@ export default function CTCIReceiptModal({
     | Penalty
     |--------------------------------------------------------------------------
     |
-    | ₱1.00 for every month
+    | Rule A: Gross income > ₱45,000
+    |         (Basic tax + income tax) × accumulated penalty rate
+    |
+    | Rule B: Gross income <= ₱45,000
+    |         March = ₱3, then +₱1 each month.
     |
     */
-
-    const penaltyPerMonth = 1;
 
     const penalty =
         useMemo(() => {
 
-            return (
-                months *
-                penaltyPerMonth
-            );
+            if (Number(grossIncome) > 45000) {
+                return Number(
+                    (
+                        taxBase * penaltyRate
+                    ).toFixed(2)
+                );
+            }
+
+            // Rule B: January/February = ₱0, March = ₱3, April = ₱4, etc.
+            return months === 0 ? 0 : months + 2;
 
         }, [
+            grossIncome,
+            taxBase,
+            penaltyRate,
             months,
         ]);
 
-    /*
+        /*
     |--------------------------------------------------------------------------
     | Tax Total
     |--------------------------------------------------------------------------

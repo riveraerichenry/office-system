@@ -1,38 +1,29 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
 
 /* ============================================================
    GET REMITTANCE TRANSACTIONS
-   ============================================================
 
-   Relationship:
+   Main table:
+     rcd_remittance_transactions
 
-   remittance_transactions
-            |
-            | rcd_transaction_id
-            v
-      rcd_transaction
+   Related tables:
+     rcd_transaction
+     fund_sources
+     users
 
-   A remittance is considered available when it has NOT yet
-   been included in a consolidated RCD.
-
-   IMPORTANT:
-   Do NOT use c.remittance_id.
-   The consolidated parent does not have remittance_id.
-
+   Excludes remittances already included in a consolidated RCD.
 ============================================================ */
 
-export async function GET(
-  request: NextRequest
-) {
+export async function GET(request: NextRequest) {
   try {
     /* ========================================================
        AUTHENTICATION
     ======================================================== */
 
-    const token =
-      request.cookies.get("token")?.value;
+    const token = request.cookies.get("token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -40,37 +31,38 @@ export async function GET(
           success: false,
           error: "Unauthorized",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
-    let decoded: {
-      id: string;
-    };
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not configured.");
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Server authentication configuration error.",
+        },
+        { status: 500 }
+      );
+    }
+
+    let decoded: { id: string };
 
     try {
       decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET!
-      ) as {
-        id: string;
-      };
+        process.env.JWT_SECRET
+      ) as { id: string };
     } catch (error) {
-      console.error(
-        "JWT verification error:",
-        error
-      );
+      console.error("JWT verification error:", error);
 
       return NextResponse.json(
         {
           success: false,
           error: "Invalid or expired token",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
@@ -78,288 +70,239 @@ export async function GET(
        VERIFY USER
     ======================================================== */
 
-    const userResult =
-      await pool.query(
-        `
-        SELECT
-          id,
-          full_name,
-          username
-        FROM users
-        WHERE id = $1
-        LIMIT 1
-        `,
-        [decoded.id]
-      );
+    const userResult = await pool.query(
+      `
+      SELECT
+        id,
+        full_name,
+        username
+      FROM public.users
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [decoded.id]
+    );
 
-    if (
-      userResult.rows.length === 0
-    ) {
+    if (userResult.rows.length === 0) {
       return NextResponse.json(
         {
           success: false,
           error: "User not found",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
-    const currentUser =
-      userResult.rows[0];
+    const currentUser = userResult.rows[0];
 
     /* ========================================================
        GET REMITTANCE TRANSACTIONS
+
+       Use only columns from the rcd_remittance_transactions
+       schema previously created.
+
+       LEFT JOIN preserves remittance records even if their
+       original RCD record is unavailable.
     ======================================================== */
 
-    /*
-      We join:
+    const result = await pool.query(
+      `
+      SELECT
+        rmt.id,
+        rmt.remittance_no,
+        rmt.remittance_date,
+        rmt.rcd_transaction_id,
 
-      rmt = remittance_transactions
-      rt  = rcd_transaction
-      fs  = fund_sources
-      u   = users
+        rmt.report_no,
+        rmt.report_date,
+        rmt.fund_source_id AS remittance_fund_source_id,
+        rmt.date_from,
+        rmt.date_to,
 
-      We intentionally DO NOT reference:
-        c.remittance_id
+        rmt.total_collections,
+        rmt.total_remittances,
+        rmt.total_deposits,
+        rmt.balance,
 
-      because that column does not exist.
-    */
+        rmt.rcd_status,
+        rmt.total_amount,
+        rmt.status,
+        rmt.remarks,
+        rmt.prepared_by,
+        rmt.created_at,
+        rmt.updated_at,
 
-    const result =
-      await pool.query(
-        `
-        SELECT
-          rmt.id,
-          rmt.remittance_no,
-          rmt.remittance_date,
-          rmt.total_amount,
-          rmt.status,
-          rmt.remarks,
-          rmt.prepared_by,
-          rmt.approved_by,
-          rmt.approved_at,
-          rmt.created_at,
-          rmt.updated_at,
+        /* Original RCD details */
+        rt.report_no AS original_rcd_no,
+        rt.report_date AS original_rcd_date,
+        rt.fund_source_id AS original_fund_source_id,
+        rt.date_from AS original_date_from,
+        rt.date_to AS original_date_to,
+        rt.total_collections AS original_total_collections,
+        rt.total_remittances AS original_total_remittances,
+        rt.total_deposits AS original_total_deposits,
+        rt.balance AS original_balance,
+        rt.status AS original_rcd_status,
+        rt.rcd_by,
 
-          rmt.rcd_transaction_id,
+        /* Fund source details */
+        fs.fund_code,
+        fs.fund_name,
+        fs.acronym AS fund_acronym,
 
-          rt.report_no AS rcd_no,
-          rt.report_date AS rcd_date,
+        /* Collector */
+        u.full_name AS collector
+
+      FROM public.rcd_remittance_transactions rmt
+
+      LEFT JOIN public.rcd_transaction rt
+        ON rt.id = rmt.rcd_transaction_id
+
+      LEFT JOIN public.fund_sources fs
+        ON fs.id = COALESCE(
           rt.fund_source_id,
-          rt.date_from,
-          rt.date_to,
-          rt.total_collections,
-          rt.total_remittances,
-          rt.total_deposits,
-          rt.balance,
-          rt.status AS rcd_status,
-          rt.rcd_by,
-
-          fs.fund_code,
-          fs.fund_name,
-          fs.acronym AS fund_acronym,
-
-          u.full_name AS collector
-
-        FROM remittance_transactions rmt
-
-        INNER JOIN rcd_transaction rt
-          ON rt.id = rmt.rcd_transaction_id
-
-        INNER JOIN fund_sources fs
-          ON fs.id = rt.fund_source_id
-
-        LEFT JOIN users u
-          ON u.id = rt.rcd_by
-
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM rcd_consolidated_transaction_items cti
-          WHERE cti.remittance_id = rmt.id
+          rmt.fund_source_id
         )
 
-        ORDER BY
-          rmt.remittance_date DESC,
-          rmt.created_at DESC
-        `
-      );
+      LEFT JOIN public.users u
+        ON u.id = rt.rcd_by
+
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM public.rcd_consolidated_transaction_items cti
+        WHERE cti.remittance_id = rmt.id
+      )
+
+      ORDER BY
+        rmt.remittance_date DESC NULLS LAST,
+        rmt.created_at DESC
+      `
+    );
 
     /* ========================================================
-       GET FUND SOURCES
+       GET ACTIVE FUND SOURCES
     ======================================================== */
 
-    const fundSourceResult =
-      await pool.query(
-        `
-        SELECT
-          id,
-          fund_code,
-          fund_name,
-          acronym
-        FROM fund_sources
-        WHERE COALESCE(
-          is_active,
-          TRUE
-        ) = TRUE
-        ORDER BY
-          seq_no ASC NULLS LAST,
-          fund_code ASC
-        `
-      );
+    const fundSourceResult = await pool.query(
+      `
+      SELECT
+        id,
+        fund_code,
+        fund_name,
+        acronym
+      FROM public.fund_sources
+      WHERE COALESCE(is_active, TRUE) = TRUE
+      ORDER BY
+        seq_no ASC NULLS LAST,
+        fund_code ASC
+      `
+    );
 
     /* ========================================================
-       FORMAT REMITTANCES
+       FORMAT REMITTANCE TRANSACTIONS
+
+       Keep the response fields expected by RemittanceTable.
     ======================================================== */
 
-    const transactions =
-      result.rows.map(
-        (row) => ({
-          id: row.id,
+    const transactions = result.rows.map((row) => {
+      const totalAmount = Number(row.total_amount ?? 0);
 
-          remittance_no:
-            row.remittance_no,
+      const fundCode = row.fund_code ?? "";
+      const fundName = row.fund_name ?? "";
 
-          remittance_date:
-            row.remittance_date,
+      return {
+        /* Remittance information */
+        id: row.id,
+        remittance_no: row.remittance_no,
+        remittance_date: row.remittance_date,
 
-          amount: Number(
-            row.total_amount || 0
-          ),
+        amount: totalAmount,
+        total_amount: totalAmount,
 
-          total_amount: Number(
-            row.total_amount || 0
-          ),
+        status: row.status,
+        remarks: row.remarks,
+        prepared_by: row.prepared_by,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
 
-          status:
-            row.status,
+        /* RCD information */
+        rcd_transaction_id: row.rcd_transaction_id,
 
-          remarks:
-            row.remarks,
+        rcd_no:
+          row.original_rcd_no ??
+          row.report_no ??
+          "",
 
-          prepared_by:
-            row.prepared_by,
+        rcd_date:
+          row.original_rcd_date ??
+          row.report_date ??
+          null,
 
-          approved_by:
-            row.approved_by,
+        date_from: row.date_from,
+        date_to: row.date_to,
 
-          approved_at:
-            row.approved_at,
+        rcd_status:
+          row.original_rcd_status ??
+          row.rcd_status ??
+          null,
 
-          created_at:
-            row.created_at,
+        rcd_by: row.rcd_by ?? null,
 
-          updated_at:
-            row.updated_at,
+        /* Fund source */
+        fund_source_id:
+          row.original_fund_source_id ??
+          row.remittance_fund_source_id ??
+          null,
 
-          /* ==================================================
-             RCD INFORMATION
-          ================================================== */
+        fund_code: fundCode,
+        fund_name: fundName,
+        fund_acronym: row.fund_acronym ?? "",
 
-          rcd_transaction_id:
-            row.rcd_transaction_id,
+        // Maintains compatibility with the existing frontend.
+        fund_source: fundCode
+          ? `${fundCode}${fundName ? ` - ${fundName}` : ""}`
+          : fundName,
 
-          rcd_no:
-            row.rcd_no,
+        /* Collector */
+        collector: row.collector ?? "Unknown Collector",
 
-          rcd_date:
-            row.rcd_date,
+        /* Collection totals */
+        total_collections: Number(
+          row.original_total_collections ??
+          row.total_collections ??
+          0
+        ),
 
-          date_from:
-            row.date_from,
+        total_remittances: Number(
+          row.original_total_remittances ??
+          row.total_remittances ??
+          0
+        ),
 
-          date_to:
-            row.date_to,
+        total_deposits: Number(
+          row.original_total_deposits ??
+          row.total_deposits ??
+          0
+        ),
 
-          rcd_status:
-            row.rcd_status,
-
-          rcd_by:
-            row.rcd_by,
-
-          /* ==================================================
-             FUND SOURCE
-          ================================================== */
-
-          fund_source_id:
-            row.fund_source_id,
-
-          fund_code:
-            row.fund_code,
-
-          fund_name:
-            row.fund_name,
-
-          fund_acronym:
-            row.fund_acronym,
-
-          /*
-            Keep this field because the current
-            RemittanceTable uses fund_source.
-          */
-          fund_source:
-            row.fund_code
-              ? `${row.fund_code}${
-                  row.fund_name
-                    ? ` - ${row.fund_name}`
-                    : ""
-                }`
-              : "",
-
-          /* ==================================================
-             COLLECTOR
-          ================================================== */
-
-          collector:
-            row.collector ||
-            "Unknown Collector",
-
-          /* ==================================================
-             COLLECTION TOTALS
-          ================================================== */
-
-          total_collections:
-            Number(
-              row.total_collections || 0
-            ),
-
-          total_remittances:
-            Number(
-              row.total_remittances || 0
-            ),
-
-          total_deposits:
-            Number(
-              row.total_deposits || 0
-            ),
-
-          balance:
-            Number(
-              row.balance || 0
-            ),
-        })
-      );
+        balance: Number(
+          row.original_balance ??
+          row.balance ??
+          0
+        ),
+      };
+    });
 
     /* ========================================================
        FORMAT FUND SOURCES
     ======================================================== */
 
-    const fundSources =
-      fundSourceResult.rows.map(
-        (row) => ({
-          id: row.id,
-
-          fundCode:
-            row.fund_code,
-
-          fundName:
-            row.fund_name,
-
-          acronym:
-            row.acronym,
-        })
-      );
+    const fundSources = fundSourceResult.rows.map((row) => ({
+      id: row.id,
+      fundCode: row.fund_code,
+      fundName: row.fund_name,
+      acronym: row.acronym,
+    }));
 
     /* ========================================================
        RESPONSE
@@ -367,23 +310,13 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-
-      count:
-        transactions.length,
-
+      count: transactions.length,
       transactions,
-
       fundSources,
-
       user: {
-        id:
-          currentUser.id,
-
-        fullName:
-          currentUser.full_name,
-
-        username:
-          currentUser.username,
+        id: currentUser.id,
+        fullName: currentUser.full_name,
+        username: currentUser.username,
       },
     });
   } catch (error) {
@@ -395,15 +328,12 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-
         error:
           error instanceof Error
             ? error.message
             : "Failed to fetch remittance transactions.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

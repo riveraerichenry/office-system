@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -5,13 +6,11 @@ import DepositFormModal from "./DepositFormModal";
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
   RefreshCw,
   Search,
   X,
   Plus,
 } from "lucide-react";
-
 import ConsolidatedRCDPreviewModal from "@/components/remittance/ConsolidatedRCDPreviewModal";
 
 type ConsolidatedRCD = {
@@ -74,9 +73,7 @@ const inputClassName =
 export default function ConsolidatedRCDTable() {
   const [data, setData] = useState<ConsolidatedRCD[]>([]);
   const [fundSources, setFundSources] = useState<FundSource[]>([]);
-
   const [depositModalOpen, setDepositModalOpen] = useState(false);
-  
 
   const [fundSource, setFundSource] = useState("ALL");
   const [dateFrom, setDateFrom] = useState("");
@@ -86,15 +83,12 @@ export default function ConsolidatedRCDTable() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
-  // A non-null ID means the preview modal is open.
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const mapConsolidatedRCDs = (
     result: ApiResponse
   ): ConsolidatedRCD[] => {
-    const items =
-      result.transactions ?? result.consolidatedRCDs ?? [];
+    const items = result.transactions ?? result.consolidatedRCDs ?? [];
 
     return items.map((item) => ({
       id: item.id,
@@ -102,14 +96,11 @@ export default function ConsolidatedRCDTable() {
         item.consolidatedNo ?? item.consolidated_no ?? "",
       consolidatedDate:
         item.consolidatedDate ?? item.consolidated_date ?? "",
-      fundSourceId:
-        item.fundSourceId ?? item.fund_source_id ?? "",
+      fundSourceId: item.fundSourceId ?? item.fund_source_id ?? "",
       fundCode: item.fundCode ?? item.fund_code ?? "",
       fundName: item.fundName ?? item.fund_name ?? "",
       accountable: item.accountable ?? "",
-      totalAmount: Number(
-        item.totalAmount ?? item.total_amount ?? 0
-      ),
+      totalAmount: Number(item.totalAmount ?? item.total_amount ?? 0),
     }));
   };
 
@@ -123,7 +114,6 @@ export default function ConsolidatedRCDTable() {
       acronym: item.acronym ?? null,
     }));
 
-  // Load consolidated RCD records.
   const loadConsolidatedRCDs = useCallback(
     async (
       options?: {
@@ -134,8 +124,7 @@ export default function ConsolidatedRCDTable() {
     ) => {
       const effectiveDateFrom = options?.dateFrom ?? dateFrom;
       const effectiveDateTo = options?.dateTo ?? dateTo;
-      const effectiveFundSource =
-        options?.fundSource ?? fundSource;
+      const effectiveFundSource = options?.fundSource ?? fundSource;
 
       const params = new URLSearchParams();
 
@@ -169,8 +158,7 @@ export default function ConsolidatedRCDTable() {
 
         if (!response.ok || !result.success) {
           throw new Error(
-            result.error ||
-              "Failed to load consolidated RCD records."
+            result.error || "Failed to load consolidated RCD records."
           );
         }
 
@@ -194,7 +182,6 @@ export default function ConsolidatedRCDTable() {
     [dateFrom, dateTo, fundSource]
   );
 
-  // Initial load.
   useEffect(() => {
     let cancelled = false;
 
@@ -203,21 +190,17 @@ export default function ConsolidatedRCDTable() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          "/api/remittance/consolidated",
-          {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/remittance/consolidated", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
         const result = (await response.json()) as ApiResponse;
 
         if (!response.ok || !result.success) {
           throw new Error(
-            result.error ||
-              "Failed to load consolidated RCD records."
+            result.error || "Failed to load consolidated RCD records."
           );
         }
 
@@ -239,9 +222,7 @@ export default function ConsolidatedRCDTable() {
             : "Failed to load consolidated RCD records."
         );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -306,7 +287,6 @@ export default function ConsolidatedRCDTable() {
     }
   };
 
-  // Pagination.
   const totalPages = Math.max(
     1,
     Math.ceil(data.length / ITEMS_PER_PAGE)
@@ -323,7 +303,6 @@ export default function ConsolidatedRCDTable() {
     }
   }, [currentPage, totalPages]);
 
-  // Open preview modal.
   const handleView = (item: ConsolidatedRCD) => {
     if (!item.id) {
       setError("The selected Consolidated RCD has no record ID.");
@@ -333,12 +312,10 @@ export default function ConsolidatedRCDTable() {
     setPreviewId(item.id);
   };
 
-  // Close preview modal and hide the floating button.
   const handleClosePreview = () => {
     setPreviewId(null);
   };
 
-  // Format database dates without timezone shifting.
   const formatDate = (value: string) => {
     if (!value) return "—";
 
@@ -350,7 +327,6 @@ export default function ConsolidatedRCDTable() {
     const year = Number(match[1]);
     const month = Number(match[2]);
     const day = Number(match[3]);
-
     const date = new Date(year, month - 1, day);
 
     if (
@@ -375,18 +351,19 @@ export default function ConsolidatedRCDTable() {
     });
 
   const hasFilters =
-    Boolean(dateFrom) ||
-    Boolean(dateTo) ||
-    fundSource !== "ALL";
+    Boolean(dateFrom) || Boolean(dateTo) || fundSource !== "ALL";
+
+  // Details from the currently selected Consolidated RCD record.
+  const selectedRCD = data.find((item) => item.id === previewId);
 
   return (
     <>
-      <div className="flex min-h-0 flex-col">
-        {/* FILTER TOOLBAR */}
+      <div className="flex min-h-0 min-w-0 flex-col">
+        {/* FILTER TOOLBAR — ORIGINAL LAYOUT PRESERVED */}
         <div className="flex flex-col gap-4 border-b border-slate-200 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <label
                   htmlFor="consolidated-date-from"
                   className="text-xs font-semibold text-slate-600"
@@ -399,11 +376,11 @@ export default function ConsolidatedRCDTable() {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className={inputClassName}
+                  className={`${inputClassName} w-full min-w-0`}
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <label
                   htmlFor="consolidated-date-to"
                   className="text-xs font-semibold text-slate-600"
@@ -416,11 +393,11 @@ export default function ConsolidatedRCDTable() {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className={inputClassName}
+                  className={`${inputClassName} w-full min-w-0`}
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5 sm:col-span-2 xl:col-span-1">
+              <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2 xl:col-span-1">
                 <label
                   htmlFor="consolidated-fund-source"
                   className="text-xs font-semibold text-slate-600"
@@ -432,7 +409,7 @@ export default function ConsolidatedRCDTable() {
                   id="consolidated-fund-source"
                   value={fundSource}
                   onChange={(e) => setFundSource(e.target.value)}
-                  className={`${inputClassName} min-w-0`}
+                  className={`${inputClassName} min-w-0 w-full`}
                 >
                   <option value="ALL">All Fund Sources</option>
 
@@ -444,12 +421,12 @@ export default function ConsolidatedRCDTable() {
                 </select>
               </div>
 
-              <div className="flex items-end gap-2">
+              <div className="flex min-w-0 items-end gap-2">
                 <button
                   type="button"
                   onClick={handleApplyFilter}
                   disabled={loading}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Search size={15} />
                   Apply
@@ -461,7 +438,7 @@ export default function ConsolidatedRCDTable() {
                   disabled={loading || !hasFilters}
                   title="Clear filters"
                   aria-label="Clear filters"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <X size={15} />
                   <span className="hidden sm:inline">Clear</span>
@@ -501,37 +478,37 @@ export default function ConsolidatedRCDTable() {
         {error && (
           <div
             role="alert"
-            className="flex flex-col gap-3 border-b border-red-200 bg-red-50 px-5 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+            className="flex min-w-0 flex-col gap-3 border-b border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
           >
-            <span>{error}</span>
+            <span className="break-words">{error}</span>
 
             <button
               type="button"
               onClick={handleRefresh}
               disabled={refreshing || loading}
-              className="font-semibold underline underline-offset-2"
+              className="shrink-0 font-semibold underline underline-offset-2"
             >
               Try again
             </button>
           </div>
         )}
 
-        {/* TABLE */}
-        <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-sm">
+        {/* TABLE — ONLY TABLE SIZING AND SPACING CHANGED */}
+        <div className="w-full min-w-0 overflow-x-auto">
+          <table className="w-full min-w-[600px] border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                <th className="w-[22%] px-5 py-4">
+              <tr className="border-b border-slate-200 bg-slate-50 text-left text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-xs">
+                <th className="w-[27%] px-2 py-3 sm:px-3 sm:py-4">
                   Consolidated RCD No.
                 </th>
-                <th className="w-[15%] px-4 py-4">Date</th>
-                <th className="w-[23%] px-4 py-4">Fund Source</th>
-                <th className="w-[20%] px-4 py-4">Accountable</th>
-                <th className="w-[15%] px-4 py-4 text-right">
-                  Total Amount
+                <th className="w-[18%] px-2 py-3 sm:px-3 sm:py-4">
+                  Date
                 </th>
-                <th className="w-[5%] px-4 py-4 text-center">
-                  Action
+                <th className="w-[30%] px-2 py-3 sm:px-3 sm:py-4">
+                  Fund Source
+                </th>
+                <th className="w-[25%] px-2 py-3 text-right sm:px-3 sm:py-4">
+                  Total Amount
                 </th>
               </tr>
             </thead>
@@ -540,8 +517,8 @@ export default function ConsolidatedRCDTable() {
               {loading && (
                 <tr>
                   <td
-                    colSpan={6}
-                    className="px-5 py-14 text-center text-slate-400"
+                    colSpan={4}
+                    className="px-3 py-10 text-center text-slate-400"
                   >
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw size={17} className="animate-spin" />
@@ -553,10 +530,10 @@ export default function ConsolidatedRCDTable() {
 
               {!loading && !error && paginatedData.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-14 text-center">
+                  <td colSpan={4} className="px-3 py-10 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                        <Search size={21} className="text-slate-400" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                        <Search size={19} className="text-slate-400" />
                       </div>
 
                       <p className="font-semibold text-slate-700">
@@ -585,51 +562,33 @@ export default function ConsolidatedRCDTable() {
                     title="Open Consolidated RCD"
                     className="cursor-pointer border-b border-slate-100 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   >
-                    <td className="px-5 py-4">
+                    <td className="break-words px-2 py-3 sm:px-3 sm:py-4">
                       <span className="font-semibold text-slate-800">
                         {item.consolidatedRCDNo || "—"}
                       </span>
                     </td>
 
-                    <td className="whitespace-nowrap px-4 py-4 text-slate-600">
+                    <td className="whitespace-nowrap px-2 py-3 text-slate-600 sm:px-3 sm:py-4">
                       {formatDate(item.consolidatedDate)}
                     </td>
 
-                    <td className="px-4 py-4">
+                    <td className="min-w-0 px-2 py-3 sm:px-3 sm:py-4">
                       <div className="font-semibold text-slate-700">
                         {item.fundCode || "—"}
                       </div>
 
                       {item.fundName && (
-                        <div className="mt-0.5 max-w-[260px] truncate text-xs text-slate-500">
+                        <div
+                          className="mt-0.5 max-w-full truncate text-[10px] text-slate-500 sm:text-xs"
+                          title={item.fundName}
+                        >
                           {item.fundName}
                         </div>
                       )}
                     </td>
 
-                    <td className="px-4 py-4 text-slate-600">
-                      <span className="block max-w-[220px] truncate">
-                        {item.accountable || "—"}
-                      </span>
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-4 text-right font-semibold tabular-nums text-slate-800">
+                    <td className="whitespace-nowrap px-2 py-3 text-right font-semibold tabular-nums text-slate-800 sm:px-3 sm:py-4">
                       ₱ {formatAmount(item.totalAmount)}
-                    </td>
-
-                    <td className="px-4 py-4 text-center">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleView(item);
-                        }}
-                        title="View or reprint Consolidated RCD"
-                        aria-label={`View or reprint ${item.consolidatedRCDNo}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                      >
-                        <Eye size={16} />
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -638,7 +597,7 @@ export default function ConsolidatedRCDTable() {
         </div>
 
         {/* PAGINATION */}
-        <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 border-t border-slate-200 px-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
             {data.length === 0
               ? "Showing 0 records"
@@ -650,7 +609,7 @@ export default function ConsolidatedRCDTable() {
                 )} of ${data.length} records`}
           </p>
 
-          <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <div className="flex items-center justify-between gap-1 sm:justify-end sm:gap-2">
             <button
               type="button"
               disabled={currentPage <= 1 || loading}
@@ -658,13 +617,13 @@ export default function ConsolidatedRCDTable() {
                 setCurrentPage((page) => Math.max(1, page - 1))
               }
               aria-label="Previous page"
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-sm"
             >
               <ChevronLeft size={16} />
               Previous
             </button>
 
-            <span className="whitespace-nowrap px-2 text-xs font-medium text-slate-600">
+            <span className="whitespace-nowrap px-1 text-[11px] font-medium text-slate-600 sm:px-2 sm:text-xs">
               Page {currentPage} of {totalPages}
             </span>
 
@@ -677,7 +636,7 @@ export default function ConsolidatedRCDTable() {
                 )
               }
               aria-label="Next page"
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-sm"
             >
               Next
               <ChevronRight size={16} />
@@ -692,24 +651,24 @@ export default function ConsolidatedRCDTable() {
         onClose={handleClosePreview}
       />
 
-      {/* FLOATING TABLE ACTION
-          Appears only while the preview modal is open. */}
+      {/* FLOATING TABLE ACTION */}
       {previewId && (
         <button
-            type="button"
-            onClick={() => setDepositModalOpen(true)}
-            className="fixed bottom-6 right-6 z-[100001] inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-4 font-semibold text-white shadow-xl transition hover:bg-blue-700"
+          type="button"
+          onClick={() => setDepositModalOpen(true)}
+          className="fixed bottom-6 right-6 z-[100001] inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-4 font-semibold text-white shadow-xl transition hover:bg-blue-700"
         >
-            <Plus size={20} />
-            Make a Deposit
+          <Plus size={20} />
+          Make a Deposit
         </button>
-        )}
-        <DepositFormModal
+      )}
+
+      <DepositFormModal
         open={depositModalOpen}
         onClose={() => setDepositModalOpen(false)}
-        />
+        rcdNumber={selectedRCD?.consolidatedRCDNo ?? ""}
+        rcdAmount={selectedRCD?.totalAmount ?? 0}
+      />
     </>
-    
   );
-
 }

@@ -1,50 +1,45 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
 
-/* ============================================================
-   POST REMITTANCE
-   Creates one remittance transaction for the whole RCD
-============================================================ */
-
 export async function POST(request: NextRequest) {
   const client = await pool.connect();
+  let transactionStarted = false;
 
   try {
-    /* ==========================================================
-       AUTHENTICATION
-    ========================================================== */
-
+    // Authenticate
     const token = request.cookies.get("token")?.value;
 
     if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-        },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as {
-      id: string;
-    };
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not configured.");
+    }
 
-    /* ==========================================================
-       VERIFY USER
-    ========================================================== */
+    let decoded: { id: string };
+
+    try {
+      decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET
+      ) as { id: string };
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid or expired token." },
+        { status: 401 }
+      );
+    }
 
     const userResult = await client.query(
       `
-      SELECT
-        id,
-        full_name,
-        username
-      FROM users
+      SELECT id, full_name, username
+      FROM public.users
       WHERE id = $1
       LIMIT 1
       `,
@@ -53,107 +48,106 @@ export async function POST(request: NextRequest) {
 
     if (userResult.rows.length === 0) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "User not found",
-        },
+        { success: false, error: "User not found." },
         { status: 401 }
       );
     }
 
     const user = userResult.rows[0];
 
-    /* ==========================================================
-       REQUEST BODY
-    ========================================================== */
+    // Parse request
+    let body: {
+      rcd_transaction_id?: string;
+      remittance_no?: string;
+      remarks?: string | null;
+    };
 
-    const body = await request.json();
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON request body." },
+        { status: 400 }
+      );
+    }
 
-    const {
-      rcd_transaction_id,
-      remittance_no,
-      remarks,
-    } = body;
+    const rcdTransactionId = String(
+      body.rcd_transaction_id ?? ""
+    ).trim();
 
-    /* ==========================================================
-       VALIDATION
-    ========================================================== */
+    const remittanceNo = String(
+      body.remittance_no ?? ""
+    ).trim();
 
-    if (!rcd_transaction_id) {
+    const remarks =
+      body.remarks == null
+        ? null
+        : String(body.remarks).trim() || null;
+
+    if (!rcdTransactionId) {
       return NextResponse.json(
         {
           success: false,
-          error: "RCD transaction ID is required",
+          error: "RCD transaction ID is required.",
         },
         { status: 400 }
       );
     }
 
-    if (
-      !remittance_no ||
-      !String(remittance_no).trim()
-    ) {
+    if (!remittanceNo) {
       return NextResponse.json(
         {
           success: false,
-          error: "Remittance number is required",
+          error: "Remittance number is required.",
         },
         { status: 400 }
       );
     }
-
-    /* ==========================================================
-       BEGIN TRANSACTION
-    ========================================================== */
 
     await client.query("BEGIN");
+    transactionStarted = true;
 
-    /* ==========================================================
-       GET RCD
-    ========================================================== */
-
+    // Lock original RCD
     const rcdResult = await client.query(
       `
       SELECT
-        rt.id,
-        rt.report_no,
-        rt.report_date,
-        rt.fund_source_id,
-        rt.date_from,
-        rt.date_to,
-        rt.total_collections,
-        rt.total_remittances,
-        rt.total_deposits,
-        rt.balance,
-        rt.status,
-        rt.rcd_by
-      FROM rcd_transaction rt
-      WHERE rt.id = $1
+        id,
+        report_no,
+        report_date,
+        fund_source_id,
+        date_from,
+        date_to,
+        total_collections,
+        total_remittances,
+        total_deposits,
+        balance,
+        status,
+        rcd_by
+      FROM public.rcd_transaction
+      WHERE id = $1
       FOR UPDATE
       `,
-      [rcd_transaction_id]
+      [rcdTransactionId]
     );
 
     if (rcdResult.rows.length === 0) {
       await client.query("ROLLBACK");
+      transactionStarted = false;
 
       return NextResponse.json(
-        {
-          success: false,
-          error: "RCD transaction not found",
-        },
+        { success: false, error: "RCD transaction not found." },
         { status: 404 }
       );
     }
 
     const rcd = rcdResult.rows[0];
 
-    /* ==========================================================
-       CHECK RCD STATUS
-    ========================================================== */
-
-    if (rcd.status !== "FOR REMITTANCE") {
+    if (
+      String(rcd.status ?? "").trim().toUpperCase() !==
+      "FOR REMITTANCE"
+    ) {
       await client.query("ROLLBACK");
+      transactionStarted = false;
 
       return NextResponse.json(
         {
@@ -164,81 +158,96 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    /* ==========================================================
-       CHECK IF RCD IS ALREADY REMITTED
-    ========================================================== */
-
+    // Prevent duplicate remittance for the same RCD
     const existingRCD = await client.query(
       `
-      SELECT
-        id,
-        remittance_no,
-        status
-      FROM remittance_transactions
+      SELECT id, remittance_no
+      FROM public.rcd_remittance_transactions
       WHERE rcd_transaction_id = $1
       LIMIT 1
       `,
-      [rcd_transaction_id]
+      [rcdTransactionId]
     );
 
     if (existingRCD.rows.length > 0) {
       await client.query("ROLLBACK");
+      transactionStarted = false;
 
       return NextResponse.json(
         {
           success: false,
-          error:
-            "This RCD has already been added to a remittance.",
+          error: "This RCD has already been added to a remittance.",
           remittance: existingRCD.rows[0],
         },
         { status: 409 }
       );
     }
 
-    /* ==========================================================
-       CHECK REMITTANCE NUMBER
-    ========================================================== */
+    // Prevent duplicate remittance number
+    const existingNumber = await client.query(
+      `
+      SELECT id
+      FROM public.rcd_remittance_transactions
+      WHERE remittance_no = $1
+      LIMIT 1
+      `,
+      [remittanceNo]
+    );
 
-    const existingRemittance =
-      await client.query(
-        `
-        SELECT
-          id,
-          remittance_no,
-          status
-        FROM remittance_transactions
-        WHERE remittance_no = $1
-        LIMIT 1
-        `,
-        [String(remittance_no).trim()]
-      );
-
-    if (existingRemittance.rows.length > 0) {
+    if (existingNumber.rows.length > 0) {
       await client.query("ROLLBACK");
+      transactionStarted = false;
 
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Remittance number already exists.",
-          remittance:
-            existingRemittance.rows[0],
+          error: "Remittance number already exists.",
         },
         { status: 409 }
       );
     }
 
-    /* ==========================================================
-       INSERT REMITTANCE
-    ========================================================== */
+    const totalCollections = Number(
+      rcd.total_collections ?? 0
+    );
 
+    const totalRemittances = Number(
+      rcd.total_remittances ?? 0
+    );
+
+    const totalDeposits = Number(
+      rcd.total_deposits ?? 0
+    );
+
+    const balance = Number(rcd.balance ?? 0);
+
+    if (
+      !Number.isFinite(totalCollections) ||
+      !Number.isFinite(totalRemittances) ||
+      !Number.isFinite(totalDeposits) ||
+      !Number.isFinite(balance)
+    ) {
+      throw new Error("The RCD contains an invalid amount.");
+    }
+
+    // Insert remittance snapshot
     const insertResult = await client.query(
       `
-      INSERT INTO remittance_transactions (
+      INSERT INTO public.rcd_remittance_transactions (
         id,
         remittance_no,
         remittance_date,
         rcd_transaction_id,
+        report_no,
+        report_date,
+        fund_source_id,
+        date_from,
+        date_to,
+        total_collections,
+        total_remittances,
+        total_deposits,
+        balance,
+        rcd_status,
         total_amount,
         status,
         remarks,
@@ -252,134 +261,120 @@ export async function POST(request: NextRequest) {
         CURRENT_DATE,
         $2,
         $3,
-        'APPROVED',
         $4,
         $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12,
+        $13,
+        'APPROVED',
+        $14,
+        $15,
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
       )
-      RETURNING
-        id,
-        remittance_no,
-        remittance_date,
-        rcd_transaction_id,
-        total_amount,
-        status,
-        remarks,
-        prepared_by,
-        created_at,
-        updated_at
+      RETURNING *
       `,
       [
-        String(remittance_no).trim(),
-        rcd_transaction_id,
-        Number(rcd.total_collections || 0),
-        remarks || null,
+        remittanceNo,
+        rcd.id,
+        rcd.report_no,
+        rcd.report_date,
+        rcd.fund_source_id,
+        rcd.date_from,
+        rcd.date_to,
+        totalCollections,
+        totalRemittances,
+        totalDeposits,
+        balance,
+        rcd.status,
+        totalCollections,
+        remarks,
         user.id,
       ]
     );
 
-    const remittance =
-      insertResult.rows[0];
+    const remittance = insertResult.rows[0];
 
-    /* ==========================================================
-       UPDATE RCD
-       
-       Whole RCD has now been remitted.
-    ========================================================== */
-
+    // Apply remittance to original RCD
     await client.query(
       `
-      UPDATE rcd_transaction
+      UPDATE public.rcd_transaction
       SET
-        total_remittances = COALESCE(total_remittances, 0)
+        total_remittances =
+          COALESCE(total_remittances, 0)
           + COALESCE(total_collections, 0),
-
-        balance = COALESCE(balance, 0)
+        balance =
+          COALESCE(balance, 0)
           - COALESCE(total_collections, 0),
-
         status = 'REMITTED',
-
         updated_at = CURRENT_TIMESTAMP
-
       WHERE id = $1
       `,
-      [rcd_transaction_id]
+      [rcd.id]
     );
 
-    /* ==========================================================
-       COMMIT
-    ========================================================== */
-
     await client.query("COMMIT");
-
-    /* ==========================================================
-       RESPONSE
-    ========================================================== */
+    transactionStarted = false;
 
     return NextResponse.json(
       {
         success: true,
-        message:
-          "Remittance successfully created.",
+        message: "Remittance successfully created.",
         remittance: {
           id: remittance.id,
-          remittanceNo:
-            remittance.remittance_no,
-          remittanceDate:
-            remittance.remittance_date,
-          rcdTransactionId:
-            remittance.rcd_transaction_id,
-          amount:
-            Number(
-              remittance.total_amount || 0
+          remittanceNo: remittance.remittance_no,
+          remittanceDate: remittance.remittance_date,
+          rcdTransactionId: remittance.rcd_transaction_id,
+          rcd: {
+            reportNo: remittance.report_no,
+            reportDate: remittance.report_date,
+            fundSourceId: remittance.fund_source_id,
+            coverageFrom: remittance.date_from,
+            coverageTo: remittance.date_to,
+            totalCollections: Number(
+              remittance.total_collections
             ),
-          status:
-            remittance.status,
-          preparedBy:
-            remittance.prepared_by,
-          createdAt:
-            remittance.created_at,
+            totalRemittances: Number(
+              remittance.total_remittances
+            ),
+            totalDeposits: Number(
+              remittance.total_deposits
+            ),
+            balance: Number(remittance.balance),
+            status: remittance.rcd_status,
+          },
+          amount: Number(remittance.total_amount),
+          status: remittance.status,
+          remarks: remittance.remarks,
+          preparedBy: remittance.prepared_by,
+          createdAt: remittance.created_at,
         },
       },
       { status: 201 }
     );
-
   } catch (error) {
-    /* ==========================================================
-       ROLLBACK
-    ========================================================== */
-
-    try {
-      await client.query("ROLLBACK");
-    } catch (rollbackError) {
-      console.error(
-        "Rollback error:",
-        rollbackError
-      );
+    if (transactionStarted) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Remittance rollback error:", rollbackError);
+      }
     }
 
-    console.error(
-      "POST /api/remittance error:",
-      error
-    );
+    console.error("POST /api/remittance error:", error);
 
-    /* ==========================================================
-       UNIQUE CONSTRAINT
-    ========================================================== */
+    const dbError = error as { code?: string };
 
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error as { code?: string }).code ===
-        "23505"
-    ) {
+    if (dbError.code === "23505") {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Remittance number or RCD already exists.",
+          error: "Remittance number or RCD already exists.",
         },
         { status: 409 }
       );
@@ -388,14 +383,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to create remittance.",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to create remittance.",
       },
       { status: 500 }
     );
-
   } finally {
     client.release();
   }
