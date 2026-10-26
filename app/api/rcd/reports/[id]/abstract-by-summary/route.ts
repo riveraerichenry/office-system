@@ -1445,14 +1445,6 @@ if (
                         );
 
 
-                    const barangayAccount =
-                        accountByCode.get(
-                            CTC_ACCOUNTS
-                                .INDIVIDUAL_BARANGAY
-                                .code
-                        );
-
-
                     const penaltyAccount =
                         accountByCode.get(
                             CTC_ACCOUNTS
@@ -1500,33 +1492,10 @@ if (
 
 
                     /*
-                    -------------------------------------------------
-                    Municipality 50%
-                    -------------------------------------------------
-                    */
-
-                    const municipalShare =
-                        money(
-                            individualTax / 2
-                        );
-
-
-                    /*
-                    -------------------------------------------------
-                    Barangay 50%
-                    -------------------------------------------------
-                    */
-
-                    const barangayShare =
-                        money(
-                            individualTax / 2
-                        );
-
-
-                    /*
                     =================================================
                     4-01-01-050-1
                     *CTC-Individual
+                    Use the FULL individual tax amount.
                     =================================================
                     */
 
@@ -1547,36 +1516,7 @@ if (
                                 .INDIVIDUAL
                                 .name,
 
-                        municipalShare
-
-                    );
-
-
-                    /*
-                    =================================================
-                    4-01-01-050-2
-                    CTC-Individual (Bgy.- 50%)
-                    =================================================
-                    */
-
-                    addSummary(
-
-                        barangayAccount?.id ??
-                            null,
-
-                        barangayAccount
-                            ?.account_code ??
-                            CTC_ACCOUNTS
-                                .INDIVIDUAL_BARANGAY
-                                .code,
-
-                        barangayAccount
-                            ?.account_name ??
-                            CTC_ACCOUNTS
-                                .INDIVIDUAL_BARANGAY
-                                .name,
-
-                        barangayShare
+                        individualTax
 
                     );
 

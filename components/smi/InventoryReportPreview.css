@@ -1,0 +1,125 @@
+.inventory-report {
+  width: 100%;
+  color: #111827;
+  background: #ffffff;
+  font-family: Arial, sans-serif;
+}
+
+.inventory-report-heading {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.inventory-report-heading h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.inventory-report-heading h3 {
+  font-size: 14px;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.inventory-report-heading p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.inventory-report-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.inventory-report-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.inventory-report-table th,
+.inventory-report-table td {
+  border: 1px solid #374151;
+  padding: 7px 5px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.inventory-report-table thead th {
+  background: #f3f4f6;
+  font-weight: 700;
+}
+
+.inventory-report-table .form-header {
+  min-width: 90px;
+}
+
+.inventory-report-table .form-code-cell {
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.inventory-report-table .number-cell {
+  min-width: 65px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.inventory-report-table .series-cell {
+  min-width: 85px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-report-table .empty-cell {
+  padding: 24px;
+  text-align: center;
+}
+
+.inventory-report-table tfoot th {
+  background: #e5e7eb;
+  font-weight: 700;
+}
+
+.inventory-report-status {
+  text-align: center;
+  padding: 24px;
+}
+
+@media print {
+  @page {
+    size: legal landscape;
+    margin: 0.35in;
+  }
+
+  .inventory-report {
+    width: 100%;
+    color: #000;
+  }
+
+  .inventory-report-table-wrapper {
+    overflow: visible;
+  }
+
+  .inventory-report-table {
+    min-width: 0;
+    width: 100%;
+    font-size: 8px;
+  }
+
+  .inventory-report-table th,
+  .inventory-report-table td {
+    padding: 4px 3px;
+  }
+
+  .inventory-report-heading h2 {
+    font-size: 14px;
+  }
+
+  .inventory-report-heading h3 {
+    font-size: 11px;
+  }
+}

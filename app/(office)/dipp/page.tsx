@@ -7,6 +7,8 @@ import {
 
 import axios from "axios";
 
+import RAAFModal from "@/components/dipp/systemoptionmodal/raafreport/RAAFModal";
+
 import ActiveBookletTable
     from "@/components/dipp/ActiveBookletTable";
 
@@ -56,11 +58,17 @@ import CTCCReceiptModal
 export default function DIPPPage() {
 
 
+
+
+
+
     /*
     |--------------------------------------------------------------------------
     | System Options
     |--------------------------------------------------------------------------
     */
+
+    const [raafOpen, setRaafOpen] = useState(false);
 
     const [
         systemOpen,
@@ -1736,13 +1744,27 @@ export default function DIPPPage() {
                 }}
 
                 onRAAF={() => {
-
-                    console.log(
-                        "RAAF"
-                    );
-
+                    setSystemOpen(false);
+                    setRaafOpen(true);
                 }}
 
+                onMonthlyReport={() => {
+                    setSelectedMonth(new Date().getMonth() + 1);
+                    setFiscalYear(new Date().getFullYear());
+                    setOpenMonthlyModal(true);
+                    setSystemOpen(false);
+                }}
+
+            />
+
+
+            {/* ==============================================================
+                RAAF REPORTS
+            ============================================================== */}
+
+            <RAAFModal
+                open={raafOpen}
+                onClose={() => setRaafOpen(false)}
             />
 
 

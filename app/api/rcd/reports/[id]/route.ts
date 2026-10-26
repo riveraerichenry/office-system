@@ -12,9 +12,6 @@ type JwtPayload = {
     user_id?: string;
 };
 
-const RPT_GENERAL_ID =
-    "87dc32f3-418e-4cab-a024-673321df1ef5";
-
 const RPT_BASIC_ID =
     "a30624dd-f490-424a-984d-fe5f5e93277a";
 
@@ -30,7 +27,10 @@ export async function GET(
     const client = await pool.connect();
 
     try {
+        // ============================================================
         // AUTHENTICATION
+        // ============================================================
+
         const token = request.cookies.get("token")?.value;
 
         if (!token) {
@@ -94,7 +94,10 @@ export async function GET(
             );
         }
 
-        // GET THE SELECTED RCD
+        // ============================================================
+        // GET SELECTED RCD
+        // ============================================================
+
         const rcdResult = await client.query(
             `
             SELECT
@@ -144,9 +147,10 @@ export async function GET(
 
         const rcd = rcdResult.rows[0];
 
-        // FIND THE MATCHING BASIC OR SEF REPORT.
-        // Match the opposite fund source and the actual
-        // DIPP transactions associated with both reports.
+        // ============================================================
+        // FIND PAIRED BASIC / SEF RCD
+        // ============================================================
+
         let pairedRcdId: string | null = null;
 
         const isBasic =
@@ -171,8 +175,9 @@ export async function GET(
                     SELECT
                         sibling.id,
                         sibling.created_at,
-                        COUNT(DISTINCT ci.dipp_transaction_id)
-                            AS shared_items,
+                        COUNT(
+                            DISTINCT ci.dipp_transaction_id
+                        ) AS shared_items,
                         (
                             SELECT COUNT(*)
                             FROM public.rcd_items sibling_item
@@ -220,7 +225,10 @@ export async function GET(
                 pairedResult.rows[0]?.id ?? null;
         }
 
+        // ============================================================
         // GET SELECTED RCD ITEMS
+        // ============================================================
+
         const itemsResult = await client.query(
             `
             SELECT
@@ -259,7 +267,10 @@ export async function GET(
 
         const items = itemsResult.rows;
 
+        // ============================================================
         // GET COLLECTORS
+        // ============================================================
+
         const collectorIds = Array.from(
             new Set(
                 items
@@ -301,7 +312,10 @@ export async function GET(
                 : null,
         }));
 
+        // ============================================================
         // GET ACCOUNTABLE OFFICER
+        // ============================================================
+
         let rcdUser: any = null;
 
         if (rcd.rcd_by) {
@@ -318,22 +332,49 @@ export async function GET(
             rcdUser = userResult.rows[0] ?? null;
         }
 
+        // ============================================================
         // GET REMITTANCE
+        // Uses rcd_remittance_transactions.
+        // The old rcd_remittance table is no longer referenced.
+        // ============================================================
+
         const remittanceResult = await client.query(
             `
             SELECT
                 rr.id,
+                rr.remittance_no,
+                TO_CHAR(rr.remittance_date, 'YYYY-MM-DD')
+                    AS remittance_date,
                 rr.rcd_transaction_id,
-                rr.payment_type,
-                rr.cash_amount,
-                rr.check_amount,
+                rr.report_no,
+                TO_CHAR(rr.report_date, 'YYYY-MM-DD')
+                    AS report_date,
+                rr.fund_source_id,
+                TO_CHAR(rr.date_from, 'YYYY-MM-DD')
+                    AS date_from,
+                TO_CHAR(rr.date_to, 'YYYY-MM-DD')
+                    AS date_to,
+                rr.total_collections,
+                rr.total_remittances,
+                rr.total_deposits,
+                rr.balance,
+                rr.rcd_status,
                 rr.total_amount,
-                rr.report_date,
-                rr.remitted_by,
-                rr.created_by,
+                rr.status,
+                rr.remarks,
+                rr.prepared_by,
                 rr.created_at,
-                rr.updated_at
-            FROM public.rcd_remittance rr
+                rr.updated_at,
+
+                -- Compatibility fields for existing modal consumers.
+                -- The newer table does not store these separately.
+                NULL::text AS payment_type,
+                0::numeric AS cash_amount,
+                0::numeric AS check_amount,
+                rr.prepared_by AS created_by,
+                rr.prepared_by AS remitted_by
+
+            FROM public.rcd_remittance_transactions rr
             WHERE rr.rcd_transaction_id = $1
             ORDER BY rr.created_at DESC
             LIMIT 1
@@ -344,8 +385,11 @@ export async function GET(
         let remittance =
             remittanceResult.rows[0] ?? null;
 
-        // GET REMITTED BY NAME
-        if (remittance?.remitted_by) {
+        // ============================================================
+        // GET PREPARER / CREATOR NAME
+        // ============================================================
+
+        if (remittance?.prepared_by) {
             const result = await client.query(
                 `
                 SELECT id, username, full_name
@@ -353,77 +397,42 @@ export async function GET(
                 WHERE id = $1
                 LIMIT 1
                 `,
-                [remittance.remitted_by]
+                [remittance.prepared_by]
             );
 
             const person = result.rows[0] ?? null;
 
-            remittance = {
-                ...remittance,
-                remitted_by_name:
-                    person?.full_name ??
-                    person?.username ??
-                    "—",
-            };
-        }
-
-        // GET CREATED BY NAME
-        if (remittance?.created_by) {
-            const result = await client.query(
-                `
-                SELECT id, username, full_name
-                FROM public.users
-                WHERE id = $1
-                LIMIT 1
-                `,
-                [remittance.created_by]
-            );
-
-            const person = result.rows[0] ?? null;
+            const personName =
+                person?.full_name ??
+                person?.username ??
+                "—";
 
             remittance = {
                 ...remittance,
-                created_by_name:
-                    person?.full_name ??
-                    person?.username ??
-                    "—",
+                prepared_by_name: personName,
+                created_by_name: personName,
+                remitted_by_name: personName,
+            };
+        } else if (remittance) {
+            remittance = {
+                ...remittance,
+                prepared_by_name: "—",
+                created_by_name: "—",
+                remitted_by_name: "—",
             };
         }
 
+        // ============================================================
         // GET REMITTANCE DENOMINATIONS
-        let denominations: any[] = [];
+        // The old denomination table is no longer queried.
+        // ============================================================
 
-        if (remittance?.id) {
-            try {
-                const denominationResult =
-                    await client.query(
-                        `
-                        SELECT
-                            id,
-                            remittance_id,
-                            denomination,
-                            quantity,
-                            amount,
-                            created_at
-                        FROM public.rcd_remittance_denominations
-                        WHERE remittance_id = $1
-                        ORDER BY denomination DESC
-                        `,
-                        [remittance.id]
-                    );
+        const denominations: any[] = [];
 
-                denominations = denominationResult.rows;
-            } catch (error) {
-                console.error(
-                    "LOAD RCD DENOMINATIONS ERROR:",
-                    error
-                );
-
-                denominations = [];
-            }
-        }
-
+        // ============================================================
         // BUILD ACCOUNTABLE-FORM ROWS
+        // ============================================================
+
         const previousFormRows =
             buildPreviousFormRows(detailedItems);
 
@@ -433,6 +442,10 @@ export async function GET(
             fund_name: rcd.fund_name ?? null,
             acronym: rcd.acronym ?? null,
         };
+
+        // ============================================================
+        // RESPONSE
+        // ============================================================
 
         return NextResponse.json(
             {

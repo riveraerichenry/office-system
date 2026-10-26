@@ -1,0 +1,385 @@
+/* RAAF modal screen styles */
+.raaf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 65%);
+}
+
+.raaf-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1500px, 100%);
+  max-height: 94vh;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #0f172a;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 25%);
+}
+
+.raaf-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.raaf-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.raaf-modal-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.raaf-icon-button {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.raaf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.raaf-period-controls,
+.raaf-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.raaf-period-controls label {
+  display: flex;
+  min-width: 155px;
+  flex-direction: column;
+  gap: 5px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.raaf-period-controls select {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  padding: 0 10px;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.raaf-button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.raaf-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.raaf-button-primary {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.raaf-button-primary:hover:not(:disabled) {
+  background: #1e40af;
+}
+
+.raaf-button-secondary {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+}
+
+.raaf-modal-body {
+  overflow: auto;
+  padding: 20px;
+}
+
+.raaf-report-paper {
+  width: 100%;
+  min-width: 1050px;
+  margin: 0 auto;
+  padding: 28px;
+  background: #fff;
+  color: #0f172a;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.raaf-report-heading {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.raaf-government-line {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.raaf-report-heading h1 {
+  margin: 18px 0 5px;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.raaf-report-period {
+  margin: 0;
+  font-size: 13px;
+}
+
+.raaf-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.raaf-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: center;
+}
+
+.raaf-report-table th,
+.raaf-report-table td {
+  border: 1px solid #64748b;
+  padding: 7px 6px;
+  vertical-align: middle;
+}
+
+.raaf-report-table thead tr:first-child {
+  background: #e2e8f0;
+}
+
+.raaf-report-table thead tr:nth-child(2) {
+  background: #f8fafc;
+}
+
+.raaf-report-table th {
+  font-weight: 700;
+}
+
+.raaf-report-table .raaf-form-heading {
+  min-width: 140px;
+  text-align: left;
+}
+
+.raaf-report-table td.raaf-form-code {
+  text-align: left;
+  font-weight: 600;
+}
+
+.raaf-report-table td.raaf-number {
+  text-align: right;
+}
+
+.raaf-report-table .raaf-empty-cell {
+  padding: 32px 12px;
+  text-align: center;
+}
+
+.raaf-report-message {
+  padding: 48px 12px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.raaf-certification {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  align-items: start;
+  gap: 32px;
+  margin-top: 48px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.raaf-certification-text {
+  text-align: left;
+  line-height: 1.5;
+}
+
+.raaf-certification-text p {
+  margin: 0;
+}
+
+.raaf-certification-label {
+  margin-bottom: 7px !important;
+  font-weight: 700;
+}
+
+.raaf-signature-name {
+  margin: 0 0 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #000;
+  font-weight: 700;
+}
+
+.raaf-signature p:last-child,
+.raaf-date p {
+  margin: 0;
+}
+
+/* Print only the report, not the modal controls or application page. */
+@page {
+  size: legal landscape;
+  margin: 0.35in;
+}
+
+@media print {
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #raaf-report-print,
+  #raaf-report-print * {
+    visibility: visible !important;
+  }
+
+  #raaf-report-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .no-print,
+  .raaf-modal-header,
+  .raaf-toolbar,
+  .raaf-modal-backdrop {
+    display: none !important;
+  }
+
+  .raaf-modal,
+  .raaf-modal-body {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .raaf-report-heading {
+    margin-bottom: 18px !important;
+  }
+
+  .raaf-government-line {
+    font-size: 10px !important;
+    color: #000 !important;
+  }
+
+  .raaf-report-heading h1 {
+    margin-top: 12px !important;
+    font-size: 12px !important;
+    color: #000 !important;
+  }
+
+  .raaf-report-period {
+    font-size: 10px !important;
+    color: #000 !important;
+  }
+
+  .raaf-table-wrap {
+    overflow: visible !important;
+  }
+
+  .raaf-report-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 9px !important;
+    color: #000 !important;
+  }
+
+  .raaf-report-table th,
+  .raaf-report-table td {
+    border: 1px solid #000 !important;
+    padding: 4px 5px !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .raaf-report-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .raaf-certification {
+    grid-template-columns: 1.5fr 1fr 1fr !important;
+    gap: 24px !important;
+    margin-top: 40px !important;
+    font-size: 9px !important;
+    color: #000 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .raaf-certification * {
+    color: #000 !important;
+  }
+}

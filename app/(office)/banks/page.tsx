@@ -1,94 +1,69 @@
+
 "use client";
 
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { Landmark } from "lucide-react";
+import Banks from "@/components/banks/Banks";
+import BankAccounts from "@/components/banks/BankAccounts";
 
-import BankTable from "@/components/dashboard/BankTable";
-import BankDetails from "@/components/dashboard/BankDetails";
-import BankAccountsCard from "@/components/dashboard/BankAccountsCard";
-import AddBankModal from "@/components/dashboard/AddBankModal";
+type Bank = {
+  id: string;
+  bank_code: string;
+  bank_name: string;
+  seq_no: number | null;
+  remarks: string | null;
+  is_active: boolean;
+  account_count?: number;
+};
 
 export default function BanksPage() {
-  const [banks, setBanks] =
-    useState<any[]>([]);
+  const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [selected, setSelected] =
-    useState<any>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [showModal, setShowModal] =
-    useState(false);
-
-  useEffect(() => {
-    fetchBanks();
+  const handleSelectBank = useCallback((bank: Bank) => {
+    setSelectedBank(bank);
   }, []);
 
-  async function fetchBanks() {
-    try {
-      setLoading(true);
-
-      const res =
-        await axios.get(
-          "/api/banks"
-        );
-
-      const data =
-        res.data.data || [];
-
-      setBanks(data);
-
-      if (data.length > 0) {
-        setSelected(data[0]);
-      } else {
-        setSelected(null);
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const handleBanksUpdated = useCallback(() => {
+    setRefreshKey((current) => current + 1);
+  }, []);
 
   return (
-    <>
-      <div className="grid grid-cols-12 gap-6">
-        {/* LEFT CARD */}
-        <div className="col-span-4">
-          <BankTable
-            data={banks}
-            selected={selected}
-            onSelect={setSelected}
-            loading={loading}
-            onAdd={() =>
-              setShowModal(true)
-            }
-          />
-        </div>
+    <main className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-[1600px] space-y-6">
+        <header className="flex items-center gap-4">
+          <div className="rounded-xl bg-blue-700 p-3 text-white">
+            <Landmark size={28} />
+          </div>
 
-        {/* RIGHT SIDE */}
-        <div className="col-span-8 space-y-6">
-          {/* Bank Details */}
-          <BankDetails
-            selected={selected}
-            onRefresh={fetchBanks}
-          />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Banks Management
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage registered banks and their associated accounts.
+            </p>
+          </div>
+        </header>
 
-          {/* Bank Accounts */}
-          <BankAccountsCard
-            bank={selected}
-          />
+        {/* 5 columns for Banks and 7 columns for Bank Accounts */}
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+          <div className="min-w-0 xl:col-span-4">
+            <Banks
+              selectedBankId={selectedBank?.id ?? ""}
+              onSelectBank={handleSelectBank}
+              onBanksUpdated={handleBanksUpdated}
+            />
+          </div>
+
+          <div className="min-w-0 xl:col-span-8">
+            <BankAccounts
+              selectedBank={selectedBank}
+              refreshKey={refreshKey}
+            />
+          </div>
         </div>
       </div>
-
-      <AddBankModal
-        open={showModal}
-        onClose={() =>
-          setShowModal(false)
-        }
-        onSuccess={fetchBanks}
-      />
-    </>
+    </main>
   );
 }

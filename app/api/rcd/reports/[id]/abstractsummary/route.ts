@@ -1688,12 +1688,6 @@ if (
                         );
 
 
-                    const barangayAccount =
-                        accountByCode.get(
-                            "4-01-01-050-2"
-                        );
-
-
                     const penaltyAccount =
                         accountByCode.get(
                             "4-01-01-050-4"
@@ -1733,32 +1727,8 @@ if (
 
 
                     /*
-                    --------------------------------------------------------
-                    50% MUNICIPAL SHARE
-                    --------------------------------------------------------
-                    */
-
-                    const municipalShare =
-                        money(
-                            individualTax / 2
-                        );
-
-
-                    /*
-                    --------------------------------------------------------
-                    50% BARANGAY SHARE
-                    --------------------------------------------------------
-                    */
-
-                    const barangayShare =
-                        money(
-                            individualTax / 2
-                        );
-
-
-                    /*
                     ========================================================
-                    CTC INDIVIDUAL
+                    CTC INDIVIDUAL — FULL AMOUNT
                     ========================================================
                     */
 
@@ -1772,31 +1742,7 @@ if (
 
                         "*CTC-Individual",
 
-                        municipalShare,
-
-                        transaction.remarks ??
-                            null
-
-                    );
-
-
-                    /*
-                    ========================================================
-                    CTC INDIVIDUAL BARANGAY 50%
-                    ========================================================
-                    */
-
-                    addCtcRow(
-
-                        transaction,
-
-                        barangayAccount,
-
-                        "4-01-01-050-2",
-
-                        "CTC-Individual (Bgy.- 50%)",
-
-                        barangayShare,
+                        individualTax,
 
                         transaction.remarks ??
                             null

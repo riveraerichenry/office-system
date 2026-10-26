@@ -220,6 +220,10 @@ export async function GET(request: NextRequest) {
         // GET RCDs
         // =====================================================
 
+       // =====================================================
+        // GET RCDs
+        // =====================================================
+
         const result = await client.query(
             `
             SELECT
@@ -227,74 +231,49 @@ export async function GET(request: NextRequest) {
                 rt.report_no,
                 rt.report_date,
                 rt.fund_source_id,
-
                 rt.date_from,
                 rt.date_to,
-
                 rt.total_collections,
                 rt.total_remittances,
                 rt.total_deposits,
                 rt.balance,
-
                 rt.status,
                 rt.rcd_by,
+                rt.created_at,
 
                 fs.fund_code,
                 fs.fund_name,
                 fs.acronym,
 
-                rr.id AS remittance_id,
-                rr.payment_type,
-                rr.cash_amount,
-                rr.check_amount,
+                rem.id AS remittance_id,
+                rem.remittance_no,
+                rem.remittance_date,
+                rem.report_no AS remittance_report_no,
+                rem.report_date AS remittance_report_date,
+                rem.total_collections AS remittance_total_collections,
+                rem.total_remittances AS remittance_total_remittances,
+                rem.total_deposits AS remittance_total_deposits,
+                rem.balance AS remittance_balance,
+                rem.total_amount AS remittance_total_amount,
+                rem.rcd_status AS remittance_rcd_status,
+                rem.status AS remittance_status,
+                rem.remarks AS remittance_remarks,
+                rem.prepared_by AS remittance_prepared_by,
+                rem.created_at AS remittance_created_at,
 
-                rr.total_amount AS remittance_total_amount,
-                rr.report_date AS remittance_report_date,
-                rr.remitted_by AS remittance_remitted_by,
+                preparer.full_name AS prepared_by_name,
+                preparer.username AS prepared_by_username
 
-                remitter.full_name AS remitted_by_name,
+            FROM public.rcd_transaction rt
 
-                rr.created_by AS remittance_created_by,
-                rr.created_at AS remittance_created_at,
-
-                COALESCE(
-                    (
-                        SELECT
-                            jsonb_object_agg(
-                                rd.denomination::text,
-                                rd.quantity
-                            )
-                        FROM
-                            rcd_remittance_denominations rd
-                        WHERE
-                            rd.remittance_id = rr.id
-                    ),
-                    '{}'::jsonb
-                ) AS remittance_denominations,
-
-                COALESCE(
-                    (
-                        SELECT
-                            SUM(rd.amount)
-                        FROM
-                            rcd_remittance_denominations rd
-                        WHERE
-                            rd.remittance_id = rr.id
-                    ),
-                    0
-                ) AS remittance_denomination_total
-
-            FROM
-                rcd_transaction rt
-
-            LEFT JOIN fund_sources fs
+            LEFT JOIN public.fund_sources fs
                 ON fs.id = rt.fund_source_id
 
-            LEFT JOIN rcd_remittance rr
-                ON rr.rcd_transaction_id = rt.id
+            LEFT JOIN public.rcd_remittance_transactions rem
+                ON rem.rcd_transaction_id = rt.id
 
-            LEFT JOIN users remitter
-                ON remitter.id = rr.remitted_by
+            LEFT JOIN public.users preparer
+                ON preparer.id = rem.prepared_by
 
             ${whereClause}
 
