@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 
 import InventoryTable from "@/components/smi/InventoryTable";
@@ -8,112 +8,147 @@ import RegisterBookletModal from "@/components/smi/RegisterBookletModal";
 import BookletHistoryCard from "@/components/smi/BookletHistoryCard";
 import InventoryDetailsModal from "@/components/smi/InventoryDetailsModal";
 
+import type { InventoryReportRow } from "@/components/smi/InventoryReportPreview";
+import type { InventoryReportOptions } from "@/components/smi/GenerateInventoryReportModal";
+
 export default function SMIPage() {
-const currentYear = new Date().getFullYear().toString();
+  const currentYear = new Date().getFullYear().toString();
+  const currentMonth = new Date().getMonth() + 1;
 
-const [inventory, setInventory] = useState<any[]>([]);
-const [years, setYears] = useState<number[]>([]);
-const [forms, setForms] = useState<any[]>([]);
-const [history, setHistory] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [years, setYears] = useState<number[]>([]);
+  const [forms, setForms] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
 
-const [selectedForm, setSelectedForm] = useState<any>(null);
-const [openInventory, setOpenInventory] = useState(false);
-const [openRegister, setOpenRegister] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<any>(null);
+  const [openInventory, setOpenInventory] = useState(false);
+  const [openRegister, setOpenRegister] = useState(false);
 
-const [loading, setLoading] = useState(true);
-const [search, setSearch] = useState("");
-const [yearFilter, setYearFilter] = useState(currentYear);
+  const [loading, setLoading] = useState(true);
+  const [reportLoading, setReportLoading] = useState(false);
 
-useEffect(() => {
-loadData();
-}, [search, yearFilter]);
+  const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState(currentYear);
 
-async function loadData() {
-try {
-setLoading(true);
+  const [reportMonth, setReportMonth] = useState(currentMonth);
+  const [reportYear, setReportYear] = useState(Number(currentYear));
 
-  const [inventoryRes, formRes, historyRes] =
-    await Promise.all([
-      axios.get("/api/smi/inventory", {
-        params: {
-          search,
-          year: yearFilter,
-        },
-      }),
-      axios.get("/api/accountable-forms/master"),
-      axios.get("/api/smi/history"),
-    ]);
+  const [reportData, setReportData] = useState<InventoryReportRow[]>([]);
 
-  setInventory(inventoryRes.data.data ?? []);
-  setYears(inventoryRes.data.years ?? []);
-  setForms(formRes.data.data ?? []);
-  setHistory(historyRes.data.data ?? []);
-} catch (err) {
-  console.error("Failed to load SMI data:", err);
-} finally {
-  setLoading(false);
-}
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-}
+      const [inventoryRes, formRes, historyRes] = await Promise.all([
+        axios.get("/api/smi/inventory", {
+          params: {
+            search,
+            year: yearFilter,
+          },
+        }),
+        axios.get("/api/accountable-forms/master"),
+        axios.get("/api/smi/history"),
+      ]);
 
-function handleView(row: any) {
-setSelectedForm(row);
-setOpenInventory(true);
-}
+      setInventory(inventoryRes.data.data ?? []);
+      setYears(inventoryRes.data.years ?? []);
+      setForms(formRes.data.data ?? []);
+      setHistory(historyRes.data.data ?? []);
+    } catch (error) {
+      console.error("Failed to load SMI data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, yearFilter]);
 
-const filtered = inventory.filter((item) => {
-const keyword = search.toLowerCase();
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
-return (
-  item.form_code?.toLowerCase().includes(keyword) ||
-  item.form_name?.toLowerCase().includes(keyword)
-);
+  const handleView = (row: any) => {
+    setSelectedForm(row);
+    setOpenInventory(true);
+  };
 
-});
+  const handleReportPeriodChange = useCallback(
+    (month: number, year: number) => {
+      setReportMonth(month);
+      setReportYear(year);
 
-return (
-<>
-<div className="space-y-6">
-<div className="grid grid-cols-1 grid-cols-12 gap-6">
-<div className="col-span-12 xl:col-span-8">
-<InventoryTable
-data={filtered}
-years={years}
-loading={loading}
-search={search}
-yearFilter={yearFilter}
-onSearch={setSearch}
-onYearFilter={setYearFilter}
-onSelect={handleView}
-onAdd={() => setOpenRegister(true)}
-/>
-</div>
+      // The report API and its response schema have not yet
+      // been confirmed. Do not fabricate report rows here.
+      setReportData([]);
+    },
+    []
+  );
 
-      <div className="col-span-12 xl:col-span-4">
-        <BookletHistoryCard history={history} />
+  const handleGenerateReport = useCallback(
+    (options: InventoryReportOptions) => {
+      console.log("Inventory report options:", {
+        ...options,
+        month: reportMonth,
+        year: reportYear,
+      });
+
+      // Connect the existing report-generation workflow here
+      // once the report modal's options and API contract are confirmed.
+    },
+    [reportMonth, reportYear]
+  );
+
+  const filtered = inventory.filter((item) => {
+    const keyword = search.trim().toLowerCase();
+
+    return (
+      item.form_code?.toLowerCase().includes(keyword) ||
+      item.form_name?.toLowerCase().includes(keyword)
+    );
+  });
+
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 grid-cols-12 gap-6">
+          <div className="col-span-12 xl:col-span-8">
+            <InventoryTable
+              data={filtered}
+              years={years}
+              loading={loading}
+              search={search}
+              yearFilter={yearFilter}
+              onSearch={setSearch}
+              onYearFilter={setYearFilter}
+              onSelect={handleView}
+              onAdd={() => setOpenRegister(true)}
+              reportData={reportData}
+              reportLoading={reportLoading}
+              onReportPeriodChange={handleReportPeriodChange}
+              onGenerateReport={handleGenerateReport}
+            />
+          </div>
+
+          <div className="col-span-12 xl:col-span-4">
+            <BookletHistoryCard history={history} />
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  {/* Register Booklet Modal */}
-  <RegisterBookletModal
-    open={openRegister}
-    forms={forms}
-    onClose={() => setOpenRegister(false)}
-    onOpen={() => setOpenRegister(true)}
-    onSuccess={loadData}
-  />
+      <RegisterBookletModal
+        open={openRegister}
+        forms={forms}
+        onClose={() => setOpenRegister(false)}
+        onOpen={() => setOpenRegister(true)}
+        onSuccess={loadData}
+      />
 
-  {/* Inventory Details Modal */}
-  <InventoryDetailsModal
-    open={openInventory}
-    form={selectedForm}
-    onClose={() => {
-      setOpenInventory(false);
-      setSelectedForm(null);
-    }}
-  />
-</>
-
-);
+      <InventoryDetailsModal
+        open={openInventory}
+        form={selectedForm}
+        onClose={() => {
+          setOpenInventory(false);
+          setSelectedForm(null);
+        }}
+      />
+    </>
+  );
 }
