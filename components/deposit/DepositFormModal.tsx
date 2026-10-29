@@ -351,25 +351,39 @@ export default function DepositFormModal({
   const totalDeposit = totalCash + totalChecks;
 
   // Compare in centavos to avoid floating-point rounding differences.
+
   const expectedAmountCents = Math.round((Number(rcdAmount) || 0) * 100);
+
   const totalDepositCents = Math.round(totalDeposit * 100);
 
   // The deposit must cover the RCD amount. An excess below ₱2.00 is allowed,
+
   // but an excess of ₱2.00 or more is not. Compare in centavos.
+
   const excessCents = Math.max(0, totalDepositCents - expectedAmountCents);
+
   const isAmountMatched =
+
     expectedAmountCents > 0 &&
+
     totalDepositCents >= expectedAmountCents &&
+
     excessCents < 200;
 
   const remainingAmount = Math.max(
+
     0,
+
     (expectedAmountCents - totalDepositCents) / 100
+
   );
 
   const excessAmount = Math.max(
+
     0,
+
     (totalDepositCents - expectedAmountCents) / 100
+
   );
 
   useEffect(() => {
@@ -737,58 +751,94 @@ export default function DepositFormModal({
   }
 
   function validateDeposit() {
+
     if (!validateHeader()) return false;
 
     if (!consolidatedRcdId.trim()) {
+
       return fail("Please select a Consolidated RCD.");
+
     }
 
     if (expectedAmountCents <= 0) {
+
       return fail("The Consolidated RCD amount must be greater than zero.");
+
     }
 
     if (totalCash <= 0 && totalChecks <= 0) {
+
       return fail(
+
         "Enter at least one cash denomination quantity or one valid check."
+
       );
+
     }
 
     if (hasIncompleteCheck()) {
+
       return fail(
+
         "Complete or remove every partially entered check before validating the deposit."
+
       );
+
     }
 
     if (totalDepositCents < expectedAmountCents) {
+
       return fail(
+
         `Insufficient deposit amount. You still need ${formatPeso(
+
           remainingAmount
+
         )} to match the Consolidated RCD amount of ${formatPeso(
+
           Number(rcdAmount) || 0
+
         )}.`
+
       );
+
     }
 
     if (excessCents >= 200) {
+
       return fail(
+
         `The deposit exceeds the Consolidated RCD amount by ${formatPeso(
+
           excessAmount
+
         )}. An excess of ₱2.00 or more is not allowed. Please adjust the cash or checks.`
+
       );
+
     }
 
     return true;
+
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
 
-    event.preventDefault();
+    event?.preventDefault();
 
     if (isSaving || !validateDeposit()) return;
 
     if (!rcdNumber.trim()) {
 
       await Swal.fire({
+
+        didOpen: () => {
+
+          const container = Swal.getContainer();
+
+          if (container) container.style.zIndex = "100010";
+
+        },
 
         icon: "warning",
 
@@ -805,6 +855,14 @@ export default function DepositFormModal({
     }
 
     const confirmation = await Swal.fire({
+
+      didOpen: () => {
+
+        const container = Swal.getContainer();
+
+        if (container) container.style.zIndex = "100010";
+
+      },
 
       icon: "question",
 
@@ -858,6 +916,14 @@ export default function DepositFormModal({
 
         total_cash: Number(totalCash.toFixed(2)),
 
+        // Persist the denomination breakdown so the cash slip can be reprinted later.
+        cash_denominations: cashRows
+          .filter((row) => row.quantity > 0)
+          .map((row) => ({
+            denomination: row.value,
+            quantity: row.quantity,
+          })),
+
         total_amount: Number(totalDeposit.toFixed(2)),
 
         checks: validChecks.map((check) => ({
@@ -894,8 +960,18 @@ export default function DepositFormModal({
 
       if (!response.ok || !result.success) {
 
+        console.error("Save deposit API response:", {
+
+          status: response.status,
+
+          result,
+
+        });
+
         throw new Error(
+
           result.error || result.message || "Failed to save deposit transaction."
+
         );
 
       }
@@ -903,6 +979,14 @@ export default function DepositFormModal({
       const saved = result.data ?? result.transaction;
 
       await Swal.fire({
+
+        didOpen: () => {
+
+          const container = Swal.getContainer();
+
+          if (container) container.style.zIndex = "100010";
+
+        },
 
         icon: "success",
 
@@ -953,6 +1037,14 @@ export default function DepositFormModal({
       setValidationMessage(message);
 
       await Swal.fire({
+
+        didOpen: () => {
+
+          const container = Swal.getContainer();
+
+          if (container) container.style.zIndex = "100010";
+
+        },
 
         icon: "error",
 
@@ -1416,17 +1508,17 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
         <form
 
-          onSubmit={handleSubmit}
+          onSubmit={(event) => void handleSubmit(event)}
 
           className="flex min-h-0 flex-1 flex-col"
 
         >
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-3 sm:p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-5 lg:overflow-hidden">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-3 sm:p-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.75fr)_minmax(0,1.2fr)] lg:gap-4 lg:overflow-hidden">
 
             {/* LEFT COLUMN */}
 
-            <div className="flex min-w-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1">
+            <div className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
 
               {/* Deposit Information */}
 
@@ -1726,7 +1818,7 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
                         <svg
 
-                          xmlns="http://www.w3.org/2000/svg"
+                          xmlns="http\\://www.w3.org/2000/svg"
 
                           width="16"
 
@@ -1842,6 +1934,326 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
               </section>
 
+              {/* Deposit Remarks */}
+
+              <section className="space-y-1 rounded-lg border border-gray-200 p-3">
+
+                <label className="block text-xs font-semibold text-gray-700">
+
+                  Deposit Remarks
+
+                </label>
+
+                <textarea
+
+                  rows={2}
+
+                  value={remarks}
+
+                  onChange={(e) => setRemarks(e.target.value)}
+
+                  placeholder="Additional deposit information..."
+
+                  className={`${inputClass} resize-y`}
+
+                />
+
+              </section>
+
+              {/* Print Deposit Slips */}
+
+              <section className="shrink-0 space-y-3 rounded-lg border border-gray-200 p-3">
+
+                <h3 className={sectionTitleClass}>
+
+                  6. Print Deposit Slips
+
+                </h3>
+
+                <p className="text-xs text-gray-500">
+
+                  Print each slip separately. Checks are grouped by type.
+
+                </p>
+
+                <button
+
+                  type="button"
+
+                  onClick={printCashSlip}
+
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
+
+                >
+
+                  <Banknote size={16} />
+
+                  Print Cash Deposit Slip
+
+                  <span className="ml-auto">{formatPeso(totalCash)}</span>
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => printCheckSlip("ON_US")}
+
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
+
+                >
+
+                  <Printer size={16} />
+
+                  Print On Us Checks
+
+                  <span className="ml-auto">
+
+                    {onUsChecks.length} · {formatPeso(totalOnUs)}
+
+                  </span>
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => printCheckSlip("LOCAL")}
+
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 text-sm font-semibold text-orange-800 transition hover:bg-orange-100"
+
+                >
+
+                  <Printer size={16} />
+
+                  Print Local Checks
+
+                  <span className="ml-auto">
+
+                    {localChecks.length} · {formatPeso(totalLocal)}
+
+                  </span>
+
+                </button>
+
+              </section>
+
+            </div>
+
+            {/* MIDDLE COLUMN: CASH DENOMINATIONS */}
+
+            <div className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+
+              {/* Cash Denomination Breakdown */}
+
+              <section className="min-w-0 rounded-lg border border-gray-200 p-3 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+
+                <div className="mb-2 shrink-0">
+
+                  <h3 className={sectionTitleClass}>
+
+                    4. Cash Denomination Breakdown
+
+                  </h3>
+
+                  <p className="mt-0.5 text-xs text-gray-500">
+
+                    Enter the quantity of each bill or coin.
+
+                  </p>
+
+                </div>
+
+                <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 lg:min-h-0 lg:flex-1">
+
+                  <div className="h-full overflow-y-auto">
+
+                    <table className="w-full table-fixed text-sm">
+
+                      <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-600">
+
+                        <tr>
+
+                          <th className="w-[35%] px-2 py-2 text-left font-semibold sm:px-3">
+
+                            Denomination
+
+                          </th>
+
+                          <th className="w-[25%] px-2 py-2 text-right font-semibold sm:px-3">
+
+                            Quantity
+
+                          </th>
+
+                          <th className="w-[40%] px-2 py-2 text-right font-semibold sm:px-3">
+
+                            Subtotal
+
+                          </th>
+
+                        </tr>
+
+                      </thead>
+
+                      <tbody className="divide-y divide-gray-100">
+
+                        {DENOMINATIONS.map((denomination) => {
+
+                          const quantity = Number(
+
+                            quantities[denomination.value] ?? 0
+
+                          );
+
+                          const subtotal =
+
+                            denomination.value * quantity;
+
+                          const isCoin = denomination.value < 20;
+
+                          return (
+
+                            <tr
+
+                              key={denomination.value}
+
+                              className="hover:bg-gray-50"
+
+                            >
+
+                              <td className="px-2 py-1.5 sm:px-3">
+
+                                <span
+
+                                  className={`inline-flex items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-bold sm:px-2 sm:text-xs ${
+
+                                    isCoin
+
+                                      ? "bg-amber-50 text-amber-800"
+
+                                      : "bg-blue-50 text-blue-800"
+
+                                  }`}
+
+                                >
+
+                                  {denomination.label}
+
+                                </span>
+
+                              </td>
+
+                              <td className="px-2 py-1 sm:px-3">
+
+                                <input
+
+                                  type="number"
+
+                                  min="0"
+
+                                  step="1"
+
+                                  inputMode="numeric"
+
+                                  value={
+
+                                    quantities[denomination.value] ?? ""
+
+                                  }
+
+                                  onChange={(e) => {
+
+                                    const value = e.target.value;
+
+                                    if (
+
+                                      value === "" ||
+
+                                      (/^\d+$/.test(value) &&
+
+                                        Number.isSafeInteger(Number(value)))
+
+                                    ) {
+
+                                      setQuantities((previous) => ({
+
+                                        ...previous,
+
+                                        [denomination.value]: value,
+
+                                      }));
+
+                                    }
+
+                                  }}
+
+                                  placeholder="0"
+
+                                  aria-label={`Quantity of ${denomination.label}`}
+
+                                  className="w-full min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
+
+                                />
+
+                              </td>
+
+                              <td className="whitespace-nowrap px-2 py-1.5 text-right text-xs font-medium text-gray-900 sm:px-3 sm:text-sm">
+
+                                {formatPeso(subtotal)}
+
+                              </td>
+
+                            </tr>
+
+                          );
+
+                        })}
+
+                      </tbody>
+
+                      <tfoot className="sticky bottom-0 bg-blue-50">
+
+                        <tr>
+
+                          <td
+
+                            colSpan={2}
+
+                            className="px-2 py-2 text-xs font-bold text-gray-900 sm:px-3 sm:text-sm"
+
+                          >
+
+                            Total Cash
+
+                          </td>
+
+                          <td className="whitespace-nowrap px-2 py-2 text-right text-sm font-bold text-blue-700 sm:px-3 sm:text-base">
+
+                            {formatPeso(totalCash)}
+
+                          </td>
+
+                        </tr>
+
+                      </tfoot>
+
+                    </table>
+
+                  </div>
+
+                </div>
+
+              </section>
+
+            </div>
+
+            {/* RIGHT COLUMN: CHECKS AND DEPOSIT TOTALS */}
+
+            <div className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+
               {/* Check Payments */}
 
               <section className="space-y-3 rounded-lg border border-gray-200 p-3">
@@ -1850,7 +2262,7 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
                   <div>
 
-                    <h3 className={sectionTitleClass}>4. Check Payments</h3>
+                    <h3 className={sectionTitleClass}>5. Check Payments</h3>
 
                     <p className="mt-0.5 text-xs text-gray-500">
 
@@ -2126,7 +2538,7 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
                                   value === "" ||
 
-                                  /^\d*(\.\d{0,2})?$/.test(value)
+                                  /^\d*\.?\d{0,2}$/.test(value)
 
                                 ) {
 
@@ -2244,240 +2656,6 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
               </section>
 
-              {/* Deposit Remarks */}
-
-              <section className="space-y-1 rounded-lg border border-gray-200 p-3">
-
-                <label className="block text-xs font-semibold text-gray-700">
-
-                  Deposit Remarks
-
-                </label>
-
-                <textarea
-
-                  rows={2}
-
-                  value={remarks}
-
-                  onChange={(e) => setRemarks(e.target.value)}
-
-                  placeholder="Additional deposit information..."
-
-                  className={`${inputClass} resize-y`}
-
-                />
-
-              </section>
-
-            </div>
-
-            {/* RIGHT COLUMN */}
-
-            <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
-
-              {/* Cash Denomination Breakdown */}
-
-              <section className="min-w-0 rounded-lg border border-gray-200 p-3 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-
-                <div className="mb-2 shrink-0">
-
-                  <h3 className={sectionTitleClass}>
-
-                    5. Cash Denomination Breakdown
-
-                  </h3>
-
-                  <p className="mt-0.5 text-xs text-gray-500">
-
-                    Enter the quantity of each bill or coin.
-
-                  </p>
-
-                </div>
-
-                <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 lg:min-h-0 lg:flex-1">
-
-                  <div className="h-full overflow-y-auto">
-
-                    <table className="w-full table-fixed text-sm">
-
-                      <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-600">
-
-                        <tr>
-
-                          <th className="w-[35%] px-2 py-2 text-left font-semibold sm:px-3">
-
-                            Denomination
-
-                          </th>
-
-                          <th className="w-[25%] px-2 py-2 text-right font-semibold sm:px-3">
-
-                            Quantity
-
-                          </th>
-
-                          <th className="w-[40%] px-2 py-2 text-right font-semibold sm:px-3">
-
-                            Subtotal
-
-                          </th>
-
-                        </tr>
-
-                      </thead>
-
-                      <tbody className="divide-y divide-gray-100">
-
-                        {DENOMINATIONS.map((denomination) => {
-
-                          const quantity = Number(
-
-                            quantities[denomination.value] ?? 0
-
-                          );
-
-                          const subtotal =
-
-                            denomination.value * quantity;
-
-                          const isCoin = denomination.value < 20;
-
-                          return (
-
-                            <tr
-
-                              key={denomination.value}
-
-                              className="hover:bg-gray-50"
-
-                            >
-
-                              <td className="px-2 py-1.5 sm:px-3">
-
-                                <span
-
-                                  className={`inline-flex items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-bold sm:px-2 sm:text-xs ${
-
-                                    isCoin
-
-                                      ? "bg-amber-50 text-amber-800"
-
-                                      : "bg-blue-50 text-blue-800"
-
-                                  }`}
-
-                                >
-
-                                  {denomination.label}
-
-                                </span>
-
-                              </td>
-
-                              <td className="px-2 py-1 sm:px-3">
-
-                                <input
-
-                                  type="number"
-
-                                  min="0"
-
-                                  step="1"
-
-                                  inputMode="numeric"
-
-                                  value={
-
-                                    quantities[denomination.value] ?? ""
-
-                                  }
-
-                                  onChange={(e) => {
-
-                                    const value = e.target.value;
-
-                                    if (
-
-                                      value === "" ||
-
-                                      (/^\d+$/.test(value) &&
-
-                                        Number.isSafeInteger(Number(value)))
-
-                                    ) {
-
-                                      setQuantities((previous) => ({
-
-                                        ...previous,
-
-                                        [denomination.value]: value,
-
-                                      }));
-
-                                    }
-
-                                  }}
-
-                                  placeholder="0"
-
-                                  aria-label={`Quantity of ${denomination.label}`}
-
-                                  className="w-full min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
-
-                                />
-
-                              </td>
-
-                              <td className="whitespace-nowrap px-2 py-1.5 text-right text-xs font-medium text-gray-900 sm:px-3 sm:text-sm">
-
-                                {formatPeso(subtotal)}
-
-                              </td>
-
-                            </tr>
-
-                          );
-
-                        })}
-
-                      </tbody>
-
-                      <tfoot className="sticky bottom-0 bg-blue-50">
-
-                        <tr>
-
-                          <td
-
-                            colSpan={2}
-
-                            className="px-2 py-2 text-xs font-bold text-gray-900 sm:px-3 sm:text-sm"
-
-                          >
-
-                            Total Cash
-
-                          </td>
-
-                          <td className="whitespace-nowrap px-2 py-2 text-right text-sm font-bold text-blue-700 sm:px-3 sm:text-base">
-
-                            {formatPeso(totalCash)}
-
-                          </td>
-
-                        </tr>
-
-                      </tfoot>
-
-                    </table>
-
-                  </div>
-
-                </div>
-
-              </section>
-
               {/* Deposit Totals */}
 
               <div className="shrink-0 space-y-2 rounded-lg border border-blue-100 bg-blue-50 p-3 sm:p-4">
@@ -2531,115 +2709,60 @@ window.addEventListener('load',function(){window.focus();window.print();});
                 </div>
 
                 <div className="flex items-center justify-between gap-3 border-t border-blue-200 pt-2">
+
                   <span className="text-sm font-bold text-gray-900">
+
                     New Deposit Total
+
                   </span>
+
                   <span className="whitespace-nowrap text-lg font-bold tabular-nums text-blue-700">
+
                     {formatPeso(totalDeposit)}
+
                   </span>
+
                 </div>
 
                 <div
+
                   className={`mt-2 rounded-md px-3 py-2 text-xs font-semibold ${
+
                     isAmountMatched
+
                       ? "bg-green-50 text-green-700"
+
                       : totalDepositCents < expectedAmountCents
+
                         ? "bg-amber-50 text-amber-700"
+
                         : "bg-red-50 text-red-700"
+
                   }`}
+
                 >
+
                   {isAmountMatched
+
                     ? excessCents > 0
+
                       ? `✓ Deposit is sufficient. Excess of ${formatPeso(excessAmount)} is allowed (below ₱2.00).`
+
                       : "✓ Deposit amount matches the Consolidated RCD."
+
                     : expectedAmountCents <= 0
+
                       ? "A valid Consolidated RCD amount is required."
+
                       : totalDepositCents < expectedAmountCents
+
                         ? `Remaining amount needed: ${formatPeso(remainingAmount)}`
+
                         : `Excess amount: ${formatPeso(excessAmount)}. Excess must be less than ₱2.00.`}
+
                 </div>
 
               </div>
-
-              {/* Print Deposit Slips */}
-
-              <section className="shrink-0 space-y-3 rounded-lg border border-gray-200 p-3">
-
-                <h3 className={sectionTitleClass}>
-
-                  6. Print Deposit Slips
-
-                </h3>
-
-                <p className="text-xs text-gray-500">
-
-                  Print each slip separately. Checks are grouped by type.
-
-                </p>
-
-                <button
-
-                  type="button"
-
-                  onClick={printCashSlip}
-
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
-
-                >
-
-                  <Banknote size={16} />
-
-                  Print Cash Deposit Slip
-
-                  <span className="ml-auto">{formatPeso(totalCash)}</span>
-
-                </button>
-
-                <button
-
-                  type="button"
-
-                  onClick={() => printCheckSlip("ON_US")}
-
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
-
-                >
-
-                  <Printer size={16} />
-
-                  Print On Us Checks
-
-                  <span className="ml-auto">
-
-                    {onUsChecks.length} · {formatPeso(totalOnUs)}
-
-                  </span>
-
-                </button>
-
-                <button
-
-                  type="button"
-
-                  onClick={() => printCheckSlip("LOCAL")}
-
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 text-sm font-semibold text-orange-800 transition hover:bg-orange-100"
-
-                >
-
-                  <Printer size={16} />
-
-                  Print Local Checks
-
-                  <span className="ml-auto">
-
-                    {localChecks.length} · {formatPeso(totalLocal)}
-
-                  </span>
-
-                </button>
-
-              </section>
 
             </div>
 
@@ -2700,13 +2823,23 @@ window.addEventListener('load',function(){window.focus();window.print();});
               </button>
 
               <button
-                type="submit"
+
+                type="button"
+
+                onClick={() => void handleSubmit()}
+
                 disabled={isSaving}
+
                 title="Validate the deposit amount and save if valid"
+
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-blue-600 sm:px-4"
+
               >
+
                 <Save size={15} />
+
                 {isSaving ? "Saving Deposit..." : "Validate Deposit"}
+
               </button>
 
             </div>

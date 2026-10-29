@@ -24,6 +24,8 @@ import DIPPSystemOptions
 import AF58ReceiptModal
     from "@/components/dipp/a58/AF58ReceiptModal";
 
+import AF52ReceiptModal from "@/components/dipp/af52/AF52ReceiptModal";
+
 import AF54ReceiptModal
     from "@/components/dipp/af54/AF54ReceiptModal";
 
@@ -131,9 +133,24 @@ export default function DIPPPage() {
     |--------------------------------------------------------------------------
     */
 
+
+    
+
     const [
         openAF58Modal,
         setOpenAF58Modal,
+    ] = useState(false);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AF52
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        openAF52Modal,
+        setOpenAF52Modal,
     ] = useState(false);
 
 
@@ -814,6 +831,10 @@ export default function DIPPPage() {
             false
         );
 
+        setOpenAF53Modal(
+            false
+        );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -924,6 +945,18 @@ export default function DIPPPage() {
 
             return;
 
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AF52
+        |--------------------------------------------------------------------------
+        */
+
+        if (formCode === "AF52") {
+            setOpenAF52Modal(true);
+            return;
         }
 
 
@@ -1484,6 +1517,27 @@ export default function DIPPPage() {
                     }
                 }
 
+            />
+
+
+
+
+            {/* ==============================================================
+                AF52
+            ============================================================== */}
+
+            <AF52ReceiptModal
+                open={openAF52Modal}
+                booklet={selectedBooklet}
+                onClose={() => {
+                    setOpenAF52Modal(false);
+                    setSelectedBooklet(null);
+                }}
+                onSuccess={async () => {
+                    setOpenAF52Modal(false);
+                    setSelectedBooklet(null);
+                    await refreshDashboard();
+                }}
             />
 
 

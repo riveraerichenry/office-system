@@ -1,0 +1,238 @@
+
+.previewRoot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 12px;
+}
+
+.pageViewport {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  max-height: 75vh;
+  overflow: auto;
+  padding: 12px;
+  background: #e5e7eb;
+}
+
+.paper {
+  position: relative;
+  flex: 0 0 auto;
+  width: 210mm;
+  min-width: 210mm;
+  max-width: 210mm;
+  height: 297mm;
+  min-height: 297mm;
+  max-height: 297mm;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  transform-origin: top center;
+  zoom: 0.75;
+}
+
+/* Account name */
+.accountName {
+  position: absolute;
+  left: var(--receipt-account-name-x, 60px);
+  top: var(--receipt-account-name-y, 515px);
+  font-size: var(--receipt-account-name-size, 22px);
+  letter-spacing: var(--receipt-account-name-spacing, 1px);
+  white-space: nowrap;
+}
+
+/* Account number */
+.accountNumber {
+  position: absolute;
+  left: var(--receipt-account-number-x, 40px);
+  top: var(--receipt-account-number-y, 475px);
+  font-size: var(--receipt-account-number-size, 25px);
+  letter-spacing: var(--receipt-account-number-spacing, 8px);
+  white-space: nowrap;
+}
+
+/* Denomination block */
+.denominations {
+  position: absolute;
+  left: var(--receipt-denominations-x, 50px);
+  top: var(--receipt-denominations-y, 575px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  font-size: var(--receipt-denominations-size, 12px);
+  letter-spacing: var(--receipt-denominations-spacing, 0px);
+}
+
+/* Each row preserves space even if quantity is zero */
+.denominationRow {
+  position: relative;
+  display: flex;
+  flex: 0 0 var(--receipt-row-height, 16px);
+  width: 240px;
+  height: var(--receipt-row-height, 16px);
+  min-height: var(--receipt-row-height, 16px);
+  align-items: flex-start;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* Quantity */
+.quantityValue {
+  position: absolute;
+  left: var(--receipt-quantity-x, 115px);
+  top: 0;
+  display: block;
+  min-width: 25px;
+  height: 100%;
+  font-size: var(--receipt-quantity-size, 15px);
+  letter-spacing: var(--receipt-quantity-spacing, 1px);
+  white-space: pre;
+}
+
+/* Subtotal container */
+.subtotalValue {
+  position: absolute;
+  left: var(--receipt-subtotal-x, 160px);
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  column-gap: 8px;
+  width: 100px;
+  height: 100%;
+  font-size: var(--receipt-subtotal-size, 15px);
+  letter-spacing: var(--receipt-subtotal-spacing, 0px);
+  white-space: nowrap;
+}
+
+/* Subtotal whole amount */
+.subtotalWhole {
+  display: block;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Subtotal decimal portion */
+.subtotalDecimal {
+  display: block;
+  width: 30px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Total amount */
+.totalAmount {
+  position: absolute;
+  left: var(--receipt-total-amount-x, 210px);
+  top: var(--receipt-total-amount-y, 735px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  column-gap: 8px;
+  width: 100px;
+  font-size: var(--receipt-total-amount-size, 15px);
+  letter-spacing: var(--receipt-total-amount-spacing, 0px);
+  white-space: nowrap;
+}
+
+.totalAmountWhole {
+  display: block;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.totalAmountDecimal {
+  display: block;
+  width: 30px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Municipal treasurer name */
+.treasurerName {
+  position: absolute;
+  left: var(--receipt-treasurer-name-x, 70px);
+  top: var(--receipt-treasurer-name-y, 800px);
+  font-size: var(--receipt-treasurer-name-size, 14px);
+  letter-spacing: var(--receipt-treasurer-name-spacing, 1px);
+  white-space: nowrap;
+}
+
+/* Municipal treasurer title */
+.treasurerTitle {
+  position: absolute;
+  left: var(--receipt-treasurer-title-x, 70px);
+  top: var(--receipt-treasurer-title-y, 820px);
+  font-size: var(--receipt-treasurer-title-size, 14px);
+  letter-spacing: var(--receipt-treasurer-title-spacing, 1px);
+  white-space: nowrap;
+}
+
+/* Print button */
+.actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 8px;
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: #1e40af;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .previewRoot {
+    display: block;
+    width: auto;
+  }
+
+  .pageViewport {
+    display: block;
+    width: auto;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    background: #fff;
+  }
+
+  .paper {
+    zoom: 1;
+    transform: none;
+  }
+
+  .actions {
+    display: none;
+  }
+}
