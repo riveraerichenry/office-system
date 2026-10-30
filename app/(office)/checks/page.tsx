@@ -50,6 +50,7 @@ interface Booklet {
     amount?: number | string | null;
     dateIssued?: string | null;
   }[];
+  [key: string]: any;
 }
 
 function firstValue(
