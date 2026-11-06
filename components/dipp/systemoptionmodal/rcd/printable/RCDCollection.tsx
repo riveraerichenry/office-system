@@ -101,10 +101,16 @@ export default function RCDCollection({
                                     <td className="center bold">
 
                                         {
-                                            item?.form_code ??
-                                            item?.accountable_form_code ??
-                                            item?.form_name ??
-                                            ""
+                                            item?.cash_ticket_transaction_id != null ||
+                                            String(item?.form_code ?? "")
+                                                .trim()
+                                                .toUpperCase()
+                                                .replace(/[_-]/g, " ") === "CASH TICKET"
+                                                ? "CASH TICKET"
+                                                : item?.form_code ??
+                                                  item?.accountable_form_code ??
+                                                  item?.form_name ??
+                                                  ""
                                         }
 
                                     </td>

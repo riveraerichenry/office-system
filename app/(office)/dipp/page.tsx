@@ -56,8 +56,21 @@ import CTCIReceiptModal
 import CTCCReceiptModal
     from "@/components/dipp/ctc/CTCCReceiptModal";
 
+import CashTicketTable from "@/components/dipp/CashTicketTable";
+
 
 export default function DIPPPage() {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cash Tickets
+    |--------------------------------------------------------------------------
+    */
+
+    const [cashTickets, setCashTickets] = useState<any[]>([]);
+    const [cashTicketsLoading, setCashTicketsLoading] = useState(false);
+    const [cashTicketModalOpen, setCashTicketModalOpen] = useState(false);
+
 
 
 
@@ -405,6 +418,17 @@ export default function DIPPPage() {
 
     /*
     |--------------------------------------------------------------------------
+    | Initial Load - Cash Tickets
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        loadCashTickets();
+    }, []);
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Transaction Details
     |--------------------------------------------------------------------------
     */
@@ -456,6 +480,30 @@ export default function DIPPPage() {
 
         }
 
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Cash Tickets
+    |--------------------------------------------------------------------------
+    */
+
+    async function loadCashTickets() {
+        try {
+            setCashTicketsLoading(true);
+
+            const res = await axios.get("/api/dipp/cash-tickets");
+
+            setCashTickets(
+                Array.isArray(res.data.data) ? res.data.data : []
+            );
+        } catch (err) {
+            console.error("Failed to load cash tickets:", err);
+            setCashTickets([]);
+        } finally {
+            setCashTicketsLoading(false);
+        }
     }
 
 
@@ -1029,6 +1077,8 @@ export default function DIPPPage() {
 
             loadDailyCollections(),
 
+            loadCashTickets(),
+
         ]);
 
     }
@@ -1050,106 +1100,47 @@ export default function DIPPPage() {
 
             <div className="mr-6 grid grid-cols-12 gap-6">
 
-
-                {/* ==========================================================
-                    FISCAL YEAR SUMMARY
-                ========================================================== */}
-
-                <div className="col-span-9">
+                {/* LEFT COLUMN: SUMMARY AND CASH TICKETS */}
+                <div className="col-span-9 space-y-6">
 
                     <FiscalYearSummary
-
-                        forms={
-                            summaryForms
-                        }
-
-                        rows={
-                            summaryRows
-                        }
-
-                        years={
-                            summaryYears
-                        }
-
-                        loading={
-                            summaryLoading
-                        }
-
-                        fiscalYear={
-                            fiscalYear
-                        }
-
-                        onFiscalYearChange={
-                            setFiscalYear
-                        }
-
-                        onRefresh={
-                            loadSummary
-                        }
-
-                        onDailyCollection={
-                            openDailyCollection
-                        }
-
-                        onMonthClick={(
-                            month
-                        ) => {
-
-                            setSelectedMonth(
-                                month
-                            );
-
-                            setOpenMonthlyModal(
-                                true
-                            );
-
+                        forms={summaryForms}
+                        rows={summaryRows}
+                        years={summaryYears}
+                        loading={summaryLoading}
+                        fiscalYear={fiscalYear}
+                        onFiscalYearChange={setFiscalYear}
+                        onRefresh={loadSummary}
+                        onDailyCollection={openDailyCollection}
+                        onMonthClick={(month) => {
+                            setSelectedMonth(month);
+                            setOpenMonthlyModal(true);
                         }}
-
                     />
+
+                    {!cashTicketsLoading && cashTickets.length > 0 && (
+                        <CashTicketTable
+                            data={cashTickets}
+                            loading={cashTicketsLoading}
+                            onRefresh={loadCashTickets}
+                            onAdd={() => setCashTicketModalOpen(true)}
+                        />
+                    )}
 
                 </div>
 
-
-                {/* ==========================================================
-                    ACTIVE BOOKLETS
-                ========================================================== */}
-
+                {/* RIGHT COLUMN: ACTIVE BOOKLETS */}
                 <div className="col-span-3">
-
                     <ActiveBookletTable
-
-                        data={
-                            booklets
-                        }
-
-                        loading={
-                            loading
-                        }
-
-                        selected={
-                            selected
-                        }
-
-                        search={
-                            search
-                        }
-
-                        onSearch={
-                            setSearch
-                        }
-
-                        onRefresh={
-                            loadBooklets
-                        }
-
-                        onSelect={
-                            handleSelectBooklet
-                        }
-
+                        data={booklets}
+                        loading={loading}
+                        selected={selected}
+                        search={search}
+                        onSearch={setSearch}
+                        onRefresh={loadBooklets}
+                        onSelect={handleSelectBooklet}
                     />
-
                 </div>
-
 
             </div>
 

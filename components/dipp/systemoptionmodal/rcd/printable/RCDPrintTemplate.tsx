@@ -462,12 +462,20 @@ export default function RCDGeneralPrintTemplate({
                                             >
 
                                                 <td className="center bold">
-                                                    {first(
-                                                        item?.form_code,
-                                                        item?.form_name,
-                                                        item?.form,
-                                                        formCode
-                                                    )}
+                                                    {
+                                                        item?.cash_ticket_transaction_id != null ||
+                                                        String(item?.form_code ?? "")
+                                                            .trim()
+                                                            .toUpperCase()
+                                                            .replace(/[_-]/g, " ") === "CASH TICKET"
+                                                            ? "CASH TICKET"
+                                                            : first(
+                                                                item?.form_code,
+                                                                item?.form_name,
+                                                                item?.form,
+                                                                formCode
+                                                            )
+                                                    }
                                                 </td>
 
                                                 <td className="center bold">

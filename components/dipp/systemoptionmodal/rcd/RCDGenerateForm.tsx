@@ -31,6 +31,7 @@ type DIPPTransaction = {
   collector_id: string | null;
   status?: string | null;
   is_cancelled?: boolean;
+  source_type?: "DIPP" | "CASH_TICKET";
 };
 
 type Props = {
@@ -212,6 +213,9 @@ export default function RCDGenerateForm({
             status,
 
             is_cancelled: isCancelled,
+            source_type: transaction.source_type === "CASH_TICKET"
+              ? "CASH_TICKET"
+              : "DIPP",
           };
         });
 
@@ -387,6 +391,12 @@ export default function RCDGenerateForm({
     (fund) => String(fund.id) === String(fundSourceId)
   );
 
+  const selectedFundSourceLabel = fundSourceId === "CASH_TICKET"
+    ? "CASH TICKET (General Fund)"
+    : selectedFundSource
+      ? getFundSourceLabel(selectedFundSource)
+      : "-";
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -434,6 +444,8 @@ export default function RCDGenerateForm({
               {getFundSourceLabel(fund)}
             </option>
           ))}
+
+          <option value="CASH_TICKET">CASH TICKET</option>
         </select>
       </div>
 
@@ -489,9 +501,7 @@ export default function RCDGenerateForm({
           </p>
 
           <p className="mt-1 text-sm font-semibold text-blue-900">
-            {selectedFundSource
-              ? getFundSourceLabel(selectedFundSource)
-              : "-"}
+            {selectedFundSourceLabel}
           </p>
 
           <p className="mt-1 text-sm text-blue-800">
@@ -623,7 +633,7 @@ export default function RCDGenerateForm({
                 </th>
 
                 <th className="px-3 py-3 text-left font-bold">
-                  OR No.
+                  OR / Reference No.
                 </th>
 
                 <th className="px-3 py-3 text-left font-bold">

@@ -115,6 +115,7 @@ export default function AvailableChecks({ onSelect }: Props) {
       );
     } catch (err) {
       console.error("Available checks error:", err);
+
       setError(
         err instanceof Error
           ? err.message
@@ -142,6 +143,7 @@ export default function AvailableChecks({ onSelect }: Props) {
         booklet.book_no,
         booklet.check_number,
         booklet.bank_code,
+        booklet.bank_name,
         booklet.account_number,
         booklet.fund_source,
         booklet.fund_code,
@@ -159,6 +161,7 @@ export default function AvailableChecks({ onSelect }: Props) {
     1,
     Math.ceil(filteredBooklets.length / pageSize)
   );
+
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
 
@@ -179,6 +182,7 @@ export default function AvailableChecks({ onSelect }: Props) {
   ) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+
       if (booklet.remaining_checks > 0 && booklet.check_number) {
         onSelect?.(booklet);
       }
@@ -193,13 +197,14 @@ export default function AvailableChecks({ onSelect }: Props) {
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
         />
+
         <input
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
             setPage(1);
           }}
-          placeholder="Search booklet, bank code, account..."
+          placeholder="Search bank code, account, booklet..."
           className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-500"
         />
       </div>
@@ -223,6 +228,7 @@ export default function AvailableChecks({ onSelect }: Props) {
           className="h-8 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-xs outline-none"
         >
           <option value="all">All Fund Sources</option>
+
           {fundSources.map((fund) => (
             <option key={fund.id} value={fund.id}>
               {fund.fund_name} ({fund.fund_code})
@@ -248,7 +254,10 @@ export default function AvailableChecks({ onSelect }: Props) {
           aria-label="Refresh booklets"
           className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:opacity-40"
         >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <RefreshCw
+            size={14}
+            className={loading ? "animate-spin" : ""}
+          />
         </button>
       </div>
 
@@ -256,10 +265,11 @@ export default function AvailableChecks({ onSelect }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            Available Check Booklets
+            Available Checks
           </h2>
+
           <p className="text-xs text-slate-500">
-            Select a booklet to view its details.
+            Select a bank account to issue a check.
           </p>
         </div>
 
@@ -268,11 +278,14 @@ export default function AvailableChecks({ onSelect }: Props) {
         </span>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
           <AlertCircle size={16} className="shrink-0" />
+
           <div>
             <p>{error}</p>
+
             <button
               type="button"
               onClick={() => void fetchData()}
@@ -284,49 +297,75 @@ export default function AvailableChecks({ onSelect }: Props) {
         </div>
       )}
 
+      {/* Loading */}
       {loading && (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-center">
-          <RefreshCw size={20} className="mx-auto animate-spin text-blue-700" />
-          <p className="mt-2 text-xs text-slate-500">Loading booklets...</p>
+          <RefreshCw
+            size={20}
+            className="mx-auto animate-spin text-blue-700"
+          />
+
+          <p className="mt-2 text-xs text-slate-500">
+            Loading available checks...
+          </p>
         </div>
       )}
 
+      {/* Empty State */}
       {!loading && !error && displayedBooklets.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
           <BookOpen size={26} className="mx-auto text-slate-400" />
+
           <p className="mt-2 text-sm font-semibold text-slate-700">
-            No Available Booklets
+            No Available Checks
           </p>
+
           <p className="mt-1 text-xs text-slate-500">
             Try another fund source or search.
           </p>
         </div>
       )}
 
+      {/* Available Check Cards */}
       {!loading && !error && displayedBooklets.length > 0 && (
         <div className="space-y-2">
           {displayedBooklets.map((booklet) => {
-            const total = Math.max(0, Number(booklet.total_checks) || 0);
-            const issued = Math.max(0, Number(booklet.issued_checks) || 0);
+            const total = Math.max(
+              0,
+              Number(booklet.total_checks) || 0
+            );
+
+            const issued = Math.max(
+              0,
+              Number(booklet.issued_checks) || 0
+            );
+
             const remaining = Math.max(
               0,
               Number(booklet.remaining_checks) || 0
             );
+
             const percentage =
-              total > 0 ? Math.min(100, (issued / total) * 100) : 0;
-            const selectable = remaining > 0 && Boolean(booklet.check_number);
+              total > 0
+                ? Math.min(100, (issued / total) * 100)
+                : 0;
+
+            const selectable =
+              remaining > 0 && Boolean(booklet.check_number);
 
             return (
               <article
                 key={booklet.id}
                 role="button"
                 tabIndex={selectable ? 0 : -1}
-                aria-label={`View booklet ${booklet.booklet_number}`}
+                aria-label={`Bank ${booklet.bank_code || ""}, account ${booklet.account_number || ""}`}
                 aria-disabled={!selectable}
                 onClick={() => {
                   if (selectable) onSelect?.(booklet);
                 }}
-                onKeyDown={(event) => handleCardKeyDown(event, booklet)}
+                onKeyDown={(event) =>
+                  handleCardKeyDown(event, booklet)
+                }
                 className={`overflow-hidden rounded-lg border border-slate-200 border-l-[3px] border-l-blue-600 bg-white transition ${
                   selectable
                     ? "cursor-pointer hover:border-blue-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -334,21 +373,31 @@ export default function AvailableChecks({ onSelect }: Props) {
                 }`}
               >
                 <div className="space-y-2 p-2.5">
+                  {/* Bank Code and Account Number */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <BookOpen size={14} className="text-blue-700" />
+                        <BookOpen
+                          size={14}
+                          className="text-blue-700"
+                        />
+
                         <h3 className="text-sm font-bold text-blue-700">
-                          Booklet {booklet.booklet_number}
+                          {booklet.bank_code || "No Bank Code"}
                         </h3>
+
                         <span className="text-[10px] text-slate-500">
-                          Book No. {booklet.book_no || "—"}
+                          Account No. {booklet.account_number || "—"}
                         </span>
                       </div>
 
+                      {/* Bank Information */}
                       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3">
                         <div className="min-w-0">
-                          <p className="text-[9px] text-slate-500">Fund Source</p>
+                          <p className="text-[9px] text-slate-500">
+                            Fund Source
+                          </p>
+
                           <p className="truncate text-[11px] font-semibold text-slate-800">
                             {booklet.fund_acronym ||
                               booklet.fund_code ||
@@ -358,52 +407,60 @@ export default function AvailableChecks({ onSelect }: Props) {
                         </div>
 
                         <div className="min-w-0">
-                          <p className="text-[9px] text-slate-500">Bank Code</p>
-                          <p className="truncate text-[11px] font-semibold text-slate-800">
-                            {booklet.bank_code || "—"}
-                          </p>
-                        </div>
-
-                        <div className="col-span-2 min-w-0 sm:col-span-1">
                           <p className="text-[9px] text-slate-500">
-                            Account Number
+                            Bank Name
                           </p>
-                          <p className="truncate text-[11px] font-semibold text-slate-800">
-                            {booklet.account_number || "—"}
+
+                          <p className="whitespace-normal break-words text-[11px] font-semibold leading-4 text-slate-800">
+                            {booklet.bank_name || "—"}
                           </p>
                         </div>
+                       
                       </div>
                     </div>
 
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                       <CheckCircle2 size={11} />
+
                       {selectable ? "Available" : "Unavailable"}
                     </span>
                   </div>
 
+                  {/* Check Information */}
                   <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-2">
                     <div>
-                      <p className="text-[10px] text-slate-500">Check Range</p>
+                      <p className="text-[10px] text-slate-500">
+                        Check Range
+                      </p>
+
                       <p className="mt-0.5 text-xs font-semibold text-slate-800">
-                        {booklet.beginning_check_no}–{booklet.ending_check_no}
+                        {booklet.beginning_check_no}–
+                        {booklet.ending_check_no}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] text-slate-500">Current Check</p>
+                      <p className="text-[10px] text-slate-500">
+                        Current Check
+                      </p>
+
                       <p className="mt-0.5 text-base font-bold text-blue-700">
                         {booklet.check_number || "—"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] text-slate-500">Date Received</p>
+                      <p className="text-[10px] text-slate-500">
+                        Date Received
+                      </p>
+
                       <p className="mt-0.5 text-xs font-semibold text-slate-800">
                         {formatDate(booklet.date_received)}
                       </p>
                     </div>
                   </div>
 
+                  {/* Usage Progress */}
                   <div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
                       <div
@@ -416,17 +473,22 @@ export default function AvailableChecks({ onSelect }: Props) {
                       <span>
                         <b className="text-red-600">{issued}</b> Used
                       </span>
+
                       <span>{total} Total</span>
+
                       <span>
-                        <b className="text-emerald-600">{remaining}</b>{" "}
+                        <b className="text-emerald-600">
+                          {remaining}
+                        </b>{" "}
                         Remaining
                       </span>
                     </div>
                   </div>
 
+                  {/* Card Footer */}
                   <p className="text-center text-[10px] text-slate-400">
                     {selectable
-                      ? "Click card to view check details"
+                      ? "Click card to issue a check"
                       : "No checks available"}
                   </p>
                 </div>
@@ -436,10 +498,14 @@ export default function AvailableChecks({ onSelect }: Props) {
         </div>
       )}
 
+      {/* Pagination */}
       {!loading && !error && filteredBooklets.length > 0 && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-slate-500">Rows</span>
+            <span className="text-[10px] text-slate-500">
+              Rows
+            </span>
+
             <select
               value={pageSize}
               onChange={(event) => {
@@ -464,7 +530,9 @@ export default function AvailableChecks({ onSelect }: Props) {
               type="button"
               aria-label="Previous page"
               disabled={currentPage <= 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              onClick={() =>
+                setPage((current) => Math.max(1, current - 1))
+              }
               className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 disabled:opacity-40"
             >
               <ChevronLeft size={14} />

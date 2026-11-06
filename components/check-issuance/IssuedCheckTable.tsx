@@ -1,26 +1,25 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
 import {
   Search,
-  Eye,
   ChevronLeft,
   ChevronRight,
-  FileSpreadsheet,
+  FileCheck,
   CalendarDays,
   RotateCcw,
   ClipboardList,
   SlidersHorizontal,
 } from "lucide-react";
 
-type IssuedCheck = {
+export type IssuedCheck = {
   id: string | number;
   check_number: string;
   issue_date: string | null;
   payee: string;
   fund_source: string;
   bank_name: string;
+  bank_code?: string | null;
   account_number: string;
   amount: number | string;
   status: string;
@@ -31,6 +30,7 @@ type Props = {
   rows?: IssuedCheck[];
   loading?: boolean;
   onView?: (check: IssuedCheck) => void;
+  onGenerateRCI?: () => void;
 };
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
@@ -79,6 +79,7 @@ export default function IssuedChecksTable({
   rows = [],
   loading = false,
   onView,
+  onGenerateRCI,
 }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -90,12 +91,13 @@ export default function IssuedChecksTable({
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    return rows.filter((check: IssuedCheck) => {
+    return rows.filter((check) => {
       const values = [
         check.check_number,
         check.payee,
         check.fund_source,
         check.bank_name,
+        check.bank_code ?? "",
         check.account_number,
         check.booklet_number ?? "",
       ];
@@ -139,13 +141,10 @@ export default function IssuedChecksTable({
     currentPage * pageSize
   );
 
-  const totalAmount = filteredRows.reduce(
-    (sum: number, check: IssuedCheck) => {
-      const amount = Number(check.amount);
-      return sum + (Number.isFinite(amount) ? amount : 0);
-    },
-    0
-  );
+  const totalAmount = filteredRows.reduce((sum, check) => {
+    const amount = Number(check.amount);
+    return sum + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
 
   function resetFilters() {
     setSearch("");
@@ -155,58 +154,18 @@ export default function IssuedChecksTable({
     setPage(1);
   }
 
-  function exportCsv() {
-    if (filteredRows.length === 0) return;
-
-    const columns: (keyof IssuedCheck)[] = [
-      "check_number",
-      "issue_date",
-      "payee",
-      "fund_source",
-      "bank_name",
-      "account_number",
-      "amount",
-      "status",
-      "booklet_number",
-    ];
-
-    const escapeCsv = (value: unknown): string =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-    const csv = [
-      columns.join(","),
-      ...filteredRows.map((check: IssuedCheck) =>
-        columns.map((column) => escapeCsv(check[column])).join(",")
-      ),
-    ].join("\r\n");
-
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = "issued-checks.csv";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-  }
-
   const inputClass =
-    "w-full rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+    "w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      {/* Table header and actions */}
-      <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+    <div className="w-full min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* HEADER */}
+      <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-base font-bold text-slate-800">
             Issued Checks
           </h2>
+
           <p className="mt-1 text-xs text-slate-500">
             Monitor checks issued from registered check booklets.
           </p>
@@ -219,34 +178,34 @@ export default function IssuedChecksTable({
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
             <RotateCcw size={15} />
-            Reset Filters
+            Reset
           </button>
 
           <button
             type="button"
-            onClick={exportCsv}
-            disabled={filteredRows.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={onGenerateRCI}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
           >
-            <FileSpreadsheet size={16} />
-            Export CSV
+            <FileCheck size={16} />
+            Generate RCI
           </button>
         </div>
       </div>
 
-      {/* Filters placed inside the table header section */}
+      {/* FILTERS */}
       <div className="border-b border-slate-200 bg-slate-50/70 p-4">
         <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
           <SlidersHorizontal size={15} />
           Filter Records
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="relative sm:col-span-2 xl:col-span-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="relative sm:col-span-2">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
+
             <input
               type="text"
               value={search}
@@ -264,6 +223,7 @@ export default function IssuedChecksTable({
               size={15}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
+
             <select
               value={statusFilter}
               onChange={(event) => {
@@ -280,85 +240,98 @@ export default function IssuedChecksTable({
             </select>
           </div>
 
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="date"
-              aria-label="Issue date from"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setPage(1);
-              }}
-              className={`${inputClass} pl-9`}
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-2 sm:col-span-2 xl:col-span-1">
+            <div className="relative min-w-0">
+              <CalendarDays
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="date"
-              aria-label="Issue date to"
-              min={dateFrom || undefined}
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              className={`${inputClass} pl-9`}
-            />
+              <input
+                type="date"
+                aria-label="Issue date from"
+                value={dateFrom}
+                onChange={(event) => {
+                  setDateFrom(event.target.value);
+                  setPage(1);
+                }}
+                className={`${inputClass} pl-9`}
+              />
+            </div>
+
+            <div className="relative min-w-0">
+              <CalendarDays
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                type="date"
+                aria-label="Issue date to"
+                min={dateFrom || undefined}
+                value={dateTo}
+                onChange={(event) => {
+                  setDateTo(event.target.value);
+                  setPage(1);
+                }}
+                className={`${inputClass} pl-9`}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Results summary */}
+      {/* SUMMARY */}
       <div className="flex flex-col justify-between gap-2 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center">
         <p className="text-sm text-slate-600">
           Showing{" "}
-          <span className="font-semibold text-slate-900">
+          <strong className="text-slate-900">
             {filteredRows.length === 0
               ? 0
               : (currentPage - 1) * pageSize + 1}
-          </span>
+          </strong>
           {" – "}
-          <span className="font-semibold text-slate-900">
+          <strong className="text-slate-900">
             {Math.min(currentPage * pageSize, filteredRows.length)}
-          </span>
+          </strong>
           {" of "}
-          <span className="font-semibold text-slate-900">
+          <strong className="text-slate-900">
             {filteredRows.length}
-          </span>{" "}
+          </strong>{" "}
           records
         </p>
 
         <p className="text-sm text-slate-600">
           Filtered amount:{" "}
-          <span className="font-bold text-slate-900">
+          <strong className="text-slate-900">
             {formatCurrency(totalAmount)}
-          </span>
+          </strong>
         </p>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1150px] border-collapse text-left text-sm">
+      {/* TABLE */}
+      <div className="w-full min-w-0">
+        <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
           <thead>
-            <tr className="bg-slate-100 text-[11px] uppercase tracking-wide text-slate-600">
-              <th className="w-14 px-4 py-3 text-center">No.</th>
-              <th className="px-4 py-3">Check Number</th>
-              <th className="px-4 py-3">Issue Date</th>
-              <th className="px-4 py-3">Payee</th>
-              <th className="px-4 py-3">Fund Source</th>
-              <th className="px-4 py-3">Bank / Account</th>
-              <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3 text-center">Status</th>
-              <th className="px-4 py-3 text-center">Action</th>
+            <tr className="bg-slate-100 text-[10px] uppercase tracking-wide text-slate-600 sm:text-[11px]">
+              <th className="w-[18%] px-2 py-3 sm:px-3">
+                Issue Date
+              </th>
+              <th className="w-[22%] px-2 py-3 sm:px-3">
+                Payee
+              </th>
+              <th className="w-[18%] px-2 py-3 sm:px-3">
+                Fund Source
+              </th>
+              <th className="w-[19%] px-2 py-3 sm:px-3">
+                Bank / Account
+              </th>
+              <th className="w-[15%] px-2 py-3 text-right sm:px-3">
+                Amount
+              </th>
+              <th className="w-[8%] px-2 py-3 text-center sm:px-3">
+                Status
+              </th>
             </tr>
           </thead>
 
@@ -366,7 +339,7 @@ export default function IssuedChecksTable({
             {loading ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={6}
                   className="px-4 py-14 text-center text-slate-500"
                 >
                   Loading issued checks...
@@ -374,14 +347,17 @@ export default function IssuedChecksTable({
               </tr>
             ) : paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-14 text-center">
+                <td colSpan={6} className="px-4 py-14 text-center">
                   <div className="flex flex-col items-center">
-                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <ClipboardList size={24} />
-                    </div>
+                    <ClipboardList
+                      size={28}
+                      className="mb-3 text-slate-400"
+                    />
+
                     <p className="font-semibold text-slate-700">
                       No issued checks found
                     </p>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Try adjusting your filters or search terms.
                     </p>
@@ -389,74 +365,68 @@ export default function IssuedChecksTable({
                 </td>
               </tr>
             ) : (
-              paginatedRows.map((check: IssuedCheck, index: number) => (
+              paginatedRows.map((check) => (
                 <tr
                   key={check.id}
-                  className="transition hover:bg-blue-50/40"
+                  onClick={() => onView?.(check)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      onView?.(check);
+                    }
+                  }}
+                  tabIndex={onView ? 0 : undefined}
+                  role={onView ? "button" : undefined}
+                  title="Click to view transaction details"
+                  className={`transition ${
+                    onView
+                      ? "cursor-pointer hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      : ""
+                  }`}
                 >
-                  <td className="px-4 py-3 text-center text-xs text-slate-500">
-                    {(currentPage - 1) * pageSize + index + 1}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <p className="font-mono font-bold text-blue-900">
-                      {check.check_number}
-                    </p>
-                    {check.booklet_number && (
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Booklet: {check.booklet_number}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                  <td className="break-words px-2 py-3 text-slate-600 sm:px-3">
                     {formatDate(check.issue_date)}
                   </td>
 
-                  <td className="max-w-[220px] px-4 py-3">
-                    <p className="truncate font-semibold text-slate-800">
+                  <td className="break-words px-2 py-3 sm:px-3">
+                    <p className="font-semibold text-slate-800">
                       {check.payee || "—"}
                     </p>
-                  </td>
 
-                  <td className="max-w-[180px] px-4 py-3">
-                    <p className="truncate text-slate-700">
-                      {check.fund_source || "—"}
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      Check No. {check.check_number}
                     </p>
                   </td>
 
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-700">
-                      {check.bank_name || "—"}
+                  <td className="break-words px-2 py-3 text-slate-700 sm:px-3">
+                    {check.fund_source || "—"}
+                  </td>
+
+                  <td className="break-words px-2 py-3 sm:px-3">
+                    <p className="font-semibold text-slate-800">
+                      {check.bank_code || check.bank_name || "—"}
                     </p>
-                    <p className="mt-1 font-mono text-xs text-slate-500">
+
+                    <p className="mt-1 break-all font-mono text-[10px] text-slate-500">
                       {check.account_number || "—"}
                     </p>
                   </td>
 
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-800">
+                  <td className="break-words px-2 py-3 text-right font-semibold tabular-nums text-slate-800 sm:px-3">
                     {formatCurrency(check.amount)}
                   </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-2 py-3 text-center sm:px-3">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset ${getStatusStyle(check.status)}`}
+                      className={`inline-flex max-w-full justify-center rounded-full px-2 py-1 text-[9px] font-semibold capitalize ring-1 ring-inset sm:text-[10px] ${getStatusStyle(
+                        check.status
+                      )}`}
                     >
                       {check.status || "Unknown"}
                     </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => onView?.(check)}
-                      disabled={!onView}
-                      title="View check details"
-                      aria-label={`View check ${check.check_number}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Eye size={16} />
-                    </button>
                   </td>
                 </tr>
               ))
@@ -465,10 +435,11 @@ export default function IssuedChecksTable({
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* PAGINATION */}
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-xs text-slate-600">
           <span>Rows per page</span>
+
           <select
             value={pageSize}
             onChange={(event) => {
@@ -477,7 +448,7 @@ export default function IssuedChecksTable({
             }}
             className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500"
           >
-            {PAGE_SIZE_OPTIONS.map((size: number) => (
+            {PAGE_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
                 {size}
               </option>

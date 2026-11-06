@@ -19,9 +19,7 @@ export async function GET(req: NextRequest) {
         ct.price_per_ticket,
         ct.amount,
         ct.created_at,
-        (
-          ct.number_of_tickets - ct.remaining
-        ) AS assigned_quantity
+        (ct.number_of_tickets - ct.remaining) AS assigned_quantity
       FROM smi_cash_tickets AS ct
       ORDER BY ct.created_at DESC
       `
@@ -63,6 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (
       !ticket_date ||
+      typeof ticket_date !== "string" ||
       Number.isNaN(Date.parse(ticket_date))
     ) {
       return NextResponse.json(
@@ -85,7 +84,10 @@ export async function POST(req: NextRequest) {
     }
 
     const price_per_ticket = 5;
-    const amount = number_of_tickets * price_per_ticket;
+
+    // IMPORTANT:
+    // Do not insert amount.
+    // PostgreSQL automatically generates this column.
 
     const result = await pool.query(
       `
@@ -94,10 +96,9 @@ export async function POST(req: NextRequest) {
         ticket_date,
         number_of_tickets,
         remaining,
-        price_per_ticket,
-        amount
+        price_per_ticket
       )
-      VALUES ($1, $2, $3, $3, $4, $5)
+      VALUES ($1, $2, $3, $3, $4)
       RETURNING
         id,
         ticket_number,
@@ -113,7 +114,6 @@ export async function POST(req: NextRequest) {
         ticket_date,
         number_of_tickets,
         price_per_ticket,
-        amount,
       ]
     );
 

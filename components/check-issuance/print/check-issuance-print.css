@@ -1,0 +1,206 @@
+
+.printRoot {
+  display: none;
+}
+
+:global(.bank-print) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 180mm;
+  padding: 18mm;
+  background: #fff;
+  color: #111827;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+
+:global(.bank-print span) {
+  display: block;
+  margin-bottom: 5px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+:global(.bank-print strong) {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* DBP */
+:global(.dbp-print) {
+  border: 1px solid #1e3a8a;
+}
+
+:global(.dbp-heading) {
+  margin-bottom: 35px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #1e3a8a;
+  text-align: center;
+}
+
+:global(.dbp-heading h1) {
+  color: #1e3a8a;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+:global(.dbp-heading p),
+:global(.lbp-heading p) {
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+:global(.dbp-main > div) {
+  margin-bottom: 25px;
+}
+
+:global(.dbp-date strong),
+:global(.dbp-payee strong) {
+  font-size: 15px;
+}
+
+:global(.dbp-payee strong) {
+  min-height: 30px;
+  border-bottom: 1px solid #111827;
+}
+
+:global(.dbp-amount) {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  border: 1px solid #1e3a8a;
+}
+
+:global(.dbp-amount strong),
+:global(.lbp-amount strong) {
+  font-size: 19px;
+}
+
+:global(.dbp-words),
+:global(.lbp-words) {
+  min-height: 65px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+}
+
+:global(.dbp-words strong),
+:global(.lbp-words strong) {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+:global(.dbp-signatories),
+:global(.lbp-signatories) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 55px;
+  margin-top: 75px;
+}
+
+:global(.print-signatory) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+:global(.print-signatory strong) {
+  width: 100%;
+  min-height: 20px;
+  border-bottom: 1px solid #111827;
+  font-size: 12px;
+}
+
+:global(.print-signatory span) {
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+/* LBP */
+:global(.lbp-print) {
+  border: 2px solid #15803d;
+}
+
+:global(.lbp-heading) {
+  margin-bottom: 35px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #15803d;
+  text-align: center;
+}
+
+:global(.lbp-heading h1) {
+  color: #15803d;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+:global(.lbp-main > div) {
+  margin-bottom: 25px;
+}
+
+:global(.lbp-date strong),
+:global(.lbp-payee strong) {
+  font-size: 15px;
+}
+
+:global(.lbp-amount) {
+  padding: 15px;
+  border: 1px solid #15803d;
+  background: #f0fdf4;
+}
+
+:global(.lbp-amount strong) {
+  color: #166534;
+}
+
+/* PRINT */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  :global(html),
+  :global(body) {
+    width: 100%;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  :global(body *) {
+    visibility: hidden !important;
+  }
+
+  :global(#check-issuance-print),
+  :global(#check-issuance-print *) {
+    visibility: visible !important;
+  }
+
+  :global(#check-issuance-print) {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  :global(.bank-print) {
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -173,6 +173,22 @@ function amountToWords(value: number | string): string {
     return result + " Only";
 }
 
+function getDisplayFormCode(item: RCDItem): string {
+    const formCode = String(item.form_code ?? "").trim();
+    const normalizedFormCode = formCode
+        .toUpperCase()
+        .replace(/[\\s_-]+/g, " ");
+
+    const isCashTicket =
+        item.cash_ticket_transaction_id !== null &&
+        item.cash_ticket_transaction_id !== undefined ||
+        normalizedFormCode === "CASH TICKET";
+
+    return isCashTicket
+        ? "CASH TICKET"
+        : formCode || "—";
+}
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -249,9 +265,7 @@ export default function RCDPreview({
         const groups: Record<string, RCDItem[]> = {};
 
         for (const item of items) {
-            const formCode = (
-                item.form_code ?? "—"
-            ).trim();
+            const formCode = getDisplayFormCode(item);
 
             const bookletId =
                 item.booklet_registration_id?.trim();
@@ -276,9 +290,7 @@ export default function RCDPreview({
 
         return Object.entries(groups).map(
             ([, groupItems]) => {
-                const formCode = (
-                    groupItems[0]?.form_code ?? "—"
-                ).trim();
+                const formCode = getDisplayFormCode(groupItems[0]);
 
                 // Current OR numbers
                 const serials = groupItems

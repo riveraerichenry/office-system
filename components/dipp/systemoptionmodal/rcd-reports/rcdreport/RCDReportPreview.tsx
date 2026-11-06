@@ -93,6 +93,28 @@ function getFullName(
 
 }
 
+function getDisplayFormCode(item: any): string {
+    const formCode = String(
+        item?.form_code ??
+        item?.accountable_form_code ??
+        item?.form_name ??
+        ""
+    ).trim();
+
+    const normalizedFormCode = formCode
+        .toUpperCase()
+        .replace(/[\\s_-]+/g, " ");
+
+    const isCashTicket =
+        (item?.cash_ticket_transaction_id !== null &&
+            item?.cash_ticket_transaction_id !== undefined) ||
+        normalizedFormCode === "CASH TICKET";
+
+    return isCashTicket
+        ? "CASH TICKET"
+        : formCode || "—";
+}
+
 export default function RCDPreview({
     rcd,
     items = [],
@@ -212,11 +234,7 @@ export default function RCDPreview({
                     of rcdItems
                 ) {
 
-                    const formCode =
-                        item?.form_code ??
-                        item?.accountable_form_code ??
-                        item?.form_name ??
-                        "—";
+                    const formCode = getDisplayFormCode(item);
 
                     if (
                         !map.has(
@@ -596,9 +614,7 @@ export default function RCDPreview({
                                                 py-1.5
                                             ">
                                                 {
-                                                    item?.form_code ??
-                                                    item?.form_name ??
-                                                    "—"
+                                                    getDisplayFormCode(item)
                                                 }
                                             </td>
 

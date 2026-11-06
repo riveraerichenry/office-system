@@ -178,6 +178,15 @@ export async function POST(
 
         }
 
+        const isCashTicket = String(fund_source_id) === "CASH_TICKET";
+
+        if (isCashTicket && selectedTransactionIds.some((id: string) => !/^\d+$/.test(id))) {
+            return NextResponse.json(
+                { success: false, message: "Invalid Cash Ticket transaction ID." },
+                { status: 400 }
+            );
+        }
+
         const token =
             request.cookies.get(
                 "token"
@@ -309,6 +318,200 @@ export async function POST(
 
         const loggedInUser =
             userResult.rows[0];
+
+        // =====================================================
+        // CASH TICKET RCD GENERATION
+        // =====================================================
+
+        if (isCashTicket) {
+            const generalFundId = "c3fccaef-ba38-4fb0-8179-d3249ec712f6";
+
+            const cashFundResult = await client.query(
+                `
+                    SELECT id, fund_code, fund_name, acronym
+                    FROM fund_sources
+                    WHERE id = $1
+                      AND is_active = TRUE
+                    LIMIT 1
+                `,
+                [generalFundId]
+            );
+
+            if (cashFundResult.rows.length === 0) {
+                return NextResponse.json(
+                    { success: false, message: "General Fund is not available or inactive." },
+                    { status: 404 }
+                );
+            }
+
+            const cashFund = cashFundResult.rows[0];
+
+            await client.query("BEGIN");
+            await client.query(
+                `SELECT pg_advisory_xact_lock(hashtext('RCD_REPORT_NUMBER_GENERATION'))`
+            );
+
+            const cashIds = selectedTransactionIds;
+            const cashTransactionsResult = await client.query(
+                `
+                    SELECT
+                        ct.id,
+                        ct.transaction_date::date AS receipt_date,
+                        ct.issued_by,
+                        COALESCE(SUM(cti.total_amount), 0)::numeric AS amount
+                    FROM dipp_cashticket_transaction ct
+                    INNER JOIN dipp_cashticket_transaction_items cti
+                        ON cti.transaction_id = ct.id
+                    WHERE ct.id = ANY($1::bigint[])
+                      AND ct.transaction_date >= $2::date
+                      AND ct.transaction_date < ($3::date + INTERVAL '1 day')
+                      AND LOWER(TRIM(COALESCE(ct.issued_by, ''))) = LOWER(TRIM($4))
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM rcd_items ri
+                          WHERE ri.cash_ticket_transaction_id = ct.id
+                      )
+                    GROUP BY ct.id, ct.transaction_date, ct.issued_by
+                    HAVING COALESCE(SUM(cti.total_amount), 0) > 0
+                    ORDER BY ct.transaction_date ASC, ct.id ASC
+                `,
+                [cashIds, date_from, date_to, String(loggedInUser.full_name ?? "")]
+            );
+
+            const cashTransactions = cashTransactionsResult.rows;
+            if (cashTransactions.length !== selectedTransactionIds.length) {
+                const found = new Set(cashTransactions.map((row: any) => String(row.id)));
+                const missing = selectedTransactionIds.filter((id: string) => !found.has(id));
+                await client.query("ROLLBACK");
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: "One or more selected Cash Ticket transactions are no longer eligible for this RCD. Please refresh the transaction list and try again.",
+                        missing_transaction_ids: missing,
+                    },
+                    { status: 409 }
+                );
+            }
+
+            const totalCashCollections = cashTransactions.reduce(
+                (sum: number, row: any) => sum + Number(row.amount ?? 0),
+                0
+            );
+
+            const reportDate = new Date();
+            const yy = String(reportDate.getFullYear()).slice(-2);
+            const mm = String(reportDate.getMonth() + 1).padStart(2, "0");
+            const dd = String(reportDate.getDate()).padStart(2, "0");
+            const datePrefix = `${yy}${mm}${dd}`;
+
+            const sequenceResult = await client.query(
+                `SELECT COUNT(*)::integer AS total FROM rcd_transaction WHERE report_date = CURRENT_DATE`
+            );
+            const nextSequence = Number(sequenceResult.rows[0]?.total ?? 0) + 1;
+            const reportNo = `${datePrefix}${String(nextSequence).padStart(5, "0")}-GF`;
+            const rcdId = randomUUID();
+
+            const rcdResult = await client.query(
+                `
+                    INSERT INTO rcd_transaction (
+                        id, report_no, report_date, fund_source_id,
+                        date_from, date_to, total_collections,
+                        total_remittances, total_deposits, balance,
+                        status, rcd_by, created_at, updated_at
+                    )
+                    VALUES (
+                        $1, $2, CURRENT_DATE, $3, $4, $5,
+                        $6, 0, 0, $6, 'FOR REMITTANCE',
+                        $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                    )
+                    RETURNING *
+                `,
+                [rcdId, reportNo, cashFund.id, date_from, date_to, totalCashCollections, loggedInUser.id]
+            );
+
+            const formattedItems: any[] = [];
+            for (const transaction of cashTransactions) {
+                const referenceNo = `CT-${transaction.id}`;
+                await client.query(
+                    `
+                        INSERT INTO rcd_items (
+                            id,
+                            rcd_transaction_id,
+                            dipp_transaction_id,
+                            cash_ticket_transaction_id,
+                            or_number,
+                            receipt_date,
+                            collector_id,
+                            payor,
+                            payment_mode,
+                            amount,
+                            created_at
+                        )
+                        VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, 'CASH TICKET', $8, CURRENT_TIMESTAMP)
+                    `,
+                    [randomUUID(), rcdId, transaction.id, referenceNo, transaction.receipt_date, null, transaction.issued_by, Number(transaction.amount ?? 0)]
+                );
+
+                formattedItems.push({
+                    id: String(transaction.id),
+                    dipp_transaction_id: null,
+                    cash_ticket_transaction_id: String(transaction.id),
+                    or_number: referenceNo,
+                    receipt_date: transaction.receipt_date,
+                    collector_id: null,
+                    payor: transaction.issued_by,
+                    payment_mode: "CASH TICKET",
+                    amount: Number(transaction.amount ?? 0),
+                    form_code: "CASH TICKET",
+                    form_name: "CASH TICKET",
+                });
+            }
+
+            await client.query("COMMIT");
+
+            const rcd = rcdResult.rows[0];
+            const formattedRCD = {
+                ...rcd,
+                total_collections: Number(rcd.total_collections ?? 0),
+                total_remittances: Number(rcd.total_remittances ?? 0),
+                total_deposits: Number(rcd.total_deposits ?? 0),
+                balance: Number(rcd.balance ?? 0),
+            };
+
+            const resultRcd = {
+                rcd: formattedRCD,
+                items: formattedItems,
+                previous_form_rows: [],
+                summary: {
+                    transaction_count: formattedItems.length,
+                    total_collections: totalCashCollections,
+                    total_remittances: 0,
+                    total_deposits: 0,
+                    balance: totalCashCollections,
+                },
+                fund_source: {
+                    id: cashFund.id,
+                    fund_code: cashFund.fund_code,
+                    fund_name: cashFund.fund_name,
+                    acronym: cashFund.acronym,
+                },
+                user: {
+                    id: loggedInUser.id,
+                    username: loggedInUser.username,
+                    full_name: loggedInUser.full_name,
+                },
+            };
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: "Cash Ticket RCD generated successfully under General Fund.",
+                    ...resultRcd,
+                    rcds: [resultRcd],
+                },
+                { status: 201 }
+            );
+        }
 
         const fundSourceResult =
             await client.query(
@@ -998,17 +1201,15 @@ export async function POST(
         let nextSequence = Number(sequenceResult.rows[0]?.total ?? 0) + 1;
 
         const amountRows = transactions.map((transaction: any) => {
-            const originalCents = Math.round(
-                Number(transaction.amount ?? 0) * 100
-            );
-            const basicCents = Math.round(originalCents / 2);
-            const sefCents = originalCents - basicCents;
+            const originalAmount = Number(transaction.amount ?? 0);
+
+            const halfAmount = originalAmount / 2;
 
             return {
                 transaction,
-                originalAmount: originalCents / 100,
-                basicAmount: basicCents / 100,
-                sefAmount: sefCents / 100,
+                originalAmount,
+                basicAmount: halfAmount,
+                sefAmount: halfAmount,
             };
         });
 

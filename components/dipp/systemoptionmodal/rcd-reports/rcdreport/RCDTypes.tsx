@@ -44,7 +44,9 @@ export type RCDItem = {
         | string
         | null;
 
-    dipp_transaction_id: string;
+    dipp_transaction_id?: string | null;
+
+    cash_ticket_transaction_id?: number | string | null;
 
     or_number: string;
 
