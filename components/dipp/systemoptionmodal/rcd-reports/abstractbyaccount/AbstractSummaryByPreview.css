@@ -1,3 +1,4 @@
+
 /* ============================================================
    ABSTRACT OF COLLECTIONS / SUMMARY
 ============================================================ */
@@ -348,6 +349,26 @@
 
 
 /* ============================================================
+   PREVIOUS / CURRENT / ADVANCE GROUP HEADERS
+   ADDED: ONLY FOR ACCOUNT GROUPING
+============================================================ */
+
+.abstract-by-summary-group-row td {
+    padding: 8px 6px 4px !important;
+
+    font-size: 10px !important;
+
+    font-weight: 700;
+
+    text-align: left !important;
+
+    border-bottom: 1px solid #000 !important;
+
+    letter-spacing: 0.4px;
+}
+
+
+/* ============================================================
    EMPTY TABLE
 ============================================================ */
 
@@ -511,6 +532,10 @@
     font-size: 13px;
 }
 
+
+/* ============================================================
+   SUBTITLE
+============================================================ */
 
 .abstract-by-summary-subtitle {
     margin-top: 4px;

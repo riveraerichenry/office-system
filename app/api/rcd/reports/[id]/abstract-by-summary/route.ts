@@ -261,6 +261,8 @@ export async function GET(
 
                     rt.report_date,
 
+                    EXTRACT(YEAR FROM rt.report_date)::INTEGER AS current_year,
+
                     rt.fund_source_id,
 
                     fs.fund_code,
@@ -315,21 +317,11 @@ export async function GET(
         =========================================================
         */
 
-        const reportDate =
-            rcd.report_date
-                ? new Date(
-                    `${String(
-                        rcd.report_date
-                    ).substring(
-                        0,
-                        10
-                    )}T00:00:00`
-                )
-                : new Date();
-
-
+        // Use PostgreSQL's report-date year directly. This matches the
+        // SQL classification query exactly and avoids JS date/timezone parsing.
         const currentYear =
-            reportDate.getFullYear();
+            Number(rcd.current_year) ||
+            new Date().getFullYear();
 
 
         /*
@@ -815,23 +807,25 @@ export async function GET(
                     -------------------------------------------------
                     */
 
-                    let taxYear =
-                        toNumber(
-                            rpt.end_year
+                    // Match the SQL expression exactly:
+                    // COALESCE(NULLIF(start_year, 0), NULLIF(end_year, 0))
+                    const startYear = toNumber(rpt.start_year);
+                    const endYear = toNumber(rpt.end_year);
+                    const taxYear = startYear !== 0 ? startYear : endYear;
+
+                    // Do not classify records without a valid tax year.
+                    if (!taxYear) {
+                        console.warn(
+                            "RPT item has no valid tax year:",
+                            {
+                                rptItemId: rpt.id,
+                                transactionId,
+                                startYear: rpt.start_year,
+                                endYear: rpt.end_year,
+                            }
                         );
-
-
-                    if (
-                        !taxYear
-                    ) {
-
-                        taxYear =
-                            toNumber(
-                                rpt.start_year
-                            );
-
+                        continue;
                     }
-
 
                     const classification =
                         classifyYear(
