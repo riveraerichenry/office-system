@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
@@ -18,7 +19,10 @@ function isValidUUID(value: string) {
   );
 }
 
+// =====================================================
 // PATCH: Update expense account
+// =====================================================
+
 export async function PATCH(
   request: NextRequest,
   context: Context
@@ -50,7 +54,9 @@ export async function PATCH(
     const isActive = body.is_active !== false;
 
     if (!isValidUUID(categoryId)) {
-      return errorResponse("Please select a valid category.");
+      return errorResponse(
+        "Please select a valid category."
+      );
     }
 
     if (!accountCode || !accountName) {
@@ -101,7 +107,10 @@ export async function PATCH(
     );
 
     if (!result.rowCount) {
-      return errorResponse("Expense account not found.", 404);
+      return errorResponse(
+        "Expense account not found.",
+        404
+      );
     }
 
     return NextResponse.json({
@@ -109,6 +118,7 @@ export async function PATCH(
       message: "Expense account updated successfully.",
       data: result.rows[0],
     });
+
   } catch (error: any) {
     console.error("PATCH Expense Account Error:", error);
 
@@ -120,7 +130,9 @@ export async function PATCH(
     }
 
     if (error.code === "23503") {
-      return errorResponse("Invalid account category.");
+      return errorResponse(
+        "Invalid account category."
+      );
     }
 
     return errorResponse(

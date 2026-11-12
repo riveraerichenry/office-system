@@ -265,7 +265,7 @@ export default function AF56PrintHeader({
                 "--af56-words-x": "630px",
                 "--af56-words-y": "125px",
                 "--af56-words-width": "220px",
-                "--af56-words-size": "10px",
+                "--af56-words-size": "11px",
 
 
                 /* TOTAL AMOUNT */

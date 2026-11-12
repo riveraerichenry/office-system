@@ -1,10 +1,10 @@
+
 import {
     NextRequest,
     NextResponse,
 } from "next/server";
 
 import { pool } from "@/lib/db";
-
 
 export async function GET(
     request: NextRequest,
@@ -16,13 +16,10 @@ export async function GET(
         }>;
     }
 ) {
-
     try {
-
         const {
             id,
         } = await params;
-
 
         /*
         ================================================================
@@ -31,7 +28,6 @@ export async function GET(
         */
 
         if (!id) {
-
             return NextResponse.json(
                 {
                     error:
@@ -41,9 +37,7 @@ export async function GET(
                     status: 400,
                 }
             );
-
         }
-
 
         /*
         ================================================================
@@ -95,7 +89,6 @@ export async function GET(
                 [id]
             );
 
-
         /*
         ================================================================
         TRANSACTION NOT FOUND
@@ -105,7 +98,6 @@ export async function GET(
         if (
             transactionResult.rows.length === 0
         ) {
-
             return NextResponse.json(
                 {
                     error:
@@ -115,13 +107,10 @@ export async function GET(
                     status: 404,
                 }
             );
-
         }
-
 
         const transaction =
             transactionResult.rows[0];
-
 
         /*
         ================================================================
@@ -139,6 +128,7 @@ export async function GET(
                     i.tax_declaration_id,
                     i.td_number,
                     i.declared_owner,
+                    i.classification_name,
                     i.property_location,
                     i.assessed_value,
                     i.start_quarter,
@@ -173,7 +163,6 @@ export async function GET(
                 [id]
             );
 
-
         /*
         ================================================================
         RETURN
@@ -197,12 +186,10 @@ export async function GET(
 
     }
     catch (error) {
-
         console.error(
             "RPT TRANSACTION DETAILS API ERROR:",
             error
         );
-
 
         return NextResponse.json(
             {
@@ -213,7 +200,5 @@ export async function GET(
                 status: 500,
             }
         );
-
     }
-
 }

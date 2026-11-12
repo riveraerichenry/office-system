@@ -19,37 +19,13 @@ function errorMessage(error: unknown) {
 
 async function getAccount(client: PoolClient, accountId: string) {
   const result = await client.query(
-    `
-    SELECT
-      ea.id AS account_id,
-      ea.account_code,
-      ea.account_name,
-      c.id AS category_id,
-      c.category_code,
-      c.category_name,
-      COALESCE(c.office_id, so.office_id) AS office_id,
-      o.office_code,
-      o.office_name,
-      c.sub_office_id,
-      so.sub_office_code,
-      so.sub_office_name
-    FROM public.expense_accounts ea
-    INNER JOIN public.expense_account_category c
-      ON c.id = ea.category_id
-    LEFT JOIN public.sub_offices so
-      ON so.id = c.sub_office_id
-    LEFT JOIN public.offices o
-      ON o.id = COALESCE(c.office_id, so.office_id)
-    WHERE ea.id = $1
-      AND ea.is_active = TRUE
-      AND c.is_active = TRUE
-      AND o.is_active = TRUE
-      AND (c.office_id IS NOT NULL OR c.sub_office_id IS NOT NULL)
-      AND (c.sub_office_id IS NULL OR so.is_active = TRUE)
-    `,
+    `SELECT ea.id AS account_id, ea.account_code, ea.account_name,
+            c.id AS category_id, c.category_code, c.category_name
+     FROM public.expense_accounts ea
+     INNER JOIN public.expense_account_category c ON c.id = ea.category_id
+     WHERE ea.id = $1 AND ea.is_active = TRUE AND c.is_active = TRUE`,
     [accountId]
   );
-
   return result.rows[0] ?? null;
 }
 
@@ -134,45 +110,30 @@ export async function GET(request: NextRequest) {
     // -----------------------------------------------------
 
     const accountsResult = await client.query(`
-      SELECT
-        ea.id AS account_id,
-        ea.account_code,
-        ea.account_name,
-
-        c.id AS category_id,
-        c.category_code,
-        c.category_name,
-
-        COALESCE(c.office_id, so.office_id) AS office_id,
-        o.office_code,
-        o.office_name,
-
-        c.sub_office_id,
-        so.sub_office_code,
-        so.sub_office_name
-
+      SELECT ea.id AS account_id, ea.account_code, ea.account_name,
+             c.id AS category_id, c.category_code, c.category_name
       FROM public.expense_accounts ea
+      INNER JOIN public.expense_account_category c ON c.id = ea.category_id
+      WHERE ea.is_active = TRUE AND c.is_active = TRUE
+      ORDER BY c.category_code, ea.account_code
+    `);
 
-      INNER JOIN public.expense_account_category c
-        ON c.id = ea.category_id
+    const officesResult = await client.query(`
+      SELECT id, office_code, office_name
+      FROM public.offices WHERE is_active = TRUE
+      ORDER BY office_code, office_name
+    `);
 
-      LEFT JOIN public.sub_offices so
-        ON so.id = c.sub_office_id
+    const subOfficesResult = await client.query(`
+      SELECT id, office_id, sub_office_code, sub_office_name
+      FROM public.sub_offices WHERE is_active = TRUE
+      ORDER BY sub_office_code NULLS LAST, sub_office_name
+    `);
 
-      LEFT JOIN public.offices o
-        ON o.id = COALESCE(c.office_id, so.office_id)
-
-      WHERE ea.is_active = TRUE
-        AND c.is_active = TRUE
-        AND o.is_active = TRUE
-        AND (c.office_id IS NOT NULL OR c.sub_office_id IS NOT NULL)
-        AND (c.sub_office_id IS NULL OR so.is_active = TRUE)
-
-      ORDER BY
-        o.office_name,
-        so.sub_office_name NULLS FIRST,
-        c.category_name,
-        ea.account_code
+    const categoriesResult = await client.query(`
+      SELECT id, category_code, category_name
+      FROM public.expense_account_category WHERE is_active = TRUE
+      ORDER BY category_code, category_name
     `);
 
     // -----------------------------------------------------
@@ -240,17 +201,17 @@ export async function GET(request: NextRequest) {
         ea.account_code,
         ea.account_name,
 
-        c.id AS category_id,
-        c.category_code,
-        c.category_name,
-
-        COALESCE(c.office_id, so.office_id) AS office_id,
+        a.office_id,
         o.office_code,
         o.office_name,
 
-        c.sub_office_id,
+        a.sub_office_id,
         so.sub_office_code,
         so.sub_office_name,
+
+        a.category_id,
+        c.category_code,
+        c.category_name,
 
         a.appropriated_amount,
 
@@ -281,14 +242,14 @@ export async function GET(request: NextRequest) {
       INNER JOIN public.expense_accounts ea
         ON ea.id = a.account_id
 
-      INNER JOIN public.expense_account_category c
-        ON c.id = ea.category_id
+      LEFT JOIN public.expense_account_category c
+        ON c.id = a.category_id
 
       LEFT JOIN public.sub_offices so
-        ON so.id = c.sub_office_id
+        ON so.id = a.sub_office_id
 
       LEFT JOIN public.offices o
-        ON o.id = COALESCE(c.office_id, so.office_id)
+        ON o.id = a.office_id
 
       LEFT JOIN (
         SELECT
@@ -338,6 +299,9 @@ export async function GET(request: NextRequest) {
       success: true,
       data: appropriationsResult.rows,
       accounts: accountsResult.rows,
+      offices: officesResult.rows,
+      subOffices: subOfficesResult.rows,
+      categories: categoriesResult.rows,
       fundSources: fundsResult.rows,
     });
   } catch (error) {
@@ -383,6 +347,9 @@ export async function POST(request: NextRequest) {
         ordinance_no,
         ordinance_date,
         fund_source_id,
+        office_id,
+        sub_office_id,
+        category_id,
         account_id,
         appropriated_amount,
         remarks,
@@ -408,6 +375,8 @@ export async function POST(request: NextRequest) {
         year > 2200 ||
         !["annual", "supplemental"].includes(appropriation_type) ||
         !fund_source_id ||
+        !office_id ||
+        !category_id ||
         !account_id ||
         !Number.isFinite(amount) ||
         amount <= 0
@@ -442,6 +411,30 @@ export async function POST(request: NextRequest) {
           "Selected expense account is inactive or unavailable."
         );
       }
+
+      if (String(account.category_id) !== String(category_id)) {
+        throw new Error("The selected expense account does not belong to the selected category.");
+      }
+
+      const officeResult = await client.query(
+        `SELECT id FROM public.offices WHERE id = $1 AND is_active = TRUE`,
+        [office_id]
+      );
+      if (!officeResult.rowCount) throw new Error("Selected office is inactive or unavailable.");
+
+      if (sub_office_id) {
+        const subOfficeResult = await client.query(
+          `SELECT id FROM public.sub_offices WHERE id = $1 AND office_id = $2 AND is_active = TRUE`,
+          [sub_office_id, office_id]
+        );
+        if (!subOfficeResult.rowCount) throw new Error("Selected sub-office is inactive, unavailable, or does not belong to the selected office.");
+      }
+
+      const categoryResult = await client.query(
+        `SELECT id FROM public.expense_account_category WHERE id = $1 AND is_active = TRUE`,
+        [category_id]
+      );
+      if (!categoryResult.rowCount) throw new Error("Selected category is inactive or unavailable.");
 
       // Check duplicate ordinance only if supplied.
       if (normalizedOrdinanceNo) {
@@ -480,11 +473,14 @@ export async function POST(request: NextRequest) {
           ordinance_no,
           ordinance_date,
           fund_source_id,
+          office_id,
+          sub_office_id,
+          category_id,
           account_id,
           appropriated_amount,
           remarks
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
         RETURNING *
         `,
         [
@@ -493,6 +489,9 @@ export async function POST(request: NextRequest) {
           normalizedOrdinanceNo,
           normalizedOrdinanceDate,
           fund_source_id,
+          office_id,
+          sub_office_id,
+          category_id,
           account_id,
           amount,
           remarks?.trim() || null,

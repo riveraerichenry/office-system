@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -54,7 +55,6 @@ export const emptyItem = (): Item => ({
   discount: 0,
 });
 
-
 export default function UnrevisedPropertyModal({
   open,
   booklet,
@@ -62,73 +62,58 @@ export default function UnrevisedPropertyModal({
   onSuccess,
 }: Props) {
 
+  const [payor, setPayor] = useState("");
 
-  const [payor, setPayor] =
-    useState("");
+  const [receiptDate, setReceiptDate] = useState(
+    new Date().toISOString().substring(0, 10)
+  );
 
-  const [receiptDate, setReceiptDate] =
-    useState(
-      new Date()
-        .toISOString()
-        .substring(0,10)
-    );
+  const [owner, setOwner] = useState("");
 
+  // Gender
+  const [gender, setGender] = useState("");
 
-  const [owner, setOwner] =
-    useState("");
+  const [barangay, setBarangay] = useState("");
 
-  const [barangay, setBarangay] =
-    useState("");
+  const [classification, setClassification] = useState("");
 
-  const [classification, setClassification] =
-    useState("");
+  const [barangays, setBarangays] = useState<any[]>([]);
 
+  const [classifications, setClassifications] = useState<any[]>([]);
 
-  const [barangays, setBarangays] =
-    useState<any[]>([]);
+  const [items, setItems] = useState<Item[]>([
+    emptyItem(),
+  ]);
 
+  const [saving, setSaving] = useState(false);
 
-  const [classifications, setClassifications] =
-    useState<any[]>([]);
-
-
-  const [items, setItems] =
-    useState<Item[]>([
-      emptyItem(),
-    ]);
-
-
-  const [saving, setSaving] =
-    useState(false);
-
-
+  /*
+  |--------------------------------------------------------------------------
+  | Load Metadata
+  |--------------------------------------------------------------------------
+  */
 
   useEffect(() => {
 
     if (!open) return;
 
-
     const loadMetadata = async () => {
 
       try {
 
-        const res =
-          await axios.get(
-            "/api/rpt/property-metadata"
-          );
-
+        const res = await axios.get(
+          "/api/rpt/property-metadata"
+        );
 
         setBarangays(
           res.data.barangays ?? []
         );
 
-
         setClassifications(
           res.data.classifications ?? []
         );
 
-
-      } catch(err){
+      } catch (err) {
 
         console.error(err);
 
@@ -136,43 +121,39 @@ export default function UnrevisedPropertyModal({
 
     };
 
-
     loadMetadata();
 
+  }, [open]);
 
-  },[open]);
+  /*
+  |--------------------------------------------------------------------------
+  | Grand Total
+  |--------------------------------------------------------------------------
+  */
 
+  const grandTotal = useMemo(() => {
 
+    return items.reduce(
+      (sum, row) =>
+        sum +
+        Number(row.basic ?? 0) +
+        Number(row.sef ?? 0) +
+        Number(row.penalty ?? 0) -
+        Number(row.discount ?? 0),
+      0
+    );
 
-  const grandTotal =
-    useMemo(() => {
+  }, [items]);
 
-      return items.reduce(
-
-        (sum,row)=>
-
-          sum +
-
-          Number(row.basic ?? 0) +
-
-          Number(row.sef ?? 0) +
-
-          Number(row.penalty ?? 0) -
-
-          Number(row.discount ?? 0),
-
-        0
-
-      );
-
-    },[items]);
-
-
+  /*
+  |--------------------------------------------------------------------------
+  | Process Collection
+  |--------------------------------------------------------------------------
+  */
 
   const handleProcess = async () => {
 
-
-    if(!booklet){
+    if (!booklet) {
 
       Swal.fire(
         "Error",
@@ -184,9 +165,7 @@ export default function UnrevisedPropertyModal({
 
     }
 
-
-
-    if(!payor.trim()){
+    if (!payor.trim()) {
 
       Swal.fire(
         "Validation",
@@ -198,9 +177,7 @@ export default function UnrevisedPropertyModal({
 
     }
 
-
-
-    if(!owner.trim()){
+    if (!owner.trim()) {
 
       Swal.fire(
         "Validation",
@@ -212,9 +189,43 @@ export default function UnrevisedPropertyModal({
 
     }
 
+    if (!gender) {
 
+      Swal.fire(
+        "Validation",
+        "Gender is required.",
+        "warning"
+      );
 
-    if(items.length === 0){
+      return;
+
+    }
+
+    if (!barangay) {
+
+      Swal.fire(
+        "Validation",
+        "Barangay is required.",
+        "warning"
+      );
+
+      return;
+
+    }
+
+    if (!classification) {
+
+      Swal.fire(
+        "Validation",
+        "Classification is required.",
+        "warning"
+      );
+
+      return;
+
+    }
+
+    if (!items || items.length === 0) {
 
       Swal.fire(
         "Validation",
@@ -226,127 +237,90 @@ export default function UnrevisedPropertyModal({
 
     }
 
-
-
     try {
-
 
       setSaving(true);
 
+      const res = await axios.post(
 
+        "/api/dipp/transactions/unrevised",
 
-      const res =
-        await axios.post(
+        {
+          booklet_registration_id: booklet.id,
 
-          "/api/dipp/transactions/unrevised",
+          receipt_date: receiptDate,
 
-          {
+          payor,
 
-            booklet_registration_id:
-              booklet.id,
+          owner,
 
+          gender,
 
-            receipt_date:
-              receiptDate,
+          barangay,
 
+          classification,
 
-            payor,
+          payment_mode: "Cash",
 
+          remarks: null,
 
-            owner,
+          items,
+        }
 
-
-            barangay,
-
-
-            classification,
-
-
-            payment_mode:
-              "Cash",
-
-
-            remarks:
-              null,
-
-
-            items,
-
-          }
-
-        );
-
-
+      );
 
       Swal.fire({
 
-        icon:"success",
+        icon: "success",
 
-        title:"Collection Processed",
+        title: "Collection Processed",
 
-        text:
-          `OR No. ${res.data.or_number} successfully issued.`,
+        text: `OR No. ${res.data.or_number} successfully issued.`,
 
-        confirmButtonColor:"#2563eb",
+        confirmButtonColor: "#2563eb",
 
       });
-
-
 
       onSuccess();
 
       onClose();
 
-
-
-    } catch(err:any){
-
+    } catch (err: any) {
 
       console.error(err);
 
-
       Swal.fire(
-
         "Error",
-
         err.response?.data?.message ??
-        "Unable to process collection.",
-
+          "Unable to process collection.",
         "error"
-
       );
-
 
     } finally {
 
-
       setSaving(false);
-
 
     }
 
   };
 
+  if (!open) return null;
 
-
-  if(!open) return null;
-
-
+  /*
+  |--------------------------------------------------------------------------
+  | Render
+  |--------------------------------------------------------------------------
+  */
 
   return (
 
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-6">
 
-
       <div className="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-
 
         <BookletHeader booklet={booklet} />
 
-
-
         <div className="flex-1 space-y-6 overflow-y-auto bg-slate-100 p-6">
-
 
           <UnrevisedPropertyInformation
 
@@ -356,15 +330,15 @@ export default function UnrevisedPropertyModal({
 
             owner={owner}
 
+            gender={gender}
+
             barangay={barangay}
 
             classification={classification}
 
-
             barangays={barangays}
 
             classifications={classifications}
-
 
             onPayorChange={setPayor}
 
@@ -372,15 +346,13 @@ export default function UnrevisedPropertyModal({
 
             onOwnerChange={setOwner}
 
+            onGenderChange={setGender}
+
             onBarangayChange={setBarangay}
 
-            onClassificationChange={
-              setClassification
-            }
+            onClassificationChange={setClassification}
 
           />
-
-
 
           <UnrevisedPropertyItems
 
@@ -392,17 +364,11 @@ export default function UnrevisedPropertyModal({
 
           />
 
-
         </div>
-
-
 
         <div className="border-t bg-white px-6 py-4">
 
-
           <div className="flex items-center justify-between">
-
-
 
             <button
 
@@ -418,17 +384,13 @@ export default function UnrevisedPropertyModal({
 
             </button>
 
-
-
             <div className="text-right">
-
 
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
 
                 Grand Total
 
               </div>
-
 
               <div className="text-3xl font-bold text-blue-700">
 
@@ -440,7 +402,9 @@ export default function UnrevisedPropertyModal({
 
                   {
 
-                    minimumFractionDigits:2,
+                    minimumFractionDigits: 2,
+
+                    maximumFractionDigits: 2,
 
                   }
 
@@ -448,10 +412,7 @@ export default function UnrevisedPropertyModal({
 
               </div>
 
-
             </div>
-
-
 
             <button
 
@@ -469,16 +430,11 @@ export default function UnrevisedPropertyModal({
 
             </button>
 
-
-
           </div>
-
 
         </div>
 
-
       </div>
-
 
     </div>
 

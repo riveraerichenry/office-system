@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
@@ -14,7 +15,10 @@ function isValidUUID(value: string) {
   );
 }
 
-// GET: Retrieve all expense accounts with category and office assignments
+// =====================================================
+// GET: Retrieve all expense accounts with categories
+// =====================================================
+
 export async function GET() {
   try {
     const result = await pool.query(`
@@ -28,43 +32,13 @@ export async function GET() {
         a.created_at,
         a.updated_at,
 
-        -- Category information
         c.category_code,
-        c.category_name,
-        c.office_id,
-        c.sub_office_id,
-
-        -- Office information
-        COALESCE(
-          direct_office.office_name,
-          parent_office.office_name
-        ) AS office_name,
-
-        COALESCE(
-          direct_office.office_code,
-          parent_office.office_code
-        ) AS office_code,
-
-        -- Sub-office information
-        so.sub_office_name,
-        so.sub_office_code
+        c.category_name
 
       FROM public.expense_accounts a
 
       INNER JOIN public.expense_account_category c
         ON c.id = a.category_id
-
-      -- Category assigned directly to an office
-      LEFT JOIN public.offices direct_office
-        ON direct_office.id = c.office_id
-
-      -- Category assigned to a sub-office
-      LEFT JOIN public.sub_offices so
-        ON so.id = c.sub_office_id
-
-      -- Parent office of the selected sub-office
-      LEFT JOIN public.offices parent_office
-        ON parent_office.id = so.office_id
 
       ORDER BY
         c.category_code ASC,
@@ -77,6 +51,7 @@ export async function GET() {
       count: result.rowCount ?? 0,
       data: result.rows,
     });
+
   } catch (error) {
     console.error("GET Expense Accounts Error:", error);
 
@@ -87,7 +62,10 @@ export async function GET() {
   }
 }
 
+// =====================================================
 // POST: Create expense account
+// =====================================================
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -110,7 +88,9 @@ export async function POST(request: NextRequest) {
     const isActive = body.is_active !== false;
 
     if (!isValidUUID(categoryId)) {
-      return errorResponse("Please select a valid category.");
+      return errorResponse(
+        "Please select a valid category."
+      );
     }
 
     if (!accountCode || !accountName) {
@@ -168,6 +148,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
   } catch (error: any) {
     console.error("POST Expense Accounts Error:", error);
 
@@ -179,7 +160,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (error.code === "23503") {
-      return errorResponse("Invalid account category.");
+      return errorResponse(
+        "Invalid account category."
+      );
     }
 
     return errorResponse(

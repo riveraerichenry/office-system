@@ -191,6 +191,43 @@ export async function GET(request: NextRequest) {
       `
     );
 
+    // Load the organizational hierarchy independently of appropriations.
+    // These lists must not depend on fiscal year, quarter, or fund source.
+    const offices = await pool.query(
+      `
+        SELECT id, office_name
+        FROM public.offices
+        ORDER BY office_name
+      `
+    );
+
+    const subOffices = await pool.query(
+      `
+        SELECT id, office_id, sub_office_name
+        FROM public.sub_offices
+        ORDER BY office_id, sub_office_name
+      `
+    );
+
+    const categories = await pool.query(
+      `
+        SELECT
+          c.id AS category_id,
+          c.category_name,
+          COALESCE(direct_office.id, parent_office.id) AS office_id,
+          c.sub_office_id
+        FROM public.expense_account_category c
+        LEFT JOIN public.offices direct_office
+          ON direct_office.id = c.office_id
+        LEFT JOIN public.sub_offices so
+          ON so.id = c.sub_office_id
+        LEFT JOIN public.offices parent_office
+          ON parent_office.id = so.office_id
+        WHERE COALESCE(direct_office.id, parent_office.id) IS NOT NULL
+        ORDER BY office_id, c.sub_office_id NULLS FIRST, c.category_name
+      `
+    );
+
     const transactions = await pool.query(
       `
       SELECT
@@ -257,6 +294,9 @@ export async function GET(request: NextRequest) {
       success: true,
       appropriations: appropriations.rows,
       accounts: accounts.rows,
+      offices: offices.rows,
+      subOffices: subOffices.rows,
+      categories: categories.rows,
       allotments: transactions.rows,
     });
   } catch (error) {

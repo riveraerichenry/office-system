@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
@@ -18,7 +19,10 @@ function isValidUUID(value: string) {
   );
 }
 
-// PATCH: Update category
+// =====================================================
+// PATCH: Update expense account category
+// =====================================================
+
 export async function PATCH(
   request: NextRequest,
   context: Context
@@ -31,11 +35,6 @@ export async function PATCH(
     }
 
     const body = await request.json();
-
-    const ownerType = String(
-      body.owner_type ??
-        (body.sub_office_id ? "sub_office" : "office")
-    ).trim();
 
     const categoryCode = String(
       body.category_code ?? ""
@@ -50,87 +49,41 @@ export async function PATCH(
 
     const isActive = body.is_active !== false;
 
+    // Validate required fields
     if (!categoryCode || !categoryName) {
       return errorResponse(
         "Category code and category name are required."
       );
     }
 
-    let officeId: string | null = null;
-    let subOfficeId: string | null = null;
+    // Check if category exists
+    const existingCategory = await pool.query(
+      `
+      SELECT id
+      FROM public.expense_account_category
+      WHERE id = $1
+      `,
+      [id]
+    );
 
-    if (ownerType === "office") {
-      officeId = String(body.office_id ?? "").trim();
-
-      if (!isValidUUID(officeId)) {
-        return errorResponse("Please select a valid office.");
-      }
-
-      const result = await pool.query(
-        `
-        SELECT id
-        FROM public.offices
-        WHERE id = $1
-          AND is_active = TRUE
-        `,
-        [officeId]
-      );
-
-      if (!result.rowCount) {
-        return errorResponse(
-          "Selected office does not exist or is inactive.",
-          404
-        );
-      }
-    } else if (ownerType === "sub_office") {
-      subOfficeId = String(
-        body.sub_office_id ?? ""
-      ).trim();
-
-      if (!isValidUUID(subOfficeId)) {
-        return errorResponse("Please select a valid sub-office.");
-      }
-
-      const result = await pool.query(
-        `
-        SELECT so.id
-        FROM public.sub_offices so
-        INNER JOIN public.offices o
-          ON o.id = so.office_id
-        WHERE so.id = $1
-          AND so.is_active = TRUE
-          AND o.is_active = TRUE
-        `,
-        [subOfficeId]
-      );
-
-      if (!result.rowCount) {
-        return errorResponse(
-          "Selected sub-office does not exist or is inactive.",
-          404
-        );
-      }
-    } else {
-      return errorResponse("Invalid category assignment.");
+    if (!existingCategory.rowCount) {
+      return errorResponse("Category not found.", 404);
     }
 
+    // Update category without office assignments
     const result = await pool.query(
       `
       UPDATE public.expense_account_category
       SET
-        office_id = $1,
-        sub_office_id = $2,
-        category_code = $3,
-        category_name = $4,
-        description = $5,
-        is_active = $6,
+        category_code = $1,
+        category_name = $2,
+        description = $3,
+        is_active = $4,
         updated_at = NOW()
-      WHERE id = $7
+      WHERE id = $5
       RETURNING *
       `,
       [
-        officeId,
-        subOfficeId,
         categoryCode,
         categoryName,
         description,
@@ -139,17 +92,17 @@ export async function PATCH(
       ]
     );
 
-    if (!result.rowCount) {
-      return errorResponse("Category not found.", 404);
-    }
-
     return NextResponse.json({
       success: true,
       message: "Expense account category updated successfully.",
       data: result.rows[0],
     });
+
   } catch (error: any) {
-    console.error("PATCH Expense Account Category Error:", error);
+    console.error(
+      "PATCH Expense Account Category Error:",
+      error
+    );
 
     if (error.code === "23505") {
       return errorResponse(

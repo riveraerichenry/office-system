@@ -6,6 +6,9 @@ import type { FormEvent } from "react";
 
 import type {
   AccountOption,
+  OfficeOption,
+  SubOfficeOption,
+  CategoryOption,
   Appropriation,
   FundSource,
   RealignmentFormData,
@@ -14,6 +17,9 @@ import type {
 type Props = {
   appropriations: Appropriation[];
   accounts: AccountOption[];
+  offices: OfficeOption[];
+  subOffices: SubOfficeOption[];
+  categories: CategoryOption[];
   fundSources: FundSource[];
   currentYear: number;
   saving: boolean;
@@ -25,310 +31,59 @@ type Props = {
 type SelectorProps = {
   title: string;
   accounts: AccountOption[];
+  offices: OfficeOption[];
+  subOffices: SubOfficeOption[];
+  categories: CategoryOption[];
   appropriations: Appropriation[];
   selectedId: string;
   excludedId?: string;
   onSelect: (id: string) => void;
 };
 
-type Option = {
-  id: string;
-  label: string;
-};
-
-const money = (value: string | number) =>
-  Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
+const money = (value: string | number) => Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatAmount = (value: string) => {
   const cleaned = value.replace(/,/g, "").replace(/[^\d.]/g, "");
   const parts = cleaned.split(".");
   const whole = parts[0] || "";
   const decimal = parts.slice(1).join("").slice(0, 2);
-
   if (!whole && !decimal) return "";
-
-  const formattedWhole = whole
-    ? Number(whole).toLocaleString("en-PH")
-    : "0";
-
-  return cleaned.includes(".")
-    ? `${formattedWhole}.${decimal}`
-    : formattedWhole;
+  return `${whole ? Number(whole).toLocaleString("en-PH") : "0"}${cleaned.includes(".") ? `.${decimal}` : ""}`;
 };
+const inputClass = "w-full border-0 border-b border-slate-300 bg-transparent px-0 py-2 text-sm text-slate-700 outline-none transition focus:border-[#6689A5] focus:ring-0 disabled:text-slate-400";
+const labelClass = "mb-1 block text-[11px] font-medium text-slate-400";
+const sectionClass = "mb-4 border-b border-slate-300 pb-2 text-sm font-medium text-[#557992]";
 
-const inputClass =
-  "w-full border-0 border-b border-slate-300 bg-transparent px-0 py-2 text-sm text-slate-700 outline-none transition focus:border-[#6689A5] focus:ring-0 disabled:text-slate-400";
-
-const labelClass =
-  "mb-1 block text-[11px] font-medium text-slate-400";
-
-const sectionClass =
-  "mb-4 border-b border-slate-300 pb-2 text-sm font-medium text-[#557992]";
-
-/**
- * Create unique dropdown options from the registered account list.
- */
-function uniqueOptions(
-  items: AccountOption[],
-  idKey: "office_id" | "sub_office_id" | "category_id",
-  codeKey: "office_code" | "sub_office_code" | "category_code",
-  nameKey: "office_name" | "sub_office_name" | "category_name"
-): Option[] {
-  const map = new Map<string, Option>();
-
-  items.forEach((item) => {
-    const id = item[idKey];
-    if (id === null || id === undefined || String(id) === "") return;
-
-    const key = String(id);
-    if (!map.has(key)) {
-      map.set(key, {
-        id: key,
-        label: [item[codeKey], item[nameKey]].filter(Boolean).join(" - ") || key,
-      });
-    }
-  });
-
-  return Array.from(map.values()).sort((a, b) =>
-    a.label.localeCompare(b.label)
-  );
-}
-
-/**
- * Cascading selector using all registered accounts.
- * An account is disabled when it has no matching appropriation
- * for the selected fiscal year and fund source.
- */
-function AppropriationSelector({
-  title,
-  accounts = [],
-  appropriations = [],
-  selectedId,
-  excludedId,
-  onSelect,
-}: SelectorProps) {
-  const safeAccounts = Array.isArray(accounts) ? accounts : [];
-  const safeAppropriations = Array.isArray(appropriations)
-    ? appropriations
-    : [];
+function AppropriationSelector({ title, accounts, offices, subOffices, categories, appropriations, selectedId, onSelect }: SelectorProps) {
   const [officeId, setOfficeId] = useState("");
   const [subOfficeId, setSubOfficeId] = useState("");
   const [categoryId, setCategoryId] = useState("");
-
-  const offices = useMemo(
-    () => uniqueOptions(safeAccounts, "office_id", "office_code", "office_name"),
-    [safeAccounts]
+  const [accountId, setAccountId] = useState("");
+  const candidates = appropriations.filter((item) =>
+    (!officeId || item.office_id === officeId) &&
+    (!subOfficeId || item.sub_office_id === subOfficeId) &&
+    (!categoryId || item.category_id === categoryId) &&
+    (!accountId || item.account_id === accountId)
   );
-
-  const officeAccounts = useMemo(
-    () => safeAccounts.filter((item) => String(item.office_id) === officeId),
-    [safeAccounts, officeId]
-  );
-
-  const subOffices = useMemo(
-    () =>
-      uniqueOptions(
-        officeAccounts,
-        "sub_office_id",
-        "sub_office_code",
-        "sub_office_name"
-      ),
-    [officeAccounts]
-  );
-
-  const subOfficeAccounts = useMemo(
-    () =>
-      officeAccounts.filter((item) =>
-        subOfficeId === "__none__"
-          ? !item.sub_office_id
-          : String(item.sub_office_id) === subOfficeId
-      ),
-    [officeAccounts, subOfficeId]
-  );
-
-  const categories = useMemo(
-    () =>
-      uniqueOptions(
-        subOfficeAccounts,
-        "category_id",
-        "category_code",
-        "category_name"
-      ),
-    [subOfficeAccounts]
-  );
-
-  const categoryAccounts = useMemo(
-    () =>
-      subOfficeAccounts.filter(
-        (item) => String(item.category_id) === categoryId
-      ),
-    [subOfficeAccounts, categoryId]
-  );
-
-  const selectedAppropriation = safeAppropriations.find(
-    (item) => item.id === selectedId
-  );
-
-  const selectedAccount = safeAccounts.find(
-    (item) => item.account_id === selectedAppropriation?.account_id
-  );
-
-  function changeOffice(value: string) {
-    setOfficeId(value);
-    setSubOfficeId("");
-    setCategoryId("");
-    onSelect("");
-  }
-
-  function changeSubOffice(value: string) {
-    setSubOfficeId(value);
-    setCategoryId("");
-    onSelect("");
-  }
-
-  function changeCategory(value: string) {
-    setCategoryId(value);
-    onSelect("");
-  }
-
-  return (
-    <section>
-      <h3 className={sectionClass}>{title}</h3>
-
-      <div className="space-y-4">
-        <div>
-          <label className={labelClass}>
-            Office <span className="text-red-500">*</span>
-          </label>
-          <select
-            required
-            value={officeId}
-            onChange={(e) => changeOffice(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Select office</option>
-            {offices.map((office) => (
-              <option key={office.id} value={office.id}>
-                {office.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={labelClass}>
-            Sub-office <span className="text-red-500">*</span>
-          </label>
-          <select
-            required
-            value={subOfficeId}
-            onChange={(e) => changeSubOffice(e.target.value)}
-            disabled={!officeId}
-            className={inputClass}
-          >
-            <option value="">Select sub-office</option>
-            {officeId && <option value="__none__">No Sub-office</option>}
-            {subOffices.map((subOffice) => (
-              <option key={subOffice.id} value={subOffice.id}>
-                {subOffice.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={labelClass}>
-            Expense Account Category <span className="text-red-500">*</span>
-          </label>
-          <select
-            required
-            value={categoryId}
-            onChange={(e) => changeCategory(e.target.value)}
-            disabled={!subOfficeId}
-            className={inputClass}
-          >
-            <option value="">Select category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={labelClass}>
-            Expense Account <span className="text-red-500">*</span>
-          </label>
-          <select
-            required
-            value={selectedId}
-            onChange={(e) => onSelect(e.target.value)}
-            disabled={!categoryId}
-            className={inputClass}
-          >
-            <option value="">Select expense account</option>
-            {categoryAccounts.map((account) => {
-              const matches = safeAppropriations.filter(
-                (item) =>
-                  item.account_id === account.account_id &&
-                  item.id !== excludedId
-              );
-
-              if (matches.length === 0) {
-                return (
-                  <option
-                    key={`unavailable-${account.account_id}`}
-                    value={`unavailable-${account.account_id}`}
-                    disabled
-                  >
-                    {account.account_code} - {account.account_name} (No appropriation)
-                  </option>
-                );
-              }
-
-              return matches.map((appropriation) => (
-                <option key={appropriation.id} value={appropriation.id}>
-                  {account.account_code} - {account.account_name}
-                  {` (${appropriation.appropriation_type}`}
-                  {appropriation.ordinance_no
-                    ? ` - ${appropriation.ordinance_no}`
-                    : ""}
-                  {")"}
-                </option>
-              ));
-            })}
-          </select>
-        </div>
-      </div>
-
-      {selectedAccount && selectedAppropriation && (
-        <div className="mt-4 rounded-lg border border-[#C7D8E3] bg-white p-4">
-          <p className={labelClass}>Selected Account</p>
-          <p className="text-sm font-semibold text-slate-700">
-            {selectedAccount.account_code} - {selectedAccount.account_name}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            {selectedAccount.office_name}
-            {selectedAccount.sub_office_name
-              ? ` / ${selectedAccount.sub_office_name}`
-              : ""}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#557992]">
-            {selectedAccount.category_code} - {selectedAccount.category_name}
-          </p>
-        </div>
-      )}
-    </section>
-  );
+  const selected = appropriations.find((item) => item.id === selectedId);
+  return <section className="space-y-3">
+    <h3 className={sectionClass}>{title}</h3>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div><label className={labelClass}>Office</label><select value={officeId} onChange={(e) => setOfficeId(e.target.value)} className={inputClass}><option value="">All offices</option>{offices.map((x) => <option key={x.id} value={x.id}>{x.office_code} - {x.office_name}</option>)}</select></div>
+      <div><label className={labelClass}>Sub-office</label><select value={subOfficeId} onChange={(e) => setSubOfficeId(e.target.value)} className={inputClass}><option value="">All sub-offices</option>{subOffices.map((x) => <option key={x.id} value={x.id}>{x.sub_office_code ? `${x.sub_office_code} - ` : ""}{x.sub_office_name}</option>)}</select></div>
+      <div><label className={labelClass}>Expense Account Category</label><select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}><option value="">All categories</option>{categories.map((x) => <option key={x.id} value={x.id}>{x.category_code} - {x.category_name}</option>)}</select></div>
+      <div><label className={labelClass}>Expense Account</label><select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inputClass}><option value="">All accounts</option>{accounts.map((x) => <option key={x.account_id} value={x.account_id}>{x.account_code} - {x.account_name}</option>)}</select></div>
+    </div>
+    <div><label className={labelClass}>Appropriation Record *</label><select required value={selectedId} onChange={(e) => onSelect(e.target.value)} className={inputClass}><option value="">Select appropriation</option>{candidates.map((item) => <option key={item.id} value={item.id}>{item.office_name} / {item.sub_office_name} / {item.category_code} / {item.account_code} - {item.account_name} ({item.appropriation_type}{item.ordinance_no ? ` - ${item.ordinance_no}` : ""})</option>)}</select></div>
+    {selected && <p className="text-xs text-slate-500">Selected: {selected.office_name} / {selected.sub_office_name} / {selected.category_name} / {selected.account_code} - {selected.account_name}</p>}
+  </section>;
 }
 
 export default function RealignmentForm({
   appropriations = [],
   accounts = [],
+  offices = [],
+  subOffices = [],
+  categories = [],
   fundSources = [],
   currentYear,
   saving,
@@ -339,9 +94,10 @@ export default function RealignmentForm({
   const safeAppropriations: Appropriation[] = Array.isArray(appropriations)
     ? appropriations
     : [];
-  const safeAccounts: AccountOption[] = Array.isArray(accounts)
-    ? accounts
-    : [];
+  const safeAccounts: AccountOption[] = Array.isArray(accounts) ? accounts : [];
+  const safeOffices = Array.isArray(offices) ? offices : [];
+  const safeSubOffices = Array.isArray(subOffices) ? subOffices : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const safeFundSources: FundSource[] = Array.isArray(fundSources)
     ? fundSources
     : [];
@@ -527,6 +283,9 @@ export default function RealignmentForm({
         key={`source-${form.fiscal_year}-${form.fund_source_id}`}
         title="Source Appropriation"
         accounts={safeAccounts}
+        offices={safeOffices}
+        subOffices={safeSubOffices}
+        categories={safeCategories}
         appropriations={eligibleAppropriations}
         selectedId={form.source_appropriation_id}
         onSelect={(id) =>
@@ -617,10 +376,7 @@ export default function RealignmentForm({
                 {destination.account_code} - {destination.account_name}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                {destination.office_name}
-                {destination.sub_office_name
-                  ? ` / ${destination.sub_office_name}`
-                  : ""}
+                {destination.office_name} / {destination.sub_office_name}
               </p>
               <p className="mt-1 text-xs font-medium text-[#557992]">
                 {destination.category_code} - {destination.category_name}

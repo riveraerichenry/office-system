@@ -43,16 +43,12 @@ const menuGroups = [
         href: "/budget/appropriations",
         icon: Landmark,
       },
-      {
-        label: "Supplemental Appropriations",
-        href: "/budget/supplemental_appropriations",
-        icon: FolderOpen,
-      },
-      {
-        label: "Budget Adjustments",
-        href: "/budget/budget_adjustments",
-        icon: SlidersHorizontal,
-      },
+      
+      // {
+      //   label: "Budget Adjustments",
+      //   href: "/budget/budget_adjustments",
+      //   icon: SlidersHorizontal,
+      // },
     ],
   },
   {
@@ -65,9 +61,15 @@ const menuGroups = [
       },
       {
         label: "Obligation Requests (OBR)",
-        href: "/budget/obligations",
+        href: "/budget/obrs",
         icon: FileText,
       },
+       {
+        label: "Purchase Request (PR)",
+        href: "/budget/purchase_requests",
+        icon: FileText,
+      },
+      
     ],
   },
   {
@@ -75,19 +77,19 @@ const menuGroups = [
     items: [
       {
         label: "Disbursement Vouchers",
-        href: "/budget/disbursement_vouchers",
+        href: "/budget/disbursement-vouchers",
         icon: Receipt,
       },
-      {
-        label: "Disbursement Transactions",
-        href: "/budget/disbursement_transactions",
-        icon: ClipboardList,
-      },
-      {
-        label: "Payments",
-        href: "/budget/payments",
-        icon: Banknote,
-      },
+      // {
+      //   label: "Disbursement Transactions",
+      //   href: "/budget/disbursement_transactions",
+      //   icon: ClipboardList,
+      // },
+      // {
+      //   label: "Payments",
+      //   href: "/budget/payments",
+      //   icon: Banknote,
+      // },
     ],
   },
   {
@@ -118,11 +120,11 @@ const settingsItems = [
     href: "/budget/offices",
     icon: Building2,
   },
-  {
-    label: "Fund Sources",
-    href: "/budget/fund_sources",
-    icon: Landmark,
-  },
+  // {
+  //   label: "Fund Sources",
+  //   href: "/budget/fund_sources",
+  //   icon: Landmark,
+  // },
   
   {
     label: "Categories and Expense Accounts",

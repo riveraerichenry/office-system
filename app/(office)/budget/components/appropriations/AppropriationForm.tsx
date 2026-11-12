@@ -13,12 +13,18 @@ import {
 
 import type {
   AccountOption,
+  CategoryOption,
+  OfficeOption,
+  SubOfficeOption,
   FundSource,
   AppropriationFormData,
 } from "./appropriation-types";
 
 type Props = {
   initialData: AppropriationFormData;
+  offices: OfficeOption[];
+  subOffices: SubOfficeOption[];
+  categories: CategoryOption[];
   accounts: AccountOption[];
   fundSources: FundSource[];
   saving: boolean;
@@ -38,34 +44,25 @@ function formatAmountInput(value: string) {
   if (!value) return "";
 
   const cleaned = value.replace(/,/g, "").replace(/[^\d.]/g, "");
-  const firstDot = cleaned.indexOf(".");
+  const dot = cleaned.indexOf(".");
 
-  let whole =
-    firstDot === -1 ? cleaned : cleaned.slice(0, firstDot);
+  const whole = (
+    dot < 0 ? cleaned : cleaned.slice(0, dot)
+  ).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
   const decimal =
-    firstDot === -1
+    dot < 0
       ? undefined
-      : cleaned.slice(firstDot + 1).replace(/\./g, "").slice(0, 2);
+      : cleaned.slice(dot + 1).replace(/\./g, "").slice(0, 2);
 
-  whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-  return decimal !== undefined
-    ? `${whole}.${decimal}`
-    : whole;
-}
-
-function formatCurrency(value: string) {
-  const amount = Number(value.replace(/,/g, "") || 0);
-
-  return amount.toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return decimal === undefined ? whole : `${whole}.${decimal}`;
 }
 
 export default function AppropriationForm({
   initialData,
+  offices,
+  subOffices,
+  categories,
   accounts,
   fundSources,
   saving,
@@ -77,32 +74,34 @@ export default function AppropriationForm({
     ...initialData,
   });
 
-  const [officeId, setOfficeId] = useState("");
-  const [subOfficeId, setSubOfficeId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-
   const [validationError, setValidationError] = useState("");
-
-  // =====================================================
-  // INITIALIZE FORM
-  // =====================================================
 
   useEffect(() => {
     setForm({ ...initialData });
     setValidationError("");
+  }, [initialData]);
 
-    const selected = accounts.find(
-      (item) => item.account_id === initialData.account_id
+  // Sub-offices are filtered based on the selected office.
+  const filteredSubOffices = useMemo(() => {
+    if (!form.office_id) return [];
+
+    return subOffices.filter(
+      (subOffice) => subOffice.office_id === form.office_id
     );
+  }, [subOffices, form.office_id]);
 
-    setOfficeId(selected?.office_id ?? "");
-    setSubOfficeId(selected?.sub_office_id ?? "");
-    setCategoryId(selected?.category_id ?? "");
-  }, [initialData, accounts]);
+  // Expense accounts are filtered based on the selected category.
+  const filteredAccounts = useMemo(() => {
+    if (!form.category_id) return [];
 
-  // =====================================================
-  // FORM UPDATE
-  // =====================================================
+    return accounts.filter(
+      (account) => account.category_id === form.category_id
+    );
+  }, [accounts, form.category_id]);
+
+  const selectedAccount = accounts.find(
+    (item) => item.account_id === form.account_id
+  );
 
   function update<K extends keyof AppropriationFormData>(
     field: K,
@@ -116,233 +115,116 @@ export default function AppropriationForm({
     setValidationError("");
   }
 
-  // =====================================================
-  // OFFICE OPTIONS
-  // =====================================================
+  // Changing office automatically clears the selected sub-office.
+  function handleOfficeChange(officeId: string) {
+    setForm((previous) => ({
+      ...previous,
+      office_id: officeId,
+      sub_office_id: "",
+    }));
 
-  const offices = useMemo(() => {
-    const unique = new Map<string, AccountOption>();
-
-    accounts.forEach((item) => {
-      if (item.office_id) {
-        unique.set(item.office_id, item);
-      }
-    });
-
-    return Array.from(unique.values()).sort((a, b) =>
-      a.office_name.localeCompare(b.office_name)
-    );
-  }, [accounts]);
-
-  // =====================================================
-  // SUB-OFFICE OPTIONS
-  // =====================================================
-
-  const subOffices = useMemo(() => {
-    if (!officeId) return [];
-
-    const unique = new Map<string, AccountOption>();
-
-    accounts
-      .filter(
-        (item) =>
-          item.office_id === officeId &&
-          item.sub_office_id !== null
-      )
-      .forEach((item) => {
-        const id = item.sub_office_id;
-
-        if (id) {
-          unique.set(id, item);
-        }
-      });
-
-    return Array.from(unique.values()).sort((a, b) =>
-      (a.sub_office_name ?? "").localeCompare(
-        b.sub_office_name ?? ""
-      )
-    );
-  }, [accounts, officeId]);
-
-  // =====================================================
-  // CATEGORY OPTIONS
-  // =====================================================
-
-  const categories = useMemo(() => {
-    if (!officeId) return [];
-
-    const filtered = accounts.filter((item) => {
-      if (item.office_id !== officeId) return false;
-
-      if (subOfficeId) {
-        return item.sub_office_id === subOfficeId;
-      }
-
-      return item.sub_office_id === null;
-    });
-
-    const unique = new Map<string, AccountOption>();
-
-    filtered.forEach((item) => {
-      unique.set(item.category_id, item);
-    });
-
-    return Array.from(unique.values()).sort((a, b) =>
-      a.category_name.localeCompare(b.category_name)
-    );
-  }, [accounts, officeId, subOfficeId]);
-
-  // =====================================================
-  // EXPENSE ACCOUNT OPTIONS
-  // =====================================================
-
-  const filteredAccounts = useMemo(() => {
-    if (!officeId || !categoryId) return [];
-
-    return accounts
-      .filter((item) => {
-        const correctOffice = item.office_id === officeId;
-        const correctCategory = item.category_id === categoryId;
-
-        const correctSubOffice = subOfficeId
-          ? item.sub_office_id === subOfficeId
-          : item.sub_office_id === null;
-
-        return (
-          correctOffice &&
-          correctCategory &&
-          correctSubOffice
-        );
-      })
-      .sort((a, b) =>
-        a.account_code.localeCompare(b.account_code)
-      );
-  }, [accounts, officeId, subOfficeId, categoryId]);
-
-  const selectedAccount = accounts.find(
-    (item) => item.account_id === form.account_id
-  );
-
-  // =====================================================
-  // CASCADING SELECTIONS
-  // =====================================================
-
-  function handleOfficeChange(value: string) {
-    setOfficeId(value);
-    setSubOfficeId("");
-    setCategoryId("");
-
-    update("account_id", "");
-  }
-
-  function handleSubOfficeChange(value: string) {
-    setSubOfficeId(value);
-    setCategoryId("");
-
-    update("account_id", "");
-  }
-
-  function handleCategoryChange(value: string) {
-    setCategoryId(value);
-
-    update("account_id", "");
-  }
-
-  // =====================================================
-  // AMOUNT INPUT
-  // =====================================================
-
-  function handleAmountChange(value: string) {
-    let raw = value.replace(/,/g, "").replace(/[^\d.]/g, "");
-
-    const firstDot = raw.indexOf(".");
-
-    if (firstDot !== -1) {
-      const whole = raw.slice(0, firstDot);
-      const decimal = raw
-        .slice(firstDot + 1)
-        .replace(/\./g, "")
-        .slice(0, 2);
-
-      raw = `${whole}.${decimal}`;
-    }
-
-    update("appropriated_amount", raw);
-  }
-
-  // =====================================================
-  // SUBMIT
-  // =====================================================
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
     setValidationError("");
+  }
+
+  // Changing category automatically clears the selected account.
+  function handleCategoryChange(categoryId: string) {
+    setForm((previous) => ({
+      ...previous,
+      category_id: categoryId,
+      account_id: "",
+    }));
+
+    setValidationError("");
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
     const amount = Number(
-      String(form.appropriated_amount ?? "").replace(/,/g, "")
+      String(form.appropriated_amount || "").replace(/,/g, "")
     );
 
     if (!form.fiscal_year || form.fiscal_year < 2000) {
-      setValidationError("Please provide a valid fiscal year.");
-      return;
-    }
-
-    if (!form.appropriation_type) {
-      setValidationError("Please select an appropriation type.");
-      return;
+      return setValidationError("Please provide a valid fiscal year.");
     }
 
     if (!form.fund_source_id) {
-      setValidationError("Please select a fund source.");
-      return;
+      return setValidationError("Please select a fund source.");
+    }
+
+    if (!form.office_id) {
+      return setValidationError("Please select an office.");
+    }
+
+    if (!form.category_id) {
+      return setValidationError(
+        "Please select an expense account category."
+      );
     }
 
     if (!form.account_id) {
-      setValidationError("Please select an expense account.");
-      return;
+      return setValidationError("Please select an expense account.");
+    }
+
+    const selectedAccount = accounts.find(
+      (item) => item.account_id === form.account_id
+    );
+
+    if (
+      !selectedAccount ||
+      selectedAccount.category_id !== form.category_id
+    ) {
+      return setValidationError(
+        "The selected expense account does not belong to the selected category."
+      );
+    }
+
+    // Sub-office is optional, but when selected it must belong to the office.
+    if (form.sub_office_id) {
+      const selectedSubOffice = subOffices.find(
+        (item) => item.id === form.sub_office_id
+      );
+
+      if (
+        !selectedSubOffice ||
+        selectedSubOffice.office_id !== form.office_id
+      ) {
+        return setValidationError(
+          "The selected sub-office does not belong to the selected office."
+        );
+      }
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      setValidationError("Please enter a valid appropriation amount.");
-      return;
+      return setValidationError(
+        "Please enter a valid appropriation amount."
+      );
     }
 
     onSubmit({
       ...form,
       fiscal_year: Number(form.fiscal_year),
-      ordinance_no: form.ordinance_no ?? "",
-      ordinance_date: form.ordinance_date ?? "",
-      fund_source_id: form.fund_source_id,
-      account_id: form.account_id,
+      ordinance_no: form.ordinance_no.trim(),
+      ordinance_date: form.ordinance_date || "",
       appropriated_amount: String(amount),
-      remarks: form.remarks ?? "",
+      remarks: form.remarks || "",
     });
   }
 
-  // =====================================================
-  // RENDER
-  // =====================================================
-
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-
       {/* APPROPRIATION INFORMATION */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
           <FileText size={17} className="text-[#6689A5]" />
-
           <h3 className="text-sm font-semibold text-slate-700">
             Appropriation Information
           </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
           <div>
-            <label className={labelClass}>
-              Fiscal Year <span className="text-red-500">*</span>
-            </label>
-
+            <label className={labelClass}>Fiscal Year *</label>
             <input
               required
               type="number"
@@ -358,10 +240,7 @@ export default function AppropriationForm({
           </div>
 
           <div>
-            <label className={labelClass}>
-              Appropriation Type <span className="text-red-500">*</span>
-            </label>
-
+            <label className={labelClass}>Appropriation Type *</label>
             <select
               required
               value={form.appropriation_type}
@@ -382,16 +261,10 @@ export default function AppropriationForm({
           </div>
 
           <div>
-            <label className={labelClass}>
-              Ordinance Number
-            </label>
-
+            <label className={labelClass}>Ordinance Number</label>
             <input
-              type="text"
-              value={form.ordinance_no ?? ""}
-              onChange={(e) =>
-                update("ordinance_no", e.target.value)
-              }
+              value={form.ordinance_no || ""}
+              onChange={(e) => update("ordinance_no", e.target.value)}
               placeholder="Enter ordinance number"
               className={inputClass}
               disabled={saving}
@@ -399,26 +272,18 @@ export default function AppropriationForm({
           </div>
 
           <div>
-            <label className={labelClass}>
-              Ordinance Date
-            </label>
-
+            <label className={labelClass}>Ordinance Date</label>
             <input
               type="date"
-              value={form.ordinance_date ?? ""}
-              onChange={(e) =>
-                update("ordinance_date", e.target.value)
-              }
+              value={form.ordinance_date || ""}
+              onChange={(e) => update("ordinance_date", e.target.value)}
               className={inputClass}
               disabled={saving}
             />
           </div>
 
           <div className="sm:col-span-2">
-            <label className={labelClass}>
-              Fund Source <span className="text-red-500">*</span>
-            </label>
-
+            <label className={labelClass}>Fund Source *</label>
             <select
               required
               value={form.fund_source_id}
@@ -429,7 +294,6 @@ export default function AppropriationForm({
               disabled={saving}
             >
               <option value="">Select fund source</option>
-
               {fundSources.map((fund) => (
                 <option key={fund.id} value={fund.id}>
                   {fund.fund_code} - {fund.fund_name}
@@ -437,7 +301,6 @@ export default function AppropriationForm({
               ))}
             </select>
           </div>
-
         </div>
       </section>
 
@@ -445,128 +308,121 @@ export default function AppropriationForm({
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
           <Landmark size={17} className="text-[#6689A5]" />
-
           <h3 className="text-sm font-semibold text-slate-700">
             Office and Account Classification
           </h3>
         </div>
 
-        {/* OFFICE */}
-        <div>
-          <label className={labelClass}>
-            Office <span className="text-red-500">*</span>
-          </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* OFFICE */}
+          <div>
+            <label className={labelClass}>Office *</label>
+            <select
+              required
+              value={form.office_id}
+              onChange={(e) => handleOfficeChange(e.target.value)}
+              className={inputClass}
+              disabled={saving}
+            >
+              <option value="">Select office</option>
+              {offices.map((office) => (
+                <option key={office.id} value={office.id}>
+                  {office.office_code} - {office.office_name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            required
-            value={officeId}
-            onChange={(e) => handleOfficeChange(e.target.value)}
-            className={inputClass}
-            disabled={saving}
-          >
-            <option value="">Select office</option>
+          {/* SUB-OFFICE - CASCADING */}
+          <div>
+            <label className={labelClass}>
+              Sub-office{" "}
+              <span className="font-normal normal-case text-slate-400">
+                (Optional)
+              </span>
+            </label>
 
-            {offices.map((office) => (
-              <option
-                key={office.office_id}
-                value={office.office_id}
-              >
-                {office.office_code} - {office.office_name}
+            <select
+              value={form.sub_office_id}
+              onChange={(e) =>
+                update("sub_office_id", e.target.value)
+              }
+              className={inputClass}
+              disabled={saving || !form.office_id}
+            >
+              <option value="">
+                {!form.office_id
+                  ? "Select office first"
+                  : "No sub-office / Office-level"}
               </option>
-            ))}
-          </select>
+
+              {filteredSubOffices.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.sub_office_code
+                    ? `${sub.sub_office_code} - `
+                    : ""}
+                  {sub.sub_office_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* CATEGORY */}
+          <div>
+            <label className={labelClass}>
+              Expense Account Category *
+            </label>
+            <select
+              required
+              value={form.category_id}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className={inputClass}
+              disabled={saving}
+            >
+              <option value="">Select category</option>
+
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.category_code} - {category.category_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ACCOUNT - CASCADING */}
+          <div>
+            <label className={labelClass}>Expense Account *</label>
+            <select
+              required
+              value={form.account_id}
+              onChange={(e) => update("account_id", e.target.value)}
+              className={inputClass}
+              disabled={saving || !form.category_id}
+            >
+              <option value="">
+                {!form.category_id
+                  ? "Select category first"
+                  : "Select expense account"}
+              </option>
+
+              {filteredAccounts.map((account) => (
+                <option
+                  key={account.account_id}
+                  value={account.account_id}
+                >
+                  {account.account_code} - {account.account_name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* SUB-OFFICE */}
-        <div>
-          <label className={labelClass}>
-            Sub-office{" "}
-            <span className="font-normal normal-case text-slate-400">
-              (Optional)
-            </span>
-          </label>
+        <p className="text-[11px] text-slate-400">
+          Sub-offices are filtered according to the selected office.
+          Expense accounts are filtered according to the selected
+          category.
+        </p>
 
-          <select
-            value={subOfficeId}
-            onChange={(e) =>
-              handleSubOfficeChange(e.target.value)
-            }
-            className={inputClass}
-            disabled={!officeId || saving}
-          >
-            <option value="">Office-level account</option>
-
-            {subOffices.map((subOffice) => (
-              <option
-                key={subOffice.sub_office_id ?? ""}
-                value={subOffice.sub_office_id ?? ""}
-              >
-                {subOffice.sub_office_code} -{" "}
-                {subOffice.sub_office_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* CATEGORY */}
-        <div>
-          <label className={labelClass}>
-            Expense Account Category{" "}
-            <span className="text-red-500">*</span>
-          </label>
-
-          <select
-            required
-            value={categoryId}
-            onChange={(e) =>
-              handleCategoryChange(e.target.value)
-            }
-            className={inputClass}
-            disabled={!officeId || saving}
-          >
-            <option value="">Select category</option>
-
-            {categories.map((category) => (
-              <option
-                key={category.category_id}
-                value={category.category_id}
-              >
-                {category.category_code} -{" "}
-                {category.category_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* EXPENSE ACCOUNT */}
-        <div>
-          <label className={labelClass}>
-            Expense Account <span className="text-red-500">*</span>
-          </label>
-
-          <select
-            required
-            value={form.account_id}
-            onChange={(e) =>
-              update("account_id", e.target.value)
-            }
-            className={inputClass}
-            disabled={!categoryId || saving}
-          >
-            <option value="">Select expense account</option>
-
-            {filteredAccounts.map((account) => (
-              <option
-                key={account.account_id}
-                value={account.account_id}
-              >
-                {account.account_code} - {account.account_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* SELECTED ACCOUNT PREVIEW */}
         {selectedAccount && (
           <div className="rounded-md border border-[#C7D8E3] bg-[#F1F6F9] p-3">
             <div className="flex items-start gap-2">
@@ -575,7 +431,7 @@ export default function AppropriationForm({
                 className="mt-0.5 text-[#6689A5]"
               />
 
-              <div className="min-w-0">
+              <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   Selected Expense Account
                 </p>
@@ -586,11 +442,7 @@ export default function AppropriationForm({
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  {selectedAccount.office_name}
-                  {selectedAccount.sub_office_name
-                    ? ` / ${selectedAccount.sub_office_name}`
-                    : ""}
-                  {" / "}
+                  {selectedAccount.category_code} -{" "}
                   {selectedAccount.category_name}
                 </p>
               </div>
@@ -603,45 +455,35 @@ export default function AppropriationForm({
       <section className="space-y-3">
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
           <Wallet size={17} className="text-[#6689A5]" />
-
           <h3 className="text-sm font-semibold text-slate-700">
             Appropriation Amount
           </h3>
         </div>
 
-        <div>
-          <label className={labelClass}>
-            Amount <span className="text-red-500">*</span>
-          </label>
+        <label className={labelClass}>Amount *</label>
 
-          <div className="relative">
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-lg font-semibold text-[#6689A5]">
-              ₱
-            </span>
+        <div className="relative">
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 text-lg font-semibold text-[#6689A5]">
+            ₱
+          </span>
 
-            <input
-              required
-              type="text"
-              inputMode="decimal"
-              value={formatAmountInput(form.appropriated_amount)}
-              onChange={(e) =>
-                handleAmountChange(e.target.value)
-              }
-              placeholder="0.00"
-              disabled={saving}
-              className={`${inputClass} pl-6 text-right text-2xl font-semibold tabular-nums`}
-            />
-          </div>
-
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-[10px] text-slate-400">
-              Enter amount using your keyboard.
-            </p>
-
-            <p className="text-sm font-semibold tabular-nums text-[#557992]">
-              PHP {formatCurrency(form.appropriated_amount)}
-            </p>
-          </div>
+          <input
+            required
+            type="text"
+            inputMode="decimal"
+            value={formatAmountInput(form.appropriated_amount)}
+            onChange={(e) =>
+              update(
+                "appropriated_amount",
+                e.target.value
+                  .replace(/,/g, "")
+                  .replace(/[^\d.]/g, "")
+              )
+            }
+            placeholder="0.00"
+            disabled={saving}
+            className={`${inputClass} pl-6 text-right text-2xl font-semibold tabular-nums`}
+          />
         </div>
       </section>
 
@@ -651,7 +493,7 @@ export default function AppropriationForm({
 
         <textarea
           rows={3}
-          value={form.remarks ?? ""}
+          value={form.remarks || ""}
           onChange={(e) => update("remarks", e.target.value)}
           placeholder="Enter additional remarks..."
           className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#6689A5] focus:ring-1 focus:ring-[#6689A5]/20"
@@ -659,14 +501,14 @@ export default function AppropriationForm({
         />
       </section>
 
-      {/* VALIDATION / API ERROR */}
+      {/* ERRORS */}
       {(validationError || error) && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {validationError || error}
         </div>
       )}
 
-      {/* FOOTER */}
+      {/* ACTIONS */}
       <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
         <button
           type="button"

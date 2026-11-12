@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { Plus, Trash2, X, Save } from "lucide-react";
 
 import type { AppropriationOption, ReleaseType } from "./allotment-types";
@@ -28,6 +29,8 @@ type Props = {
   quarter: number;
   onClose: () => void;
   onSaved: () => void;
+  onQuarterChange: (value: number) => void;
+  
 };
 
 type Item = {
@@ -65,6 +68,7 @@ export default function AllotmentFormModal({
   quarter,
   onClose,
   onSaved,
+  onQuarterChange,
 }: Props) {
   const [allotmentNo, setAllotmentNo] = useState("");
   const [allotmentDate, setAllotmentDate] = useState(
@@ -76,6 +80,8 @@ export default function AllotmentFormModal({
   const [fundSources, setFundSources] = useState<FundSource[]>([]);
   const [appropriations, setAppropriations] = useState<AppropriationOption[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [offices, setOffices] = useState<{ id: string; office_name: string }[]>([]);
+  const [subOffices, setSubOffices] = useState<{ id: string; office_id: string; sub_office_name: string }[]>([]);
   const [fundSourceId, setFundSourceId] = useState("");
   const [items, setItems] = useState<Item[]>([{ ...EMPTY_ITEM }]);
 
@@ -112,6 +118,8 @@ export default function AllotmentFormModal({
         setFundSources(fundJson.data || []);
         setAppropriations(appropriationJson.appropriations || []);
         setAccounts(appropriationJson.accounts || []);
+        setOffices(appropriationJson.offices || []);
+        setSubOffices(appropriationJson.subOffices || []);
       } catch (err) {
         if (active) {
           setError(err instanceof Error ? err.message : "Unable to load data.");
@@ -137,6 +145,8 @@ export default function AllotmentFormModal({
       ),
     [appropriations, fundSourceId]
   );
+
+  
 
   const selectedIds = items.map((item) => item.appropriation_id).filter(Boolean);
 
@@ -194,7 +204,7 @@ export default function AllotmentFormModal({
           item.amount <= 0
       )
     ) {
-      setError("Complete the Office, Sub-office, Category, Account, and Amount fields.");
+      setError("Complete the Office, Category, Account, and Amount fields.");
       return;
     }
 
@@ -235,7 +245,17 @@ export default function AllotmentFormModal({
       if (!response.ok || !result.success) {
         throw new Error(result.message || "Unable to save release.");
       }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Allotment Posted Successfully",
+        text: result.message || "The budget release has been successfully posted.",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#6689A5",
+      });
+
       onSaved();
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save release.");
     } finally {
@@ -284,10 +304,24 @@ export default function AllotmentFormModal({
                 <label className="mb-1 block text-xs text-slate-500">Fiscal Year</label>
                 <input value={fiscalYear} disabled className={fieldClass} />
               </div>
+              
               <div>
-                <label className="mb-1 block text-xs text-slate-500">Quarter</label>
-                <input value={`Quarter ${quarter}`} disabled className={fieldClass} />
+                <label className="mb-1 block text-xs text-slate-500">
+                  Quarter
+                </label>
+
+                <select
+                  value={quarter}
+                  onChange={(e) => onQuarterChange(Number(e.target.value))}
+                  className={fieldClass}
+                >
+                  <option value="1">1st Quarter</option>
+                  <option value="2">2nd Quarter</option>
+                  <option value="3">3rd Quarter</option>
+                  <option value="4">4th Quarter</option>
+                </select>
               </div>
+
               <div>
                 <label className="mb-1 block text-xs text-slate-500">Fund Source *</label>
                 <select
@@ -311,7 +345,7 @@ export default function AllotmentFormModal({
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-[#557992]">Allotment Account Details</h3>
-                  <p className="mt-1 text-xs text-slate-400">Select Office, Sub-office, Category, and Account for each allotment line.</p>
+                  <p className="mt-1 text-xs text-slate-400">Office filters its sub-offices. Category filters its expense accounts. These two pairs are independent.</p>
                 </div>
                 <button type="button" onClick={addItem} disabled={!fundSourceId || loading} className="flex items-center gap-2 rounded-md border border-[#6689A5] px-3 py-2 text-xs font-semibold text-[#557992] disabled:opacity-50">
                   <Plus size={15} /> Add Account
@@ -327,50 +361,29 @@ export default function AllotmentFormModal({
               ) : (
                 <div className="space-y-3">
                   {items.map((item, index) => {
-                    const officeOptions = Array.from(
-                      new Map(
-                        accounts.map((a) => [
-                          a.office_id,
-                          { id: a.office_id, name: a.office_name },
-                        ])
-                      ).values()
-                    ).sort((a, b) => a.name.localeCompare(b.name));
+                    // Office and sub-office form one cascading pair.
+                    const officeOptions = offices
+                      .map((office) => ({ id: office.id, name: office.office_name }))
+                      .sort((a, b) => a.name.localeCompare(b.name));
 
-                    const officeRows = accounts.filter(
-                      (a) => a.office_id === item.office_id
-                    );
+                    const subOfficeOptions = subOffices
+                      .filter((sub) => sub.office_id === item.office_id)
+                      .map((sub) => ({ id: sub.id, name: sub.sub_office_name }))
+                      .sort((a, b) => a.name.localeCompare(b.name));
 
-                    const subOfficeOptions = Array.from(
-                      new Map(
-                        officeRows.map((a) => [
-                          a.sub_office_id ?? NO_SUB_OFFICE,
-                          {
-                            id: a.sub_office_id ?? NO_SUB_OFFICE,
-                            name: a.sub_office_name || "No Sub-office",
-                          },
-                        ])
-                      ).values()
-                    ).sort((a, b) => a.name.localeCompare(b.name));
-
-                    const subOfficeRows = officeRows.filter(
-                      (a) =>
-                        (a.sub_office_id ?? NO_SUB_OFFICE) === item.sub_office_id
-                    );
-
+                    // Category and account form a separate cascading pair.
+                    // Selecting an office does not filter expense categories.
                     const categoryOptions = Array.from(
                       new Map(
-                        subOfficeRows.map((a) => [
-                          a.category_id,
-                          { id: a.category_id, name: a.category_name },
+                        accounts.map((account) => [
+                          account.category_id,
+                          { id: account.category_id, name: account.category_name },
                         ])
                       ).values()
                     ).sort((a, b) => a.name.localeCompare(b.name));
 
-                    const categoryRows = subOfficeRows.filter(
-                      (a) => a.category_id === item.category_id
-                    );
-
-                    const accountOptions = categoryRows
+                    const accountOptions = accounts
+                      .filter((account) => account.category_id === item.category_id)
                       .map((account) => {
                         const appropriation = availableAppropriations.find(
                           (a) => a.account_id === account.account_id
@@ -411,9 +424,8 @@ export default function AllotmentFormModal({
                               onChange={(e) => updateItem(index, { sub_office_id: e.target.value, category_id: "", account_id: "", appropriation_id: "" })}
                               className={fieldClass}
                               disabled={!item.office_id}
-                              required
                             >
-                              <option value="">Select sub-office</option>
+                              <option value="">No sub-office / Office-level</option>
                               {subOfficeOptions.map((sub) => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
                             </select>
                           </div>
@@ -424,7 +436,7 @@ export default function AllotmentFormModal({
                               value={item.category_id}
                               onChange={(e) => updateItem(index, { category_id: e.target.value, account_id: "", appropriation_id: "" })}
                               className={fieldClass}
-                              disabled={!item.sub_office_id}
+                              disabled={false}
                               required
                             >
                               <option value="">Select category</option>

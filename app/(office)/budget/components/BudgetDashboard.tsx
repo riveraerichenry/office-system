@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import BudgetUtilizationByOffice from "./BudgetUtilizationByOffice";
 import {
   Wallet,
   Landmark,
@@ -102,13 +103,6 @@ const transactions = [
   },
 ];
 
-const offices = [
-  { name: "Office of the Mayor", amount: 18500000, percentage: 85 },
-  { name: "Engineering Office", amount: 14200000, percentage: 72 },
-  { name: "Municipal Health Office", amount: 9800000, percentage: 61 },
-  { name: "Municipal Agriculture", amount: 7500000, percentage: 48 },
-  { name: "General Services Office", amount: 6200000, percentage: 38 },
-];
 
 const quickActions = [
   {
@@ -164,6 +158,13 @@ export default function BudgetDashboard() {
             <CalendarDays size={16} />
             Fiscal Year 2026
           </div>
+        </div>
+      </div>
+
+      {/* BUDGET UTILIZATION BY OFFICE */}
+      <div className="mb-6 grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <div className="min-w-0 xl:col-span-4">
+          <BudgetUtilizationByOffice />
         </div>
       </div>
 
@@ -294,46 +295,8 @@ export default function BudgetDashboard() {
 
       {/* LOWER DASHBOARD */}
       <div className="mt-7 grid grid-cols-1 gap-5 xl:grid-cols-5">
-        {/* OFFICE UTILIZATION */}
-        <div className="rounded-lg border border-[#DCE3E9] bg-white p-5 xl:col-span-2">
-          <div className="mb-5">
-            <h2 className="font-semibold text-slate-800">
-              Budget Utilization by Office
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Sample obligation figures per office.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            {offices.map((office) => (
-              <div key={office.name}>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="truncate text-sm text-slate-600">
-                    {office.name}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-700">
-                    {office.percentage}%
-                  </span>
-                </div>
-
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-[#829FB5]"
-                    style={{ width: `${office.percentage}%` }}
-                  />
-                </div>
-
-                <p className="mt-1 text-xs text-slate-400">
-                  {formatCurrency(office.amount)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* RECENT TRANSACTIONS */}
-        <div className="overflow-hidden rounded-lg border border-[#DCE3E9] bg-white xl:col-span-3">
+        <div className="overflow-hidden rounded-lg border border-[#DCE3E9] bg-white xl:col-span-5">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5">
             <div>
               <h2 className="font-semibold text-slate-800">

@@ -11,6 +11,9 @@ import AppropriationsTable from "./AppropriationsTable";
 
 import {
   AccountOption,
+  OfficeOption,
+  SubOfficeOption,
+  CategoryOption,
   AdjustmentFormData,
   Appropriation,
   AppropriationFormData,
@@ -30,6 +33,9 @@ const emptyForm = (year: number): AppropriationFormData => ({
   ordinance_no: "",
   ordinance_date: "",
   fund_source_id: "",
+  office_id: "",
+  sub_office_id: "",
+  category_id: "",
   account_id: "",
   appropriated_amount: "",
   remarks: "",
@@ -68,6 +74,9 @@ export default function AppropriationsPage() {
 
   const [data, setData] = useState<Appropriation[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [offices, setOffices] = useState<OfficeOption[]>([]);
+  const [subOffices, setSubOffices] = useState<SubOfficeOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [fundSources, setFundSources] = useState<FundSource[]>([]);
 
   // =====================================================
@@ -127,6 +136,9 @@ export default function AppropriationsPage() {
 
       setData(Array.isArray(result.data) ? result.data : []);
       setAccounts(Array.isArray(result.accounts) ? result.accounts : []);
+      setOffices(Array.isArray(result.offices) ? result.offices : []);
+      setSubOffices(Array.isArray(result.subOffices) ? result.subOffices : []);
+      setCategories(Array.isArray(result.categories) ? result.categories : []);
       setFundSources(
         Array.isArray(result.fundSources) ? result.fundSources : []
       );
@@ -516,6 +528,9 @@ export default function AppropriationsPage() {
 
       <AppropriationsTable
         data={data}
+        offices={offices}
+        subOffices={subOffices}
+        categories={categories}
         accounts={accounts}
         loading={loading}
         selectedYear={selectedYear}
@@ -578,6 +593,9 @@ export default function AppropriationsPage() {
               {modal === "appropriation" && (
                 <AppropriationForm
                   initialData={formData}
+                  offices={offices}
+                  subOffices={subOffices}
+                  categories={categories}
                   accounts={accounts}
                   fundSources={fundSources}
                   saving={saving}
@@ -613,6 +631,9 @@ export default function AppropriationsPage() {
                 {modal === "realignment" && (
                 <RealignmentForm
                     appropriations={Array.isArray(data) ? data : []}
+                    offices={offices}
+                    subOffices={subOffices}
+                    categories={categories}
                     accounts={Array.isArray(accounts) ? accounts : []}
                     fundSources={Array.isArray(fundSources) ? fundSources : []}
                     currentYear={currentYear}

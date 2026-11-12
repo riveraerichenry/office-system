@@ -21,237 +21,324 @@ function formatAmount(value: any) {
     });
 }
 
+/* Display penalties as positive (+) and discounts as negative (-). */
+function formatSignedAmount(value: any) {
+    const amount = Number(value ?? 0);
+    const formatted = Math.abs(amount).toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    if (amount > 0) return `+${formatted}`;
+    if (amount < 0) return `-${formatted}`;
+    return formatted;
+}
+
 
 /* ============================================================
-   GET PERIOD RANGE
+   GROUP TRANSACTION ITEMS BY TRANSACTION, TD, AND TAX PERIOD
+
+   For present year 2026:
+   - Advance: each year after 2026 is displayed separately.
+   - Current: 2026 is displayed separately.
+   - Previous year: 2025 is displayed separately.
+   - Older previous years: 2024 and earlier are combined
+     into one row per transaction + TD.
+
+   Different TD numbers are never combined.
 ============================================================ */
 
-function getPeriodRange(items: any[]) {
-    const periods: {
-        year: number;
-        quarter: number;
-        value: number;
-    }[] = [];
+function getYearFromItem(item: any) {
+    const year = Number(item?.start_year);
+    return Number.isInteger(year) ? year : null;
+}
+
+function getItemEndYear(item: any) {
+    const year = Number(item?.end_year ?? item?.start_year);
+    return Number.isInteger(year) ? year : null;
+}
+
+function formatQuarterCoverage(items: any[]) {
+    const quarters = new Set<number>();
 
     items.forEach((item) => {
-        const startYear = Number(item?.start_year);
         const startQuarter = Number(item?.start_quarter);
+        const endQuarter = Number(
+            item?.end_quarter ?? item?.start_quarter
+        );
 
         if (
-            Number.isFinite(startYear) &&
-            Number.isFinite(startQuarter) &&
+            Number.isInteger(startQuarter) &&
             startQuarter >= 1 &&
             startQuarter <= 4
         ) {
-            periods.push({
-                year: startYear,
-                quarter: startQuarter,
-                value: startYear * 4 + startQuarter,
-            });
+            quarters.add(startQuarter);
         }
 
-        const endYear = Number(
-            item?.end_year ??
-            item?.start_year
-        );
-
-        const endQuarter = Number(
-            item?.end_quarter ??
-            item?.start_quarter
-        );
-
         if (
-            Number.isFinite(endYear) &&
-            Number.isFinite(endQuarter) &&
+            Number.isInteger(endQuarter) &&
             endQuarter >= 1 &&
             endQuarter <= 4
         ) {
-            periods.push({
-                year: endYear,
-                quarter: endQuarter,
-                value: endYear * 4 + endQuarter,
-            });
+            quarters.add(endQuarter);
         }
     });
 
-    if (periods.length === 0) {
-        return {
-            startYear: null,
-            startQuarter: null,
-            endYear: null,
-            endQuarter: null,
-        };
+    const sorted = Array.from(quarters).sort((a, b) => a - b);
+
+    if (sorted.length === 0) return "";
+
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+
+    const ordinal = (quarter: number) =>
+        `${quarter}${quarter === 1 ? "st" : quarter === 2 ? "nd" : quarter === 3 ? "rd" : "th"} Qtr`;
+
+    return first === last
+        ? ordinal(first)
+        : `${ordinal(first)} - ${ordinal(last)}`;
+}
+
+function formatYearCoverage(items: any[]) {
+    const years = new Set<number>();
+
+    items.forEach((item) => {
+        const startYear = getYearFromItem(item);
+        const endYear = getItemEndYear(item);
+
+        if (startYear === null) return;
+
+        const finalYear = endYear ?? startYear;
+
+        for (let year = startYear; year <= finalYear; year++) {
+            years.add(year);
+        }
+    });
+
+    const sortedYears = Array.from(years).sort((a, b) => a - b);
+
+    if (sortedYears.length === 0) return "";
+
+    const ranges: string[] = [];
+    let rangeStart = sortedYears[0];
+    let rangeEnd = sortedYears[0];
+
+    for (let index = 1; index < sortedYears.length; index++) {
+        const year = sortedYears[index];
+
+        if (year === rangeEnd + 1) {
+            rangeEnd = year;
+            continue;
+        }
+
+        ranges.push(
+            rangeStart === rangeEnd
+                ? String(rangeStart)
+                : `${rangeStart}-${rangeEnd}`
+        );
+
+        rangeStart = year;
+        rangeEnd = year;
     }
 
-    periods.sort((a, b) => a.value - b.value);
+    ranges.push(
+        rangeStart === rangeEnd
+            ? String(rangeStart)
+            : `${rangeStart}-${rangeEnd}`
+    );
 
-    const firstPeriod = periods[0];
-    const lastPeriod = periods[periods.length - 1];
+    return ranges.join(", ");
+}
+
+function getItemTotal(item: any) {
+    const amountValue = item?.amount;
+
+    if (
+        amountValue !== null &&
+        amountValue !== undefined &&
+        String(amountValue).trim() !== "" &&
+        Number.isFinite(Number(amountValue))
+    ) {
+        return Number(amountValue);
+    }
+
+    return (
+        Number(item?.basic ?? 0) +
+        Number(item?.sef ?? 0) +
+        Number(item?.penalty ?? 0) -
+        Number(item?.discount ?? 0)
+    );
+}
+
+function summarizeItems(
+    groupItems: any[],
+    groupKey: string,
+    suffix: string
+) {
+    const firstItem = groupItems[0];
+
+    const payable = groupItems.reduce(
+        (sum, item) =>
+            sum +
+            Number(item?.basic ?? 0) +
+            Number(item?.sef ?? 0),
+        0
+    );
+
+    const penalty = groupItems.reduce(
+        (sum, item) => sum + Number(item?.penalty ?? 0),
+        0
+    );
+
+    const discount = groupItems.reduce(
+        (sum, item) => sum + Number(item?.discount ?? 0),
+        0
+    );
+
+    // One shared column: penalty is positive, discount is negative.
+    const adjustment = penalty - discount;
+
+    const total = groupItems.reduce(
+        (sum, item) => sum + getItemTotal(item),
+        0
+    );
 
     return {
-        startYear: firstPeriod.year,
-        startQuarter: firstPeriod.quarter,
-        endYear: lastPeriod.year,
-        endQuarter: lastPeriod.quarter,
+        id: `${groupKey}-${suffix}`,
+        transaction_id:
+            firstItem?.transaction_id ??
+            firstItem?.rpt_transaction_id ??
+            "",
+        declared_owner: firstItem?.declared_owner ?? "",
+        classification_name:
+            groupItems.find(
+                (entry) =>
+                    String(entry?.classification_name ?? "").trim() !== ""
+            )?.classification_name ?? "",
+        property_location: firstItem?.property_location ?? "",
+        td_number: firstItem?.td_number ?? "",
+        assessed_value: firstItem?.assessed_value ?? 0,
+        years: formatYearCoverage(groupItems),
+        quarters: formatQuarterCoverage(groupItems),
+        payable,
+        penalty,
+        discount,
+        adjustment,
+        total,
     };
 }
 
-
-/* ============================================================
-   FORMAT YEAR RANGE
-============================================================ */
-
-function formatYearRange(
-    startYear: number | null,
-    endYear: number | null
-) {
-    if (!startYear) {
-        return "";
-    }
-
-    if (!endYear || startYear === endYear) {
-        return String(startYear);
-    }
-
-    return `${startYear}-${endYear}`;
-}
-
-
-/* ============================================================
-   FORMAT QUARTER RANGE
-============================================================ */
-
-function formatQuarterRange(
-    startQuarter: number | null,
-    endQuarter: number | null
-) {
-    if (!startQuarter) {
-        return "";
-    }
-
-    const start = `${startQuarter}Qtr`;
-
-    if (
-        !endQuarter ||
-        startQuarter === endQuarter
-    ) {
-        return start;
-    }
-
-    return `${start}-${endQuarter}Qtr`;
-}
-
-
-/* ============================================================
-   GROUP ITEMS BY TAX DECLARATION NUMBER
-============================================================ */
-
 function groupItemsByTD(items: any[]) {
-    const groups = new Map<string, any[]>();
+    // Use the current calendar year as the classification reference.
+    const presentYear = new Date().getFullYear();
+
+    const tdGroups = new Map<string, any[]>();
 
     items.forEach((item, index) => {
-        const tdNumber = String(
-            item?.td_number ?? ""
+        const tdNumber = String(item?.td_number ?? "").trim();
+
+        const transactionId = String(
+            item?.transaction_id ??
+            item?.rpt_transaction_id ??
+            item?.transactionId ??
+            ""
         ).trim();
 
-        const key = tdNumber
-            ? tdNumber
-            : `NO_TD_${item?.id ?? index}`;
+        // Do not combine different TDs or different transactions.
+        const key = [
+            transactionId || "CURRENT_TRANSACTION",
+            tdNumber || `NO_TD_${item?.id ?? index}`,
+        ].join("::");
 
-        if (!groups.has(key)) {
-            groups.set(key, []);
+        if (!tdGroups.has(key)) {
+            tdGroups.set(key, []);
         }
 
-        groups.get(key)!.push(item);
+        tdGroups.get(key)!.push(item);
     });
 
-    return Array.from(groups.entries()).map(
-        ([key, groupItems]) => {
-            const firstItem = groupItems[0];
+    const result: any[] = [];
 
-            const periodRange =
-                getPeriodRange(groupItems);
+    tdGroups.forEach((tdItems, tdKey) => {
+        const futureBuckets = new Map<number, any[]>();
+        const currentItems: any[] = [];
+        const previousYearItems: any[] = [];
+        const olderPreviousItems: any[] = [];
 
-            const payable =
-                groupItems.reduce(
-                    (sum, item) =>
-                        sum +
-                        Number(item?.basic ?? 0) +
-                        Number(item?.sef ?? 0),
-                    0
+        tdItems.forEach((item) => {
+            const startYear = getYearFromItem(item);
+            if (startYear === null) return;
+
+            // A single item covering a year range is assigned according
+            // to its starting year. Normal annual transaction items
+            // are classified individually.
+            const classificationYear = startYear;
+
+            if (classificationYear > presentYear) {
+                if (!futureBuckets.has(classificationYear)) {
+                    futureBuckets.set(classificationYear, []);
+                }
+
+                futureBuckets.get(classificationYear)!.push(item);
+            } else if (classificationYear === presentYear) {
+                currentItems.push(item);
+            } else if (classificationYear === presentYear - 1) {
+                // Previous year is deliberately kept separate.
+                previousYearItems.push(item);
+            } else {
+                // 2024 and earlier are grouped together for the same TD.
+                olderPreviousItems.push(item);
+            }
+        });
+
+        // Advance years: one separate row per year, newest first.
+        Array.from(futureBuckets.entries())
+            .sort(([yearA], [yearB]) => yearB - yearA)
+            .forEach(([year, yearItems]) => {
+                result.push(
+                    summarizeItems(
+                        yearItems,
+                        tdKey,
+                        `advance-${year}`
+                    )
                 );
+            });
 
-            const penalty =
-                groupItems.reduce(
-                    (sum, item) =>
-                        sum +
-                        Number(item?.penalty ?? 0),
-                    0
-                );
-
-            const total =
-                groupItems.reduce(
-                    (sum, item) => {
-                        const amount = Number(
-                            item?.amount
-                        );
-
-                        if (
-                            Number.isFinite(amount)
-                        ) {
-                            return sum + amount;
-                        }
-
-                        return (
-                            sum +
-                            Number(item?.basic ?? 0) +
-                            Number(item?.sef ?? 0) +
-                            Number(item?.penalty ?? 0) -
-                            Number(item?.discount ?? 0)
-                        );
-                    },
-                    0
-                );
-
-            return {
-                id:
-                    firstItem?.id ??
-                    key,
-
-                declared_owner:
-                    firstItem?.declared_owner ??
-                    "",
-
-                property_location:
-                    firstItem?.property_location ??
-                    "",
-
-                td_number:
-                    firstItem?.td_number ??
-                    "",
-
-                assessed_value:
-                    firstItem?.assessed_value ??
-                    0,
-
-                start_year:
-                    periodRange.startYear,
-
-                start_quarter:
-                    periodRange.startQuarter,
-
-                end_year:
-                    periodRange.endYear,
-
-                end_quarter:
-                    periodRange.endQuarter,
-
-                payable,
-                penalty,
-                total,
-            };
+        // Current year: its own row.
+        if (currentItems.length > 0) {
+            result.push(
+                summarizeItems(
+                    currentItems,
+                    tdKey,
+                    `current-${presentYear}`
+                )
+            );
         }
-    );
+
+        // Previous year: its own row, even if the TD is the same.
+        if (previousYearItems.length > 0) {
+            result.push(
+                summarizeItems(
+                    previousYearItems,
+                    tdKey,
+                    `previous-${presentYear - 1}`
+                )
+            );
+        }
+
+        // Older previous years: one aggregated row for the same TD.
+        if (olderPreviousItems.length > 0) {
+            result.push(
+                summarizeItems(
+                    olderPreviousItems,
+                    tdKey,
+                    "older-previous"
+                )
+            );
+        }
+    });
+
+    return result;
 }
 
 
@@ -287,6 +374,16 @@ export default function AF56PrintBody({
                 Number(item?.penalty ?? 0),
             0
         );
+
+    const totalDiscount =
+        groupedItems.reduce(
+            (sum, item) =>
+                sum +
+                Number(item?.discount ?? 0),
+            0
+        );
+
+    const totalAdjustment = totalPenalty - totalDiscount;
 
     const grandTotal =
         groupedItems.reduce(
@@ -327,7 +424,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-owner-x":
-                    "105px",
+                    "155px",
 
                 "--af56-body-owner-y":
                     "90px",
@@ -349,7 +446,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-barangay-x":
-                    "265px",
+                    "295px",
 
                 "--af56-body-barangay-y":
                     "90px",
@@ -368,7 +465,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-tax-declaration-x":
-                    "400px",
+                    "430px",
 
                 "--af56-body-tax-declaration-y":
                     "90px",
@@ -387,7 +484,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-assessed-value-x":
-                    "585px",
+                    "645px",
 
                 "--af56-body-assessed-value-y":
                     "90px",
@@ -406,7 +503,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-year-paid-x":
-                    "655px",
+                    "710px",
 
                 "--af56-body-year-paid-y":
                     "90px",
@@ -425,7 +522,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-quarter-x":
-                    "720px",
+                    "785px",
 
                 "--af56-body-quarter-y":
                     "90px",
@@ -444,7 +541,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-payable-x":
-                    "785px",
+                    "860px",
 
                 "--af56-body-payable-y":
                     "90px",
@@ -463,7 +560,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-body-penalty-x":
-                    "885px",
+                    "925px",
 
                 "--af56-body-penalty-y":
                     "90px",
@@ -481,8 +578,9 @@ export default function AF56PrintBody({
                  * ======================================================
                  */
 
+
                 "--af56-body-total-x":
-                    "950px",
+                    "990px",
 
                 "--af56-body-total-y":
                     "90px",
@@ -491,7 +589,7 @@ export default function AF56PrintBody({
                     "80px",
 
                 "--af56-body-total-font-size":
-                    "12px",
+                    "13px",
 
 
                 /*
@@ -501,7 +599,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-summary-payable-x":
-                    "745px",
+                    "810px",
 
                 "--af56-summary-payable-y":
                     "370px",
@@ -510,7 +608,7 @@ export default function AF56PrintBody({
                     "80px",
 
                 "--af56-summary-payable-font-size":
-                    "12px",
+                    "14px",
 
 
                 /*
@@ -520,7 +618,7 @@ export default function AF56PrintBody({
                  */
 
                 "--af56-summary-penalty-x":
-                    "855px",
+                    "895px",
 
                 "--af56-summary-penalty-y":
                     "370px",
@@ -529,7 +627,7 @@ export default function AF56PrintBody({
                     "70px",
 
                 "--af56-summary-penalty-font-size":
-                    "12px",
+                    "14px",
 
 
                 /*
@@ -538,8 +636,9 @@ export default function AF56PrintBody({
                  * ======================================================
                  */
 
+
                 "--af56-summary-total-x":
-                    "920px",
+                    "950px",
 
                 "--af56-summary-total-y":
                     "370px",
@@ -548,7 +647,7 @@ export default function AF56PrintBody({
                     "80px",
 
                 "--af56-summary-total-font-size":
-                    "12px",
+                    "14px",
 
 
                 /*
@@ -624,17 +723,8 @@ export default function AF56PrintBody({
                         item?.assessed_value
                     );
 
-                const yearPaid =
-                    formatYearRange(
-                        item?.start_year,
-                        item?.end_year
-                    );
-
-                const quarter =
-                    formatQuarterRange(
-                        item?.start_quarter,
-                        item?.end_quarter
-                    );
+                const yearPaid = String(item?.years ?? "");
+                const quarter = String(item?.quarters ?? "");
 
 
                 return (
@@ -668,46 +758,57 @@ export default function AF56PrintBody({
 
                         {/* DECLARED OWNER */}
 
-                        <span
-                            className="
-                                af56-body-field
-                                af56-body-owner
-                            "
-                            style={{
-                                left:
-                                    "var(--af56-body-owner-x)",
+                            <span
+                                className="
+                                    af56-body-field
+                                    af56-body-owner
+                                "
+                                style={{
+                                    left: "var(--af56-body-owner-x)",
+                                    top: "var(--af56-body-owner-y)",
 
-                                top:
-                                    "var(--af56-body-owner-y)",
+                                    width: "var(--af56-body-owner-width)",
+                                    maxWidth: "130px",
 
-                                width:
-                                    "var(--af56-body-owner-width)",
+                                    fontSize: "var(--af56-body-owner-font-size)",
+                                    lineHeight: "var(--af56-body-owner-line-height)",
 
-                                fontSize:
-                                    "var(--af56-body-owner-font-size)",
+                                    display: "block",
+                                    whiteSpace: "normal",
 
-                                lineHeight:
-                                    "var(--af56-body-owner-line-height)",
+                                    height: "calc(var(--af56-body-owner-line-height) * 2 + 12px)",
 
-                                /*
-                                * Allow automatic wrapping based on width.
-                                */
-                                whiteSpace: "normal",
+                                    overflow: "hidden",
+                                    overflowWrap: "anywhere",
+                                    wordBreak: "normal",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        display: "block",
+                                        width: "100%",
+                                        whiteSpace: "normal",
+                                        lineHeight: "18px",
+                                        overflowWrap: "anywhere",
+                                    }}
+                                >
+                                    {owner}
+                                </span>
 
-                                /*
-                                * Maximum of 2 lines.
-                                */
-                                height: "calc(var(--af56-body-owner-line-height) * 2)",
-
-                                overflow: "hidden",
-
-                                overflowWrap: "normal",
-
-                                wordBreak: "normal",
-                            }}
-                        >
-                            {owner}
-                        </span>
+                                {owner && item?.classification_name ? (
+                                    <span
+                                        style={{
+                                            display: "block",
+                                            fontSize: "14px",
+                                            lineHeight: "12px",
+                                            fontWeight: 600,
+                                            marginTop: "20px",
+                                        }}
+                                    >
+                                        {`(${String(item.classification_name)})`}
+                                    </span>
+                                ) : null}
+                            </span>
 
 
                         {/* PROPERTY LOCATION */}
@@ -804,6 +905,9 @@ export default function AF56PrintBody({
 
                                 fontSize:
                                     "var(--af56-body-year-paid-font-size)",
+
+                                whiteSpace: "pre-line",
+                                lineHeight: "14px",
                             }}
                         >
                             {yearPaid}
@@ -829,6 +933,9 @@ export default function AF56PrintBody({
 
                                 fontSize:
                                     "var(--af56-body-quarter-font-size)",
+
+                                whiteSpace: "pre-line",
+                                lineHeight: "14px",
                             }}
                         >
                             {quarter}
@@ -883,13 +990,9 @@ export default function AF56PrintBody({
                                     "var(--af56-body-penalty-font-size)",
                             }}
                         >
-                            {formatAmount(
-                                item?.penalty
-                            )}
+                            {formatSignedAmount(item?.adjustment)}
                         </span>
-
-
-                        {/* TOTAL */}
+{/* TOTAL */}
 
                         <span
                             className="
@@ -976,11 +1079,9 @@ export default function AF56PrintBody({
                     fontWeight: 700,
                 }}
             >
-                {formatAmount(totalPenalty)}
+                {formatSignedAmount(totalAdjustment)}
             </span>
-
-
-            {/* =====================================================
+{/* =====================================================
                 GRAND TOTAL
             ===================================================== */}
 

@@ -376,7 +376,8 @@ export async function POST(req: NextRequest) {
                         tax_due,
                         billing_number,
                         billing_item_id,
-                        account_id
+                        account_id,
+                        classification_name
                     )
                     VALUES (
                         $1,
@@ -399,7 +400,8 @@ export async function POST(req: NextRequest) {
                         $17,
                         $18,
                         $19,
-                        $20
+                        $20,
+                        $21
                     )
                 `,
                 [
@@ -466,6 +468,11 @@ export async function POST(req: NextRequest) {
                     item.id ?? null,
 
                     item.account_id ?? null,
+
+                    // FIX: use classification from rpt_billings
+                    billing.classification_name ??
+                        item.classification_name ??
+                        null,
                 ]
             );
         }
