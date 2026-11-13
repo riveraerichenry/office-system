@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -213,9 +214,11 @@ export default function RCDGenerateForm({
             status,
 
             is_cancelled: isCancelled,
-            source_type: transaction.source_type === "CASH_TICKET"
-              ? "CASH_TICKET"
-              : "DIPP",
+
+            source_type:
+              transaction.source_type === "CASH_TICKET"
+                ? "CASH_TICKET"
+                : "DIPP",
           };
         });
 
@@ -307,10 +310,30 @@ export default function RCDGenerateForm({
   }
 
   // ============================================================
+  // GET SEQUENCE FROM OR NUMBER
+  //
+  // Examples:
+  // OR-00001 => 1
+  // OR-00002 => 2
+  // OR-00003 => 3
+  //
+  // This does not depend on whether a transaction is cancelled.
+  // ============================================================
+
+  function getORSequence(
+    orNumber: string,
+    fallbackIndex: number
+  ) {
+    const match = String(orNumber ?? "").match(/(\d+)$/);
+
+    return match
+      ? Number(match[1])
+      : fallbackIndex + 1;
+  }
+
+  // ============================================================
   // SELECT / DESELECT ONE TRANSACTION
   //
-  // IMPORTANT:
-  // There is intentionally NO cancellation check here.
   // Cancelled transactions can also be selected.
   // ============================================================
 
@@ -391,11 +414,12 @@ export default function RCDGenerateForm({
     (fund) => String(fund.id) === String(fundSourceId)
   );
 
-  const selectedFundSourceLabel = fundSourceId === "CASH_TICKET"
-    ? "CASH TICKET (General Fund)"
-    : selectedFundSource
-      ? getFundSourceLabel(selectedFundSource)
-      : "-";
+  const selectedFundSourceLabel =
+    fundSourceId === "CASH_TICKET"
+      ? "CASH TICKET (General Fund)"
+      : selectedFundSource
+        ? getFundSourceLabel(selectedFundSource)
+        : "-";
 
   // ============================================================
   // RENDER
@@ -723,7 +747,7 @@ export default function RCDGenerateForm({
                         isSelected ? "bg-blue-50/50" : ""
                       }`}
                     >
-                      {/* CHECKBOX: CANCELLED RECORDS ARE NOT DISABLED */}
+                      {/* CHECKBOX */}
                       <td className="px-3 py-2.5 text-center">
                         <button
                           type="button"
@@ -750,9 +774,12 @@ export default function RCDGenerateForm({
                         </button>
                       </td>
 
-                      {/* NUMBER */}
+                      {/* NUMBER BASED ON OR NUMBER */}
                       <td className="px-3 py-2.5 text-slate-500">
-                        {index + 1}
+                        {getORSequence(
+                          transaction.or_number,
+                          index
+                        )}
                       </td>
 
                       {/* OR NUMBER AND CANCELLATION STATUS */}
@@ -821,7 +848,8 @@ export default function RCDGenerateForm({
                 <span className="font-bold text-slate-800">
                   {transactions.length}
                 </span>{" "}
-                transaction{transactions.length !== 1 ? "s" : ""}{" "}
+                transaction
+                {transactions.length !== 1 ? "s" : ""}{" "}
                 available
               </p>
 

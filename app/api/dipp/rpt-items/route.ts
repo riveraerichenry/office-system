@@ -1,185 +1,205 @@
+
 import {
     NextRequest,
     NextResponse,
 } from "next/server";
 
-import {
-    authorize,
-} from "@/lib/authorize";
-
-import {
-    pool,
-} from "@/lib/db";
-
-import {
-    MODULE_PATHS,
-} from "@/lib/module-paths";
-
+import { pool } from "@/lib/db";
 
 export async function GET(
-    req: NextRequest
+    request: NextRequest,
+    {
+        params,
+    }: {
+        params: Promise<{
+            id: string;
+        }>;
+    }
 ) {
-
     try {
+        const {
+            id,
+        } = await params;
 
-        await authorize(
-            req,
-            MODULE_PATHS.DIPP,
-            "view"
-        );
+        /*
+        ================================================================
+        VALIDATE ID
+        ================================================================
+        */
 
-
-        const transactionId =
-            req.nextUrl.searchParams.get(
-                "id"
-            );
-
-
-        if (
-            !transactionId
-        ) {
-
+        if (!id) {
             return NextResponse.json(
                 {
-                    success: false,
-
-                    message:
+                    error:
                         "Transaction ID is required.",
                 },
                 {
                     status: 400,
                 }
             );
-
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | RPT TRANSACTION ITEMS
-        |--------------------------------------------------------------------------
+        ================================================================
+        GET TRANSACTION
+        ================================================================
         */
 
-        const result =
+        const transactionResult =
             await pool.query(
                 `
                 SELECT
+                    t.id,
+                    t.or_number,
+                    t.receipt_date,
+                    t.booklet_registration_id,
+                    t.lor_release_id,
+                    t.accountable_form_id,
+                    t.collector_id,
+                    t.payor,
+                    t.payment_mode,
+                    t.remarks,
+                    t.grand_total,
+                    t.status,
+                    t.is_cancelled,
+                    t.cancelled_at,
+                    t.cancelled_by,
+                    t.created_at,
+                    t.updated_at,
+                    t.remittance_id,
+                    t.encoded_by,
+                    t.updated_by,
+                    t.posted_by,
+                    t.posted_at,
+                    t.billing_id,
+                    t.transaction_type,
+                    t.is_remitted,
 
-                    dri.id,
+                    u.full_name AS collector_name
 
-                    dri.transaction_id,
+                FROM dipp_transactions t
 
-                    dri.billing_id,
+                LEFT JOIN users u
+                    ON u.id = t.collector_id
 
-                    dri.tax_declaration_id,
+                WHERE t.id = $1
 
-                    dri.td_number,
-
-                    dri.declared_owner,
-
-                    dri.property_location,
-
-                    dri.assessed_value,
-
-                    dri.start_quarter,
-
-                    dri.start_year,
-
-                    dri.end_quarter,
-
-                    dri.end_year,
-
-                    dri.basic,
-
-                    dri.sef,
-
-                    dri.penalty,
-
-                    dri.discount,
-
-                    dri.amount,
-
-                    dri.tax_due,
-
-                    dri.billing_number,
-
-                    dri.billing_item_id,
-
-                    dri.account_id,
-
-                    a.account_code,
-
-                    a.account_name
-
-                FROM dipp_rpt_items dri
-
-                LEFT JOIN accounts a
-                    ON a.id = dri.account_id
-
-                WHERE
-                    dri.transaction_id = $1
-
-                ORDER BY
-
-                    dri.td_number,
-
-                    dri.start_year,
-
-                    dri.start_quarter
+                LIMIT 1
                 `,
-                [
-                    transactionId,
-                ]
+                [id]
             );
 
+        /*
+        ================================================================
+        TRANSACTION NOT FOUND
+        ================================================================
+        */
+
+        if (
+            transactionResult.rows.length === 0
+        ) {
+            return NextResponse.json(
+                {
+                    error:
+                        "RPT transaction not found.",
+                },
+                {
+                    status: 404,
+                }
+            );
+        }
+
+        const transaction =
+            transactionResult.rows[0];
+
+        /*
+        ================================================================
+        GET RPT ITEMS
+        ================================================================
+        */
+
+        const itemsResult =
+            await pool.query(
+                `
+                SELECT
+                    i.id,
+                    i.transaction_id,
+                    i.billing_id,
+                    i.tax_declaration_id,
+                    i.td_number,
+                    i.declared_owner,
+                    i.classification_name,
+                    i.rpu_type,
+                    i.property_location,
+                    i.assessed_value,
+                    i.start_quarter,
+                    i.start_year,
+                    i.end_quarter,
+                    i.end_year,
+                    i.basic,
+                    i.sef,
+                    i.penalty,
+                    i.discount,
+                    i.amount,
+                    i.created_at,
+                    i.tax_due,
+                    i.billing_number,
+                    i.billing_item_id,
+                    i.account_id,
+
+                    a.account_code,
+                    a.account_name
+
+                FROM dipp_rpt_items i
+
+                LEFT JOIN accounts a
+                    ON a.id = i.account_id
+
+                WHERE i.transaction_id = $1
+
+                ORDER BY
+                    i.created_at ASC,
+                    i.id ASC
+                `,
+                [id]
+            );
+
+        /*
+        ================================================================
+        RETURN
+        ================================================================
+        */
 
         return NextResponse.json(
             {
                 success: true,
 
+                transaction,
+
                 items:
-                    result.rows,
+                    itemsResult.rows,
+
+            },
+            {
+                status: 200,
             }
         );
 
     }
-
-    catch (
-        err: any
-    ) {
-
+    catch (error) {
         console.error(
-            "===================================="
+            "RPT TRANSACTION DETAILS API ERROR:",
+            error
         );
-
-        console.error(
-            "DIPP RPT ITEMS API ERROR"
-        );
-
-        console.error(
-            err
-        );
-
-        console.error(
-            "===================================="
-        );
-
 
         return NextResponse.json(
             {
-                success: false,
-
-                message:
-
-                    err.message ||
-
-                    "Unable to load RPT items.",
+                error:
+                    "Failed to retrieve RPT transaction details.",
             },
             {
                 status: 500,
             }
         );
-
     }
-
 }

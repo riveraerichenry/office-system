@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -39,7 +40,7 @@ function formatSignedAmount(value: any) {
    GROUP TRANSACTION ITEMS BY TRANSACTION, TD, AND TAX PERIOD
 
    For present year 2026:
-   - Advance: each year after 2026 is displayed separately.
+   - Advance: all years after 2026 are combined into one range.
    - Current: 2026 is displayed separately.
    - Previous year: 2025 is displayed separately.
    - Older previous years: 2024 and earlier are combined
@@ -88,11 +89,11 @@ function formatQuarterCoverage(items: any[]) {
 
     if (sorted.length === 0) return "";
 
+    const ordinal = (quarter: number) =>
+        `${quarter}${quarter === 1 ? "st" : quarter === 2 ? "nd" : quarter === 3 ? "rd" : "th"}`;
+
     const first = sorted[0];
     const last = sorted[sorted.length - 1];
-
-    const ordinal = (quarter: number) =>
-        `${quarter}${quarter === 1 ? "st" : quarter === 2 ? "nd" : quarter === 3 ? "rd" : "th"} Qtr`;
 
     return first === last
         ? ordinal(first)
@@ -215,6 +216,11 @@ function summarizeItems(
                 (entry) =>
                     String(entry?.classification_name ?? "").trim() !== ""
             )?.classification_name ?? "",
+        rpu_type:
+            groupItems.find(
+                (entry) =>
+                    String(entry?.rpu_type ?? "").trim() !== ""
+            )?.rpu_type ?? "",
         property_location: firstItem?.property_location ?? "",
         td_number: firstItem?.td_number ?? "",
         assessed_value: firstItem?.assessed_value ?? 0,
@@ -260,7 +266,7 @@ function groupItemsByTD(items: any[]) {
     const result: any[] = [];
 
     tdGroups.forEach((tdItems, tdKey) => {
-        const futureBuckets = new Map<number, any[]>();
+        const futureItems: any[] = [];
         const currentItems: any[] = [];
         const previousYearItems: any[] = [];
         const olderPreviousItems: any[] = [];
@@ -275,11 +281,7 @@ function groupItemsByTD(items: any[]) {
             const classificationYear = startYear;
 
             if (classificationYear > presentYear) {
-                if (!futureBuckets.has(classificationYear)) {
-                    futureBuckets.set(classificationYear, []);
-                }
-
-                futureBuckets.get(classificationYear)!.push(item);
+                futureItems.push(item);
             } else if (classificationYear === presentYear) {
                 currentItems.push(item);
             } else if (classificationYear === presentYear - 1) {
@@ -291,18 +293,16 @@ function groupItemsByTD(items: any[]) {
             }
         });
 
-        // Advance years: one separate row per year, newest first.
-        Array.from(futureBuckets.entries())
-            .sort(([yearA], [yearB]) => yearB - yearA)
-            .forEach(([year, yearItems]) => {
-                result.push(
-                    summarizeItems(
-                        yearItems,
-                        tdKey,
-                        `advance-${year}`
-                    )
-                );
-            });
+        // Advance years: combine all future years into one row.
+        if (futureItems.length > 0) {
+            result.push(
+                summarizeItems(
+                    futureItems,
+                    tdKey,
+                    "advance-years"
+                )
+            );
+        }
 
         // Current year: its own row.
         if (currentItems.length > 0) {
@@ -353,6 +353,13 @@ export default function AF56PrintBody({
 
     const groupedItems =
         groupItemsByTD(items);
+
+    // Display the RPU type once for the entire receipt.
+    const rpuType = String(
+        groupedItems.find(
+            (item) => String(item?.rpu_type ?? "").trim() !== ""
+        )?.rpu_type ?? ""
+    ).toUpperCase();
 
 
     /* ========================================================
@@ -411,7 +418,7 @@ export default function AF56PrintBody({
                     "150px",
 
                 "--af56-body-row-height":
-                    "30px",
+                    "16px",
 
                 "--af56-body-row-gap":
                     "2px",
@@ -437,6 +444,25 @@ export default function AF56PrintBody({
 
                 "--af56-body-owner-line-height":
                     "20px",
+
+
+                /*
+                 * ======================================================
+                 * RPU TYPE
+                 * ======================================================
+                 */
+
+                "--af56-body-rpu-type-x":
+                    "155px",
+
+                "--af56-body-rpu-type-y":
+                    "320px",
+
+                "--af56-body-rpu-type-width":
+                    "130px",
+
+                "--af56-body-rpu-type-font-size":
+                    "12px",
 
 
                 /*
@@ -578,7 +604,6 @@ export default function AF56PrintBody({
                  * ======================================================
                  */
 
-
                 "--af56-body-total-x":
                     "980px",
 
@@ -636,7 +661,6 @@ export default function AF56PrintBody({
                  * ======================================================
                  */
 
-
                 "--af56-summary-total-x":
                     "950px",
 
@@ -689,6 +713,28 @@ export default function AF56PrintBody({
 
             } as React.CSSProperties}
         >
+
+            {/* =====================================================
+                RPU TYPE - DISPLAY ONCE PER RECEIPT
+            ===================================================== */}
+
+            {rpuType ? (
+                <span
+                    className="af56-body-field"
+                    style={{
+                        left: "var(--af56-body-rpu-type-x)",
+                        top: "var(--af56-body-rpu-type-y)",
+                        width: "var(--af56-body-rpu-type-width)",
+                        fontSize: "var(--af56-body-rpu-type-font-size)",
+                        lineHeight: "12px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                    }}
+                >
+                    {rpuType}
+                </span>
+            ) : null}
+
 
             {/* =====================================================
                 BODY ROWS
@@ -758,57 +804,58 @@ export default function AF56PrintBody({
 
                         {/* DECLARED OWNER */}
 
+                        <span
+                            className="
+                                af56-body-field
+                                af56-body-owner
+                            "
+                            style={{
+                                left: "var(--af56-body-owner-x)",
+                                top: "var(--af56-body-owner-y)",
+
+                                width: "var(--af56-body-owner-width)",
+                                maxWidth: "130px",
+
+                                fontSize: "var(--af56-body-owner-font-size)",
+                                lineHeight: "var(--af56-body-owner-line-height)",
+
+                                display: "block",
+                                whiteSpace: "normal",
+
+                                height: "calc(var(--af56-body-owner-line-height) * 2 + 12px)",
+
+                                overflow: "hidden",
+                                overflowWrap: "anywhere",
+                                wordBreak: "normal",
+                            }}
+                        >
                             <span
-                                className="
-                                    af56-body-field
-                                    af56-body-owner
-                                "
                                 style={{
-                                    left: "var(--af56-body-owner-x)",
-                                    top: "var(--af56-body-owner-y)",
-
-                                    width: "var(--af56-body-owner-width)",
-                                    maxWidth: "130px",
-
-                                    fontSize: "var(--af56-body-owner-font-size)",
-                                    lineHeight: "var(--af56-body-owner-line-height)",
-
                                     display: "block",
+                                    width: "100%",
                                     whiteSpace: "normal",
-
-                                    height: "calc(var(--af56-body-owner-line-height) * 2 + 12px)",
-
-                                    overflow: "hidden",
+                                    lineHeight: "18px",
                                     overflowWrap: "anywhere",
-                                    wordBreak: "normal",
                                 }}
                             >
+                                {owner}
+                            </span>
+
+                            {owner && item?.classification_name ? (
                                 <span
                                     style={{
                                         display: "block",
-                                        width: "100%",
-                                        whiteSpace: "normal",
-                                        lineHeight: "18px",
-                                        overflowWrap: "anywhere",
+                                        fontSize: "14px",
+                                        lineHeight: "12px",
+                                        fontWeight: 600,
+                                        marginTop: "20px",
                                     }}
                                 >
-                                    {owner}
+                                    {`(${String(item.classification_name)})`}
                                 </span>
+                            ) : null}
 
-                                {owner && item?.classification_name ? (
-                                    <span
-                                        style={{
-                                            display: "block",
-                                            fontSize: "14px",
-                                            lineHeight: "12px",
-                                            fontWeight: 600,
-                                            marginTop: "20px",
-                                        }}
-                                    >
-                                        {`(${String(item.classification_name)})`}
-                                    </span>
-                                ) : null}
-                            </span>
+                        </span>
 
 
                         {/* PROPERTY LOCATION */}
@@ -992,7 +1039,9 @@ export default function AF56PrintBody({
                         >
                             {formatSignedAmount(item?.adjustment)}
                         </span>
-{/* TOTAL */}
+
+
+                        {/* TOTAL */}
 
                         <span
                             className="
@@ -1081,7 +1130,9 @@ export default function AF56PrintBody({
             >
                 {formatSignedAmount(totalAdjustment)}
             </span>
-{/* =====================================================
+
+
+            {/* =====================================================
                 GRAND TOTAL
             ===================================================== */}
 

@@ -1,3 +1,4 @@
+
 export type RPTComputationInput = {
     assessedValue: number;
     taxYear: number;
@@ -31,15 +32,44 @@ const RULES = {
     maximumPenalty: 72,
 };
 
+/*
+====================================================================
+QUARTERLY TAX
+====================================================================
+*/
+
 function quarterlyTax(
     assessedValue: number
 ): number {
+
     return (
         assessedValue *
         RULES.annualTaxRate /
         4
     );
 }
+
+/*
+====================================================================
+DISCOUNT COMPUTATION
+====================================================================
+
+ADVANCE PAYMENT:
+Any future tax year = 20%
+
+Examples:
+Payment year 2026:
+2027 = 20%
+2028 = 20%
+2029 = 20%
+2030 = 20%
+
+CURRENT YEAR:
+January - March = 10%
+
+OTHER PERIODS:
+0%
+*/
 
 function discountPercent(
     taxYear: number,
@@ -53,21 +83,18 @@ function discountPercent(
         paymentDate.getMonth() + 1;
 
     /*
-        Advance payment
-
-        Example:
-        Paying 2027 tax during 2026
-        =20%
+        Any future tax year
+        receives 20% discount.
     */
 
-    if (taxYear === paymentYear + 1) {
+    if (taxYear > paymentYear) {
         return RULES.advanceDiscount;
     }
 
     /*
         Current year
-        Jan-Mar
-        =10%
+        January - March
+        receives 10% discount.
     */
 
     if (
@@ -80,6 +107,12 @@ function discountPercent(
 
     return 0;
 }
+
+/*
+====================================================================
+PENALTY COMPUTATION
+====================================================================
+*/
 
 function penaltyPercent(
     taxYear: number,
@@ -94,6 +127,7 @@ function penaltyPercent(
 
     /*
         Advance payment
+        No penalty.
     */
 
     if (taxYear > paymentYear) {
@@ -102,7 +136,8 @@ function penaltyPercent(
 
     /*
         Current year
-        Jan-Mar
+        January - March
+        No penalty.
     */
 
     if (
@@ -117,10 +152,17 @@ function penaltyPercent(
     if (taxYear === paymentYear) {
 
         /*
+            Current year:
+
             April = 8%
-            May =10%
-            June=12%
-            ...
+            May = 10%
+            June = 12%
+            July = 14%
+            August = 16%
+            September = 18%
+            October = 20%
+            November = 22%
+            December = 24%
         */
 
         penalty =
@@ -150,12 +192,22 @@ function penaltyPercent(
             RULES.yearlyPenaltyIncrease;
     }
 
+    /*
+        Maximum penalty = 72%
+    */
+
     if (penalty > RULES.maximumPenalty) {
         penalty = RULES.maximumPenalty;
     }
 
     return penalty;
 }
+
+/*
+====================================================================
+MAIN RPT COMPUTATION
+====================================================================
+*/
 
 export function computeRPT(
     input: RPTComputationInput
@@ -167,10 +219,18 @@ export function computeRPT(
         paymentDate,
     } = input;
 
+    /*
+        Quarterly tax due
+    */
+
     const taxDue =
         quarterlyTax(
             assessedValue
         );
+
+    /*
+        Basic and SEF
+    */
 
     const basic =
         taxDue / 2;
@@ -178,11 +238,19 @@ export function computeRPT(
     const sef =
         taxDue / 2;
 
+    /*
+        Penalty rate
+    */
+
     const penaltyRate =
         penaltyPercent(
             taxYear,
             paymentDate
         );
+
+    /*
+        Discount rate
+    */
 
     const discountRate =
         discountPercent(
@@ -190,15 +258,27 @@ export function computeRPT(
             paymentDate
         );
 
+    /*
+        Penalty amount
+    */
+
     const penalty =
         taxDue *
         penaltyRate /
         100;
 
+    /*
+        Discount amount
+    */
+
     const discount =
         taxDue *
         discountRate /
         100;
+
+    /*
+        Final amount
+    */
 
     const total =
         taxDue +

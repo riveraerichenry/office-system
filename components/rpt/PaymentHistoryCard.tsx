@@ -6,6 +6,7 @@ import {
     Plus,
     Loader2,
     AlertCircle,
+    BookOpen,
 } from "lucide-react";
 
 import { useCallback, useEffect, useState } from "react";
@@ -13,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Property } from "./PropertyDetailsCard";
 
 import AddPaymentModal from "./AddPaymentModal";
+import RPTLedgerModal from "./RPTLedgerModal";
 
 type Props = {
     property: Property;
@@ -153,6 +155,9 @@ export default function PaymentHistoryCard({
     const [showAddPayment, setShowAddPayment] =
         useState(false);
 
+    const [showLedger, setShowLedger] =
+        useState(false);
+
     /*
      * ---------------------------------------------------------
      * FETCH PAYMENT HISTORY
@@ -289,6 +294,14 @@ export default function PaymentHistoryCard({
 
     }
 
+    function openLedger() {
+        setShowLedger(true);
+    }
+
+    function closeLedger() {
+        setShowLedger(false);
+    }
+
     return (
         <>
             {/* =====================================================
@@ -413,6 +426,38 @@ export default function PaymentHistoryCard({
                                 gap-2
                             "
                         >
+
+                            {/* LEDGER */}
+
+                            <button
+                                type="button"
+                                onClick={openLedger}
+                                disabled={!property?.fullpin}
+                                className="
+                                    inline-flex
+                                    items-center
+                                    justify-center
+                                    gap-1.5
+                                    rounded-lg
+                                    border
+                                    border-white/30
+                                    bg-orange-700
+                                    px-3
+                                    py-2
+                                    text-xs
+                                    font-bold
+                                    text-white
+                                    shadow-sm
+                                    transition-all
+                                    duration-200
+                                    hover:bg-orange-800
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-50
+                                "
+                            >
+                                <BookOpen size={15} />
+                                Ledger
+                            </button>
 
                             {/* CREATE BILLING */}
 
@@ -1186,6 +1231,25 @@ export default function PaymentHistoryCard({
                 onClose={closeAddPayment}
                 property={property}
                 onSuccess={handlePaymentSuccess}
+            />
+
+            {/* =====================================================
+                RPT LEDGER MODAL
+            ===================================================== */}
+
+            <RPTLedgerModal
+                open={showLedger}
+                onClose={closeLedger}
+                fullpin={property.fullpin}
+                tdno={property.tdno || null}
+                taxpayer={
+                    payments[0]?.taxpayer_name ||
+                    payments[0]?.declared_owner ||
+                    null
+                }
+                propertyLocation={
+                    payments[0]?.property_location || null
+                }
             />
         </>
     );

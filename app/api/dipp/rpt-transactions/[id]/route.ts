@@ -129,6 +129,7 @@ export async function GET(
                     i.td_number,
                     i.declared_owner,
                     i.classification_name,
+                    i.rpu_type,
                     i.property_location,
                     i.assessed_value,
                     i.start_quarter,

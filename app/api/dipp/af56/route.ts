@@ -1,3 +1,4 @@
+
 import {
     NextRequest,
     NextResponse,
@@ -377,7 +378,8 @@ export async function POST(req: NextRequest) {
                         billing_number,
                         billing_item_id,
                         account_id,
-                        classification_name
+                        classification_name,
+                        rpu_type
                     )
                     VALUES (
                         $1,
@@ -401,7 +403,8 @@ export async function POST(req: NextRequest) {
                         $18,
                         $19,
                         $20,
-                        $21
+                        $21,
+                        $22
                     )
                 `,
                 [
@@ -469,9 +472,16 @@ export async function POST(req: NextRequest) {
 
                     item.account_id ?? null,
 
-                    // FIX: use classification from rpt_billings
+                    // Use classification from rpt_billings
                     billing.classification_name ??
                         item.classification_name ??
+                        null,
+
+                    // Save the RPU type on each DIPP RPT item.
+                    billing.rpu_type ??
+                        billing.property_type ??
+                        billing.rputype ??
+                        item.rpu_type ??
                         null,
                 ]
             );
@@ -598,7 +608,7 @@ export async function POST(req: NextRequest) {
 
                     item.account_id ?? null,
 
-                    // ADDED: current logged-in user's ID
+                    // Current logged-in user's ID
                     user.id,
                 ]
             );
@@ -613,6 +623,8 @@ export async function POST(req: NextRequest) {
          *
          * rpt_billings.fullpin is the corresponding property
          * identifier used by the RPT billing record.
+         *
+         * rpu_type comes from the selected billing record.
          */
 
         const propertyId =
@@ -623,6 +635,20 @@ export async function POST(req: NextRequest) {
                 "RPT billing has no property identifier (fullpin)."
             );
         }
+
+        // ============================================================
+        // GET RPU TYPE
+        // ============================================================
+
+        const rpuType =
+            billing.rpu_type ??
+            billing.property_type ??
+            billing.rputype ??
+            null;
+
+        // ============================================================
+        // INSERT RPT PAYMENT
+        // ============================================================
 
         const rptPaymentResult = await client.query(
             `
@@ -638,7 +664,8 @@ export async function POST(req: NextRequest) {
                     is_cancelled,
                     created_at,
                     updated_at,
-                    created_by
+                    created_by,
+                    rpu_type
                 )
                 VALUES (
                     $1,
@@ -652,7 +679,8 @@ export async function POST(req: NextRequest) {
                     FALSE,
                     NOW(),
                     NOW(),
-                    $8
+                    $8,
+                    $9
                 )
                 RETURNING id
             `,
@@ -669,7 +697,7 @@ export async function POST(req: NextRequest) {
                 billing.owner_name ??
                     null,
 
-                // ACTUAL PERSON WHO PAID
+                // Actual person who paid
                 payor.trim(),
 
                 receipt_date,
@@ -677,6 +705,9 @@ export async function POST(req: NextRequest) {
                 grandTotal,
 
                 user.id,
+
+                // RPU Type
+                rpuType,
             ]
         );
 
@@ -744,13 +775,17 @@ export async function POST(req: NextRequest) {
 
             rpt_payment_id: rptPaymentId,
 
+            rpu_type: rpuType,
+
             or_number: orNumber,
 
             next_or: nextOR,
 
             grand_total: grandTotal,
         });
+
     } catch (error: any) {
+
         // ============================================================
         // ROLLBACK
         // ============================================================
@@ -782,9 +817,12 @@ export async function POST(req: NextRequest) {
                 status: 500,
             }
         );
+
     } finally {
+
         if (client) {
             client.release();
         }
+
     }
 }

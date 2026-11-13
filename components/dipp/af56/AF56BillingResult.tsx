@@ -1,3 +1,4 @@
+
 "use client";
 
 type Props = {
@@ -121,7 +122,6 @@ export default function AF56BillingResults({
         "Cash + Check",
     ];
 
-
     /*
     ================================================================
     GENDERS
@@ -133,6 +133,18 @@ export default function AF56BillingResults({
         "Female",
     ];
 
+    /*
+    ================================================================
+    PROPERTY TYPE
+
+    Supports both property_type and rputype
+    depending on the API response.
+    ================================================================
+    */
+
+    const getPropertyType = (item: any) => {
+        return item?.property_type || item?.rputype || "-";
+    };
 
     return (
 
@@ -201,11 +213,9 @@ export default function AF56BillingResults({
 
                                             </span>
 
-
                                             <span className="mx-2 text-slate-300">
                                                 •
                                             </span>
-
 
                                             {/* PIN */}
 
@@ -215,11 +225,9 @@ export default function AF56BillingResults({
 
                                             </span>
 
-
                                             <span className="mx-2 text-slate-300">
                                                 •
                                             </span>
-
 
                                             {/* TD NUMBER */}
 
@@ -229,38 +237,45 @@ export default function AF56BillingResults({
 
                                             </span>
 
-
                                             <span className="mx-2 text-slate-300">
                                                 •
                                             </span>
-
 
                                             {/* LOCATION */}
 
                                             <span className="text-slate-600">
 
-                                                {row.location}
+                                                {row.barangay_name || row.barangay || "-"}
 
                                             </span>
-
 
                                             <span className="mx-2 text-slate-300">
                                                 •
                                             </span>
 
-
                                             {/* CLASSIFICATION */}
 
                                             <span className="font-medium text-slate-700">
 
-                                                {row.classification_name}
+                                                {row.classification_name || "-"}
+
+                                            </span>
+
+                                            <span className="mx-2 text-slate-300">
+                                                •
+                                            </span>
+
+                                            {/* PROPERTY TYPE */}
+
+                                            <span className="font-medium text-indigo-700">
+
+                                                {getPropertyType(row)}
 
                                             </span>
 
                                         </div>
 
                                     </div>
-
 
                                     {/* =================================
                                         GRAND TOTAL
@@ -277,6 +292,7 @@ export default function AF56BillingResults({
                                                 "en-PH",
                                                 {
                                                     minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
                                                 }
                                             )}
 
@@ -295,7 +311,6 @@ export default function AF56BillingResults({
                 </>
 
             )}
-
 
             {/* =====================================================
                 SELECTED BILLING INFORMATION
@@ -335,7 +350,6 @@ export default function AF56BillingResults({
 
                                 </div>
 
-
                                 {/* GRAND TOTAL */}
 
                                 <div className="text-right">
@@ -355,6 +369,7 @@ export default function AF56BillingResults({
                                             "en-PH",
                                             {
                                                 minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
                                             }
                                         )}
 
@@ -363,7 +378,6 @@ export default function AF56BillingResults({
                                 </div>
 
                             </div>
-
 
                             {/* =====================================
                                 BILLING DETAILS
@@ -385,7 +399,6 @@ export default function AF56BillingResults({
 
                                 </div>
 
-
                                 {/* TD NUMBER */}
 
                                 <div>
@@ -400,7 +413,6 @@ export default function AF56BillingResults({
 
                                 </div>
 
-
                                 {/* CLASSIFICATION */}
 
                                 <div>
@@ -410,11 +422,24 @@ export default function AF56BillingResults({
                                     </div>
 
                                     <div className="font-medium">
-                                        {selected.classification_name}
+                                        {selected.classification_name || "-"}
                                     </div>
 
                                 </div>
 
+                                {/* PROPERTY TYPE */}
+
+                                <div>
+
+                                    <div className="text-xs uppercase text-slate-500">
+                                        Property Type
+                                    </div>
+
+                                    <div className="font-medium text-indigo-700">
+                                        {getPropertyType(selected)}
+                                    </div>
+
+                                </div>
 
                                 {/* STATUS */}
 
@@ -430,7 +455,6 @@ export default function AF56BillingResults({
 
                                 </div>
 
-
                                 {/* PROPERTY LOCATION */}
 
                                 <div className="col-span-2">
@@ -440,11 +464,10 @@ export default function AF56BillingResults({
                                     </div>
 
                                     <div className="font-medium">
-                                        {selected.location}
+                                        {selected.barangay_name}
                                     </div>
 
                                 </div>
-
 
                                 {/* BILLING DATE */}
 
@@ -477,7 +500,6 @@ export default function AF56BillingResults({
                             </div>
 
                         </div>
-
 
                         {/* =========================================
                             PAYMENT INFORMATION
@@ -518,7 +540,6 @@ export default function AF56BillingResults({
                                     />
 
                                 </div>
-
 
                                 {/* =================================
                                     GENDER
@@ -562,7 +583,6 @@ export default function AF56BillingResults({
                                     </select>
 
                                 </div>
-
 
                                 {/* =================================
                                     PAYMENT MODE
