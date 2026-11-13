@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
@@ -169,9 +170,14 @@ export async function GET(request: NextRequest) {
         if (isCashTicket) {
             // Cash Ticket transactions are issued to the logged-in collector.
             // issued_by is stored as a name in the Cash Ticket transaction header.
+
             const cashTicketFundResult = await pool.query(
                 `
-                SELECT id, fund_code, fund_name, acronym
+                SELECT
+                    id,
+                    fund_code,
+                    fund_name,
+                    acronym
                 FROM fund_sources
                 WHERE id = $1
                   AND is_active = TRUE
@@ -182,7 +188,10 @@ export async function GET(request: NextRequest) {
 
             if (cashTicketFundResult.rows.length === 0) {
                 return NextResponse.json(
-                    { success: false, message: "General Fund is not available or inactive." },
+                    {
+                        success: false,
+                        message: "General Fund is not available or inactive.",
+                    },
                     { status: 404 }
                 );
             }
@@ -200,76 +209,115 @@ export async function GET(request: NextRequest) {
                     'ISSUED'::text AS status,
                     FALSE AS is_cancelled,
                     'CASH_TICKET'::text AS source_type
+
                 FROM dipp_cashticket_transaction ct
+
                 INNER JOIN dipp_cashticket_transaction_items cti
                     ON cti.transaction_id = ct.id
+
                 WHERE ct.transaction_date >= $1::date
-                  AND ct.transaction_date < ($2::date + INTERVAL '1 day')
-                  AND LOWER(TRIM(COALESCE(ct.issued_by, ''))) = LOWER(TRIM($3))
+
+                  AND ct.transaction_date < (
+                      $2::date + INTERVAL '1 day'
+                  )
+
+                  AND LOWER(TRIM(COALESCE(ct.issued_by, ''))) =
+                      LOWER(TRIM($3))
+
                   AND NOT EXISTS (
                       SELECT 1
                       FROM rcd_items ri
                       WHERE ri.cash_ticket_transaction_id = ct.id
                   )
-                GROUP BY ct.id, ct.transaction_date, ct.issued_by
+
+                GROUP BY
+                    ct.id,
+                    ct.transaction_date,
+                    ct.issued_by
+
                 HAVING COALESCE(SUM(cti.total_amount), 0) > 0
-                ORDER BY ct.transaction_date ASC, ct.id ASC
+
+                ORDER BY
+                    ('CT-' || ct.id::text) ASC
                 `,
-                [dateFrom, dateTo, String(loggedInUser.full_name ?? "")]
+                [
+                    dateFrom,
+                    dateTo,
+                    String(loggedInUser.full_name ?? ""),
+                ]
             );
 
-            const transactions = cashTicketResult.rows.map((row: any) => ({
-                id: String(row.id),
-                or_number: row.or_number,
-                receipt_date: row.receipt_date,
-                payor: row.payor,
-                remarks: null,
-                form_code: "CASH TICKET",
-                form_name: "CASH TICKET",
-                status: row.status,
-                amount: Number(row.amount ?? 0),
-                payment_mode: row.payment_mode,
-                transaction_type: "CASH_TICKET",
-                is_cancelled: false,
-                is_remitted: false,
-                remittance_id: null,
-                accountable_form_id: null,
-                booklet_registration_id: null,
-                booklet_beginning_or: null,
-                booklet_ending_or: null,
-                booklet_current_or: null,
-                lor_release_id: null,
-                collector_id: null,
-                encoded_by: null,
-                created_at: null,
-                source_type: "CASH_TICKET",
-            }));
+            const transactions = cashTicketResult.rows.map(
+                (row: any) => ({
+                    id: String(row.id),
+                    or_number: row.or_number,
+                    receipt_date: row.receipt_date,
+                    payor: row.payor,
+                    remarks: null,
+
+                    form_code: "CASH TICKET",
+                    form_name: "CASH TICKET",
+
+                    status: row.status,
+                    amount: Number(row.amount ?? 0),
+
+                    payment_mode: row.payment_mode,
+                    transaction_type: "CASH_TICKET",
+
+                    is_cancelled: false,
+                    is_remitted: false,
+                    remittance_id: null,
+
+                    accountable_form_id: null,
+
+                    booklet_registration_id: null,
+                    booklet_beginning_or: null,
+                    booklet_ending_or: null,
+                    booklet_current_or: null,
+
+                    lor_release_id: null,
+                    collector_id: null,
+                    encoded_by: null,
+                    created_at: null,
+
+                    source_type: "CASH_TICKET",
+                })
+            );
 
             const totalAmount = transactions.reduce(
-                (total: number, transaction: any) => total + Number(transaction.amount ?? 0),
+                (total: number, transaction: any) =>
+                    total + Number(transaction.amount ?? 0),
                 0
             );
 
             return NextResponse.json({
                 success: true,
+
                 filters: {
                     fund_source_id: fundSourceId,
                     date_from: dateFrom,
                     date_to: dateTo,
                 },
+
                 collector: {
                     id: loggedInUser.id,
                     username: loggedInUser.username,
                     full_name: loggedInUser.full_name,
                 },
+
                 fund_source: cashTicketFundResult.rows[0],
+
                 transactions,
-                form_summary: [{
-                    form_code: "CASH TICKET",
-                    form_name: "CASH TICKET",
-                    transaction_count: transactions.length,
-                    total_amount: totalAmount,
-                }],
+
+                form_summary: [
+                    {
+                        form_code: "CASH TICKET",
+                        form_name: "CASH TICKET",
+                        transaction_count: transactions.length,
+                        total_amount: totalAmount,
+                    },
+                ],
+
                 summary: {
                     transaction_count: transactions.length,
                     total_amount: totalAmount,
@@ -317,9 +365,8 @@ export async function GET(request: NextRequest) {
         // 3. Transactions not yet included in an RCD
         // 4. Transactions encoded by the logged-in user
         //
-        // Do not filter transaction_type = 'RPT'.
-        // This allows different accountable forms, such as
-        // AF51 and CTC-I, to appear in the results.
+        // No accountable-form restriction.
+        // AF51, AF58, CTC-I, and other forms can appear.
         // =====================================================
 
         const transactionResult = await pool.query(
@@ -395,21 +442,24 @@ export async function GET(request: NextRequest) {
                     WHERE ri.dipp_transaction_id = dt.id
                 )
 
-            ORDER BY
-                af.form_code ASC,
-                dt.receipt_date ASC,
+            -- ASCENDING OR NUMBER
+            -- Numeric OR numbers are sorted numerically.
+            -- Non-numeric OR numbers appear last.
 
+            ORDER BY
                 CASE
                     WHEN NULLIF(
                         TRIM(dt.or_number),
                         ''
                     ) ~ '^[0-9]+$'
+
                     THEN NULLIF(
                         TRIM(dt.or_number),
                         ''
                     )::BIGINT
+
                     ELSE NULL
-                END ASC,
+                END ASC NULLS LAST,
 
                 dt.or_number ASC
             `,
