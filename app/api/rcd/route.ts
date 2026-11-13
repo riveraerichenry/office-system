@@ -584,10 +584,12 @@ export async function POST(
 
                         dt.remarks,
 
-                        COALESCE(
-                            dt.grand_total,
-                            0
-                        ) AS amount,
+                        CASE
+                            WHEN dt.is_cancelled = TRUE
+                              OR UPPER(TRIM(COALESCE(dt.status, ''))) = 'CANCELLED'
+                            THEN 0
+                            ELSE COALESCE(dt.grand_total, 0)
+                        END AS amount,
 
                         dt.accountable_form_id,
 
