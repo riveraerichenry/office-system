@@ -7,19 +7,17 @@ import {
 import { pool } from "@/lib/db";
 
 export async function GET(
-    request: NextRequest,
-    {
-        params,
-    }: {
-        params: Promise<{
-            id: string;
-        }>;
-    }
+    request: NextRequest
 ) {
     try {
-        const {
-            id,
-        } = await params;
+        /*
+        ================================================================
+        GET TRANSACTION ID FROM QUERY PARAMETERS
+        ================================================================
+        */
+
+        const id =
+            request.nextUrl.searchParams.get("id");
 
         /*
         ================================================================
