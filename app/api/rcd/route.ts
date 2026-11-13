@@ -404,10 +404,22 @@ export async function POST(
             const dd = String(reportDate.getDate()).padStart(2, "0");
             const datePrefix = `${yy}${mm}${dd}`;
 
+            // Get the highest sequence already used for this date prefix.
+            // COUNT(*) + 1 can reuse an existing number when rows were deleted.
             const sequenceResult = await client.query(
-                `SELECT COUNT(*)::integer AS total FROM rcd_transaction WHERE report_date = CURRENT_DATE`
+                `
+                    SELECT
+                        COALESCE(
+                            MAX(SUBSTRING(report_no FROM 7 FOR 5)::INTEGER),
+                            0
+                        ) AS last_sequence
+                    FROM rcd_transaction
+                    WHERE report_no ~ ('^' || $1 || '[0-9]{5}-')
+                `,
+                [datePrefix]
             );
-            const nextSequence = Number(sequenceResult.rows[0]?.total ?? 0) + 1;
+            const nextSequence =
+                Number(sequenceResult.rows[0]?.last_sequence ?? 0) + 1;
             const reportNo = `${datePrefix}${String(nextSequence).padStart(5, "0")}-GF`;
             const rcdId = randomUUID();
 
@@ -1192,15 +1204,23 @@ export async function POST(
         const dd = String(reportDate.getDate()).padStart(2, "0");
         const datePrefix = `${yy}${mm}${dd}`;
 
+        // Get the highest sequence already used for this date prefix.
+        // This avoids duplicate report numbers if earlier RCD rows were deleted.
         const sequenceResult = await client.query(
             `
-                SELECT COUNT(*)::integer AS total
+                SELECT
+                    COALESCE(
+                        MAX(SUBSTRING(report_no FROM 7 FOR 5)::INTEGER),
+                        0
+                    ) AS last_sequence
                 FROM rcd_transaction
-                WHERE report_date = CURRENT_DATE
-            `
+                WHERE report_no ~ ('^' || $1 || '[0-9]{5}-')
+            `,
+            [datePrefix]
         );
 
-        let nextSequence = Number(sequenceResult.rows[0]?.total ?? 0) + 1;
+        let nextSequence =
+            Number(sequenceResult.rows[0]?.last_sequence ?? 0) + 1;
 
         const amountRows = transactions.map((transaction: any) => {
             const originalAmount = Number(transaction.amount ?? 0);
