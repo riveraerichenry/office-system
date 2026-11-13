@@ -77,21 +77,20 @@ export default function DVDetails(props: Props) {
           />
         </div>
 
-        {/* PAYOR */}
+        {/* PAYOR - READ ONLY */}
         <div className="sm:col-span-2">
           <label className={labelClass}>
             Payor
           </label>
 
           <input
-            value={props.payor}
-            onChange={(e) => props.setPayor(e.target.value)}
-            className={inputClass}
-            placeholder="Enter payor"
+            value="Municipality of Taytay, Palawan"
+            readOnly
+            className={`${inputClass} cursor-not-allowed text-slate-500`}
           />
         </div>
 
-        {/* PARTICULARS */}
+        {/* PARTICULARS - GENERATED FROM OBRS */}
         <div className="sm:col-span-2 lg:col-span-4">
           <label className={labelClass}>
             Particulars
@@ -100,10 +99,16 @@ export default function DVDetails(props: Props) {
           <textarea
             rows={2}
             value={props.particulars}
-            onChange={(e) => props.setParticulars(e.target.value)}
-            className="w-full resize-y border-0 border-b border-slate-300 bg-transparent px-0 py-2 text-sm text-slate-800 outline-none focus:border-[#6689A5] placeholder:text-slate-400"
-            placeholder="Enter particulars"
+            readOnly
+            className="w-full resize-y border-0 border-b border-slate-300 bg-slate-50 px-0 py-2 text-sm text-slate-700 outline-none cursor-not-allowed"
+            placeholder="Particulars will be generated from selected OBRs"
           />
+
+          <p className="mt-1 text-[10px] text-slate-400">
+            Automatically generated using the Office,
+            Sub-office, Category, and Account of the
+            selected OBRs.
+          </p>
         </div>
 
       </div>

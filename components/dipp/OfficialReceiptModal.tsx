@@ -122,6 +122,10 @@ type RPTItem = {
 
 type CTCItem = {
 
+    id?: string;
+
+    transaction_id?: string;
+
     ctc_type?: string | null;
 
     full_name?: string | null;
@@ -220,6 +224,15 @@ export default function OfficialReceiptDetailsModal({
         savingGeneralItems,
 
         setSavingGeneralItems,
+
+    ] = useState(false);
+
+
+    const [
+
+        savingCTCItems,
+
+        setSavingCTCItems,
 
     ] = useState(false);
 
@@ -528,10 +541,11 @@ export default function OfficialReceiptDetailsModal({
 
 
         if (
-
-            header.form_code ===
-            "CTC"
-
+            ["CTC", "CTC-I", "CTC-C", "CTCI", "CTCC",
+             "CTC-INDIVIDUAL", "CTC-CORPORATION",
+             "CTC INDIVIDUAL", "CTC CORPORATION"].includes(
+                String(header.form_code || "").toUpperCase()
+             )
         ) {
 
             setEditableCTCItems(
@@ -1068,6 +1082,78 @@ export default function OfficialReceiptDetailsModal({
 
     /*
     ================================================================
+    SAVE CTC ITEMS
+    ================================================================
+    */
+
+    async function handleSaveCTCItems() {
+        if (!header?.id) {
+            await Swal.fire({
+                icon: "error",
+                title: "Unable to Save",
+                text: "Transaction ID is missing.",
+            });
+            return;
+        }
+
+        if (editableCTCItems.length === 0) {
+            await Swal.fire({
+                icon: "warning",
+                title: "No CTC Items",
+                text: "Please keep at least one CTC item.",
+            });
+            return;
+        }
+
+        try {
+            setSavingCTCItems(true);
+
+            const res = await axios.put(
+                "/api/dipp/ctc-items/update",
+                {
+                    transaction_id: header.id,
+                    items: editableCTCItems.map((item) => ({
+                        ...item,
+                        ctc_type: item.id
+                            ? item.ctc_type
+                            : (
+                                ["CTC-C", "CTCC", "CTC-CORPORATION", "CTC CORPORATION"]
+                                    .includes(String(header.form_code || "").toUpperCase())
+                                    ? "CORPORATION"
+                                    : "INDIVIDUAL"
+                            ),
+                    })),
+                }
+            );
+
+            if (Array.isArray(res.data?.items)) {
+                setEditableCTCItems(res.data.items);
+            }
+
+            await Swal.fire({
+                icon: "success",
+                title: "CTC Items Updated",
+                text: "CTC details have been saved successfully.",
+                timer: 1600,
+                showConfirmButton: false,
+            });
+        } catch (err: any) {
+            await Swal.fire({
+                icon: "error",
+                title: "Unable to Save CTC Items",
+                text:
+                    err.response?.data?.message ||
+                    err.message ||
+                    "Unexpected error.",
+            });
+        } finally {
+            setSavingCTCItems(false);
+        }
+    }
+
+
+    /*
+    ================================================================
     PRINT
     ================================================================
     */
@@ -1105,15 +1191,9 @@ export default function OfficialReceiptDetailsModal({
     }
 
 
-    if (header.form_code === "CTC-I") {
-
-        window.open(
-            `/print/dipp/ctci/${header.id}`,
-            "_blank"
-        );
-
+    if (header.form_code === "CTC-I" || header.form_code === "CTCI") {
+        window.open(`/print/dipp/ctci/${header.id}`, "_blank");
         return;
-
     }
 
 
@@ -1292,32 +1372,31 @@ export default function OfficialReceiptDetailsModal({
                                 {/* CTC */}
 
                                 {
+                                    ["CTC", "CTC-I", "CTC-C", "CTCI", "CTCC",
+                                     "CTC-INDIVIDUAL", "CTC-CORPORATION",
+                                     "CTC INDIVIDUAL", "CTC CORPORATION"].includes(
+                                        String(header.form_code || "").toUpperCase()
+                                    ) && (
+                                        <div className="space-y-4">
+                                            <CTCItemsTable
+                                                items={editableCTCItems}
+                                                grandTotal={ctcGrandTotal}
+                                                saving={savingCTCItems}
+                                                onChange={setEditableCTCItems}
+                                            />
 
-                                    header.form_code ===
-                                    "CTC" && (
-
-                                        <CTCItemsTable
-
-                                            items={
-                                                editableCTCItems
-                                            }
-
-                                            grandTotal={
-                                                ctcGrandTotal
-                                            }
-
-                                            saving={
-                                                loading
-                                            }
-
-                                            onChange={
-                                                setEditableCTCItems
-                                            }
-
-                                        />
-
+                                            <div className="flex justify-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveCTCItems}
+                                                    disabled={savingCTCItems}
+                                                    className="inline-flex items-center rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {savingCTCItems ? "Saving CTC Items..." : "Save CTC Items"}
+                                                </button>
+                                            </div>
+                                        </div>
                                     )
-
                                 }
 
 
@@ -1329,7 +1408,11 @@ export default function OfficialReceiptDetailsModal({
 
                                     header.form_code !== "AF58" &&
 
-                                    header.form_code !== "CTC" && (
+                                    !["CTC", "CTC-I", "CTC-C", "CTCI", "CTCC",
+                                      "CTC-INDIVIDUAL", "CTC-CORPORATION",
+                                      "CTC INDIVIDUAL", "CTC CORPORATION"].includes(
+                                        String(header.form_code || "").toUpperCase()
+                                    ) && (
 
                                         <GeneralItemsTable
                                             items={

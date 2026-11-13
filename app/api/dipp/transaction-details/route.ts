@@ -208,52 +208,86 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | General Transaction Items
+    | Transaction Items
     |--------------------------------------------------------------------------
+    | CTC receipts use dipp_ctc_items.
+    | Other receipt types continue using dipp_transaction_items.
     */
 
-    const itemsResult =
-        await pool.query(
+    const formCode = String(
+        headerResult.rows[0].form_code || ""
+    ).trim().toUpperCase();
 
+    const isCTC = [
+        "CTC",
+        "CTC-I",
+        "CTC-C",
+        "CTCI",
+        "CTCC",
+        "CTC-INDIVIDUAL",
+        "CTC-CORPORATION",
+        "CTC INDIVIDUAL",
+        "CTC CORPORATION",
+    ].includes(formCode);
+
+    const itemsResult = isCTC
+        ? await pool.query(
             `
             SELECT
-
-                dti.id,
-
-                dti.transaction_id,
-
-                dti.account_id,
-
-                a.account_code,
-
-                a.account_name,
-
-                dti.amount,
-
-                dti.remarks
-
-            FROM dipp_transaction_items dti
-
-            INNER JOIN accounts a
-
-                ON a.id =
-                    dti.account_id
-
-            WHERE
-
-                dti.transaction_id = $1
-
-            ORDER BY
-
-                a.account_code
+                ci.id,
+                ci.transaction_id,
+                ci.ctc_type,
+                ci.full_name,
+                ci.address,
+                ci.tin,
+                ci.cr_number,
+                ci.citizenship,
+                ci.sex,
+                ci.height,
+                ci.weight,
+                ci.place_of_birth,
+                ci.birth_date,
+                ci.civil_status,
+                ci.occupation,
+                ci.corporation_name,
+                ci.sec_registration,
+                ci.representative,
+                ci.place_issued,
+                ci.issue_date,
+                ci.tax_mode,
+                ci.taxable_amount,
+                ci.basic_tax,
+                ci.salary_tax,
+                ci.additional_tax,
+                ci.penalty,
+                ci.interest,
+                ci.total_amount,
+                ci.account_id,
+                ci.created_at,
+                ci.updated_at
+            FROM dipp_ctc_items ci
+            WHERE ci.transaction_id = $1
+            ORDER BY ci.created_at, ci.id
             `,
-
-            [
-
-                id,
-
-            ]
-
+            [id]
+        )
+        : await pool.query(
+            `
+            SELECT
+                dti.id,
+                dti.transaction_id,
+                dti.account_id,
+                a.account_code,
+                a.account_name,
+                dti.amount,
+                dti.remarks
+            FROM dipp_transaction_items dti
+            INNER JOIN accounts a
+                ON a.id = dti.account_id
+            WHERE dti.transaction_id = $1
+            ORDER BY a.account_code
+            `,
+            [id]
         );
 
 

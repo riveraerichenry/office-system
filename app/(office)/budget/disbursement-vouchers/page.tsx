@@ -17,48 +17,69 @@ import type {
 } from "../components/disbursement-vouchers/types";
 
 const API = "/budget/api/disbursement-vouchers";
-const OBR_API = "/budget/api/obrs";
+
+const AVAILABLE_OBR_API =
+  "/budget/api/disbursement-vouchers/available-obrs";
+
+// ============================================================
+// NORMALIZE API RESPONSE
+// ============================================================
 
 function getArrayResponse(json: any): any[] {
   if (Array.isArray(json)) return json;
   if (Array.isArray(json?.data)) return json.data;
   if (Array.isArray(json?.obrs)) return json.obrs;
   if (Array.isArray(json?.rows)) return json.rows;
+
   return [];
 }
+
+// ============================================================
+// NORMALIZE OBR RECORD
+// ============================================================
 
 function normalizeOBR(row: any): OBRRecord {
   return {
     ...row,
+
     id: String(row.id ?? ""),
+
     obr_number: String(
       row.obr_number ?? row.obr_no ?? ""
     ),
+
     office_name:
       row.office_name ??
       row.office?.office_name ??
       "",
+
     sub_office_name:
       row.sub_office_name ??
       row.sub_office?.sub_office_name ??
       "",
+
     category_code:
       row.category_code ??
       row.category?.category_code ??
       "",
+
     category_name:
       row.category_name ??
       row.category?.category_name ??
       "",
+
     account_code:
       row.account_code ??
       row.account?.account_code ??
       "",
+
     account_name:
       row.account_name ??
       row.account?.account_name ??
       "",
+
     particulars: row.particulars ?? "",
+
     obligation_amount:
       row.obligation_amount ??
       row.total_allocation ??
@@ -66,6 +87,10 @@ function normalizeOBR(row: any): OBRRecord {
       0,
   };
 }
+
+// ============================================================
+// PAGE
+// ============================================================
 
 export default function DisbursementVouchersPage() {
   const [rows, setRows] = useState<DVRecord[]>([]);
@@ -121,19 +146,19 @@ export default function DisbursementVouchersPage() {
 
   // ============================================================
   // FETCH AVAILABLE OBRS
+  // Uses the separate Available OBR API.
+  // Already attached OBRs are excluded by the API.
   // ============================================================
 
   const fetchObrs = useCallback(async () => {
     setLoadingObrs(true);
 
     try {
-      const res = await fetch(
-        `${OBR_API}?available_for_dv=true`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
+      const res = await fetch(AVAILABLE_OBR_API, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
 
       const json = await res.json();
 
@@ -141,7 +166,7 @@ export default function DisbursementVouchersPage() {
         throw new Error(
           json.message ||
           json.error ||
-          "Unable to load OBR records."
+          "Unable to load available OBR records."
         );
       }
 

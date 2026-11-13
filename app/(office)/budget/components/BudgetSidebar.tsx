@@ -80,11 +80,11 @@ const menuGroups = [
         href: "/budget/disbursement-vouchers",
         icon: Receipt,
       },
-      // {
-      //   label: "Disbursement Transactions",
-      //   href: "/budget/disbursement_transactions",
-      //   icon: ClipboardList,
-      // },
+      {
+        label: "Check Issuance",
+        href: "/budget/check-issuance",
+        icon: ClipboardList,
+      },
       // {
       //   label: "Payments",
       //   href: "/budget/payments",

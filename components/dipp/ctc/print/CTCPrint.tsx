@@ -603,109 +603,6 @@ const totalAmountInWords =
     );
 
 
-/* =====================================================
-   FORMAT FULL NAME
-
-   INPUT:
-   FIRST MIDDLE LAST
-
-   OUTPUT:
-   LAST, FIRST MIDDLE
-===================================================== */
-
-const formatFullName = (
-    fullName: string
-) => {
-
-    if (!fullName) {
-        return "";
-    }
-
-    const cleaned =
-        fullName
-            .trim()
-            .replace(/\s+/g, " ");
-
-    if (!cleaned) {
-        return "";
-    }
-
-    /*
-     * CASE 1:
-     *
-     * RIVERA, ERIC HENRY P.
-     *
-     * Keep:
-     *
-     * RIVERA, ERIC HENRY P.
-     */
-
-    if (cleaned.indexOf(",") !== -1) {
-
-        const commaIndex =
-            cleaned.indexOf(",");
-
-        const surname =
-            cleaned
-                .substring(
-                    0,
-                    commaIndex
-                )
-                .trim();
-
-        const firstMiddle =
-            cleaned
-                .substring(
-                    commaIndex + 1
-                )
-                .trim()
-                .replace(
-                    /\s+/g,
-                    " "
-                );
-
-        if (!surname) {
-            return firstMiddle;
-        }
-
-        if (!firstMiddle) {
-            return surname;
-        }
-
-        return `${surname}, ${firstMiddle}`;
-    }
-
-
-    /*
-     * CASE 2:
-     *
-     * ERIC HENRY P. RIVERA
-     *
-     * Convert to:
-     *
-     * RIVERA, ERIC HENRY P.
-     */
-
-    const parts =
-        cleaned.split(/\s+/);
-
-    if (parts.length === 1) {
-        return parts[0];
-    }
-
-    const surname =
-        parts[
-            parts.length - 1
-        ];
-
-    const firstMiddle =
-        parts
-            .slice(0, -1)
-            .join(" ");
-
-    return `${surname}, ${firstMiddle}`;
-};
-
 return (
 
     <div
@@ -1246,15 +1143,11 @@ return (
 
             {
 
-                formatFullName(
+                ctc?.full_name ??
 
-                    ctc?.full_name ??
+                transaction?.payor ??
 
-                    transaction?.payor ??
-
-                    ""
-
-                )
+                ""
 
             }
 
