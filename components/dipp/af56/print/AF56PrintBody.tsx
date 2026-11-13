@@ -580,7 +580,7 @@ export default function AF56PrintBody({
 
 
                 "--af56-body-total-x":
-                    "990px",
+                    "980px",
 
                 "--af56-body-total-y":
                     "90px",
