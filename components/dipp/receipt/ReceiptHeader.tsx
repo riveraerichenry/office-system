@@ -1,3 +1,4 @@
+
 "use client";
 
 type Props = {
@@ -7,18 +8,14 @@ type Props = {
 export default function ReceiptHeader({
     transaction,
 }: Props) {
-    // Use the receipt date stored in the database
-    const receiptDate = transaction?.receipt_date
+    // Use the database entry date (created_at)
+    const receiptDate = transaction?.created_at
         ? new Intl.DateTimeFormat("en-PH", {
               timeZone: "Asia/Manila",
               year: "numeric",
               month: "long",
               day: "numeric",
-          }).format(
-              new Date(
-                  `${transaction.receipt_date}`.slice(0, 10) + "T00:00:00"
-              )
-          )
+          }).format(new Date(transaction.created_at))
         : "";
 
     return (
@@ -47,7 +44,7 @@ export default function ReceiptHeader({
                 "--receipt-payor-y": "265px",
             } as React.CSSProperties}
         >
-            {/* DATE */}
+            {/* DATE - DATABASE ENTRY DATE */}
             <div className="receipt-header-date">
                 {receiptDate}
             </div>
