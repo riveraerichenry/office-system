@@ -313,12 +313,18 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // A mixed General Fund + RPT BASIC parent has no single fund source.
-    // Original source IDs remain available through each linked RCD record.
-    const finalFundSourceId =
-      uniqueFundSourceIds.length === 1
-        ? uniqueFundSourceIds[0]
-        : null;
+    // When General Fund is included with RPT BASIC, use General Fund
+    // as the Consolidated RCD's fund source.
+    // If General Fund is not included, retain the selected single fund source.
+    // This ensures deposit transactions can retrieve the fund source from
+    // the Consolidated RCD header.
+    const hasGeneralFund = uniqueFundSourceIds.includes(
+      GENERAL_FUND_ID.toLowerCase()
+    );
+
+    const finalFundSourceId = hasGeneralFund
+      ? GENERAL_FUND_ID
+      : uniqueFundSourceIds[0];
 
     /* ========================================================
        PREVENT RE-CONSOLIDATION

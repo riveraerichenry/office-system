@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import Swal from "sweetalert2";
 
+import PreviewCash from "./PreviewCash";
+import PreviewCheck from "./PreviewCheck";
+
 import {
 
   X,
@@ -85,6 +88,8 @@ type BankAccount = {
 };
 
 type CheckType = "ON_US" | "LOCAL";
+
+type ActiveSlipPreview = "CASH" | "ON_US" | "LOCAL" | null;
 
 type DepositCheck = {
 
@@ -233,6 +238,8 @@ export default function DepositFormModal({
   const [validationMessage, setValidationMessage] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [activeSlipPreview, setActiveSlipPreview] =
+    useState<ActiveSlipPreview>(null);
 
   const [banks, setBanks] = useState<Bank[]>([]);
 
@@ -349,6 +356,63 @@ export default function DepositFormModal({
   );
 
   const totalDeposit = totalCash + totalChecks;
+
+  const cashPreviewData = {
+    rcd_number: rcdNumber,
+    deposit_date: depositDate,
+    reference_number: referenceNumber,
+    total_cash: totalCash,
+    bank_name: selectedBank?.name ?? "",
+    account_name: selectedAccount?.accountName ?? "",
+    account_number: selectedAccount?.accountNumber ?? "",
+    remarks,
+    cash_denominations: cashRows.map((row) => ({
+      denomination: row.value,
+      quantity: row.quantity,
+      subtotal: row.subtotal,
+    })),
+  };
+
+  const checkPreviewItems = (checkType: CheckType) => {
+    const selectedChecks =
+      checkType === "ON_US" ? onUsChecks : localChecks;
+
+    return selectedChecks.map((check) => ({
+      id: check.id,
+      item_type: "CHECK",
+      check_type: check.checkType,
+      check_number: check.checkNumber,
+      check_date: check.checkDate,
+      issuing_bank: check.bankName,
+      check_remarks: check.remarks,
+      remarks: check.remarks,
+      amount: Number(check.amount),
+    }));
+  };
+
+  const checkPreviewData = (checkType: CheckType) => {
+    const selectedChecks =
+      checkType === "ON_US" ? onUsChecks : localChecks;
+    const items = checkPreviewItems(checkType);
+    const total = selectedChecks.reduce(
+      (sum, check) => sum + Number(check.amount),
+      0
+    );
+
+    return {
+      rcd_number: rcdNumber,
+      deposit_date: depositDate,
+      reference_number: referenceNumber,
+      total_amount: total,
+      total_checks: selectedChecks.length,
+      checks: items,
+      bank_name: selectedBank?.name ?? "",
+      account_name: selectedAccount?.accountName ?? "",
+      account_number: selectedAccount?.accountNumber ?? "",
+      remarks,
+    };
+  };
+
 
   // Compare in centavos to avoid floating-point rounding differences.
 
@@ -917,11 +981,17 @@ export default function DepositFormModal({
         total_cash: Number(totalCash.toFixed(2)),
 
         // Persist the denomination breakdown so the cash slip can be reprinted later.
+
         cash_denominations: cashRows
+
           .filter((row) => row.quantity > 0)
+
           .map((row) => ({
+
             denomination: row.value,
+
             quantity: row.quantity,
+
           })),
 
         total_amount: Number(totalDeposit.toFixed(2)),
@@ -1066,343 +1136,38 @@ export default function DepositFormModal({
 
   }
 
-  function openPrintDocument(title: string, content: string) {
-
-    const printWindow = window.open("", "_blank");
-
-    if (!printWindow) {
-
-      setValidationMessage(
-
-        "The print window was blocked. Allow pop-ups for this site and try again."
-
-      );
-
-      return;
-
-    }
-
-    printWindow.document.open();
-
-    printWindow.document.write(`<!DOCTYPE html>
-
-<html lang="en">
-
-<head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>${escapeHtml(title)}</title>
-
-<style>
-
-*{box-sizing:border-box}
-
-body{margin:0;padding:24px;color:#111827;font-family:Arial,Helvetica,sans-serif;font-size:12px}
-
-.document{width:100%;max-width:1100px;margin:0 auto}
-
-.heading{padding-bottom:16px;margin-bottom:18px;border-bottom:2px solid #1e3a8a;text-align:center}
-
-.heading h1{margin:0 0 6px;font-size:19px}
-
-.heading p{margin:0;color:#4b5563;font-size:11px}
-
-.details{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:20px}
-
-.details div{display:flex;flex-direction:column;gap:3px}
-
-.details span{color:#6b7280;font-size:10px}
-
-.details strong{font-size:12px;overflow-wrap:anywhere}
-
-table{width:100%;border-collapse:collapse;margin:12px 0 18px}
-
-th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-
-th{background:#f3f4f6}
-
-.number{text-align:right;white-space:nowrap}
-
-tfoot td{background:#eff6ff;font-weight:700}
-
-.total-card{display:flex;justify-content:space-between;gap:16px;padding:14px;border:1px solid #bfdbfe;background:#eff6ff;font-size:14px}
-
-.total-card strong{color:#1d4ed8;white-space:nowrap}
-
-.remarks{margin-top:18px;overflow-wrap:anywhere}
-
-.signatures{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:65px}
-
-.signature{border-top:1px solid #111827;padding-top:7px;text-align:center}
-
-@page{size:landscape;margin:12mm}
-
-@media print{body{padding:0}.document{max-width:none}thead{display:table-header-group}tr{break-inside:avoid}}
-
-</style>
-
-</head>
-
-<body>
-
-<main class="document">
-
-<header class="heading">
-
-<h1>${escapeHtml(title)}</h1>
-
-<p>Municipal Treasury — Deposit Record</p>
-
-</header>
-
-<section class="details">
-
-<div><span>Consolidated RCD No.</span><strong>${escapeHtml(
-
-      rcdNumber || "—"
-
-    )}</strong></div>
-
-<div><span>Consolidated RCD Amount</span><strong>${escapeHtml(
-
-      formatPeso(Number(rcdAmount) || 0)
-
-    )}</strong></div>
-
-<div><span>Deposit Date</span><strong>${escapeHtml(
-
-      formatDate(depositDate)
-
-    )}</strong></div>
-
-<div><span>Deposit Reference Number</span><strong>${escapeHtml(
-
-      referenceNumber.trim() || "—"
-
-    )}</strong></div>
-
-<div><span>Depositing Bank</span><strong>${escapeHtml(
-
-      selectedBank?.name || "—"
-
-    )}</strong></div>
-
-<div><span>Bank Account</span><strong>${escapeHtml(
-
-      selectedAccount?.accountName || "—"
-
-    )}</strong></div>
-
-<div><span>Account Number</span><strong>${escapeHtml(
-
-      selectedAccount?.accountNumber || "—"
-
-    )}</strong></div>
-
-</section>
-
-${content}
-
-<div class="remarks"><strong>General Remarks:</strong> ${escapeHtml(
-
-      remarks.trim() || "—"
-
-    )}</div>
-
-<div class="signatures">
-
-<div class="signature">Prepared By</div>
-
-<div class="signature">Checked By</div>
-
-</div>
-
-</main>
-
-<script>
-
-window.addEventListener('load',function(){window.focus();window.print();});
-
-</script>
-
-</body>
-
-</html>`);
-
-    printWindow.document.close();
-
-  }
-
   function printCashSlip() {
-
     if (!validateHeader()) return;
 
     if (totalCash <= 0) {
-
       return fail(
-
         "Enter at least one cash denomination quantity before printing the cash slip."
-
       );
-
     }
 
-    const rows = cashRows
-
-      .filter((row) => row.quantity > 0)
-
-      .map(
-
-        (row) =>
-
-          `<tr><td>${escapeHtml(row.label)}</td><td>${
-
-            row.value < 20 ? "Coin" : "Bill"
-
-          }</td><td class="number">${row.quantity.toLocaleString(
-
-            "en-PH"
-
-          )}</td><td class="number">${escapeHtml(
-
-            formatPeso(row.subtotal)
-
-          )}</td></tr>`
-
-      )
-
-      .join("");
-
-    openPrintDocument(
-
-      "CASH DEPOSIT SLIP",
-
-      `<table>
-
-<thead><tr><th>Denomination</th><th>Type</th><th class="number">Quantity</th><th class="number">Subtotal</th></tr></thead>
-
-<tbody>${rows}</tbody>
-
-<tfoot><tr><td colspan="3">Total Cash</td><td class="number">${escapeHtml(
-
-        formatPeso(totalCash)
-
-      )}</td></tr></tfoot>
-
-</table>
-
-<div class="total-card"><span>Total Cash Deposit</span><strong>${escapeHtml(
-
-        formatPeso(totalCash)
-
-      )}</strong></div>`
-
-    );
-
+    setActiveSlipPreview("CASH");
   }
 
   function printCheckSlip(checkType: CheckType) {
-
     if (!validateGroupedChecks()) return;
 
     const checksToPrint =
-
       checkType === "ON_US" ? onUsChecks : localChecks;
 
     if (!checksToPrint.length) {
-
       return fail(
-
         `There are no ${
-
           checkType === "ON_US" ? "On Us" : "Local"
-
         } checks to print.`
-
       );
-
     }
 
-    const total = checksToPrint.reduce(
-
-      (sum, check) => sum + Number(check.amount),
-
-      0
-
-    );
-
-    const typeLabel = checkType === "ON_US" ? "On Us" : "Local";
-
-    const rows = checksToPrint
-
-      .map(
-
-        (check, index) =>
-
-          `<tr><td>${index + 1}</td><td>${escapeHtml(
-
-            check.checkNumber
-
-          )}</td><td>${escapeHtml(
-
-            formatDate(check.checkDate)
-
-          )}</td><td>${escapeHtml(
-
-            check.bankName
-
-          )}</td><td class="number">${escapeHtml(
-
-            formatPeso(Number(check.amount))
-
-          )}</td><td>${escapeHtml(
-
-            check.remarks.trim() || "—"
-
-          )}</td></tr>`
-
-      )
-
-      .join("");
-
-    openPrintDocument(
-
-      `${typeLabel.toUpperCase()} CHECK DEPOSIT SLIP`,
-
-      `<table>
-
-<thead><tr><th>#</th><th>Check Number</th><th>Check Date</th><th>Issuing Bank</th><th class="number">Amount</th><th>Remarks</th></tr></thead>
-
-<tbody>${rows}</tbody>
-
-<tfoot><tr><td colspan="4">Total ${typeLabel} Checks (${
-
-        checksToPrint.length
-
-      })</td><td class="number">${escapeHtml(
-
-        formatPeso(total)
-
-      )}</td><td></td></tr></tfoot>
-
-</table>
-
-<div class="total-card"><span>Total ${typeLabel} Checks</span><strong>${escapeHtml(
-
-        formatPeso(total)
-
-      )}</strong></div>`
-
-    );
-
+    setActiveSlipPreview(checkType);
   }
 
   return (
-
-    <div
+    <>
+      <div
 
       className="fixed inset-0 z-[100002] flex items-center justify-center bg-black/60 p-2 sm:p-3"
 
@@ -1818,7 +1583,7 @@ window.addEventListener('load',function(){window.focus();window.print();});
 
                         <svg
 
-                          xmlns="http\\://www.w3.org/2000/svg"
+                          xmlns="http\\\://www.w3.org/2000/svg"
 
                           width="16"
 
@@ -2851,7 +2616,45 @@ window.addEventListener('load',function(){window.focus();window.print();});
       </div>
 
     </div>
+    {activeSlipPreview && (
+      <div className="fixed inset-0 z-[100020] flex items-center justify-center overflow-y-auto bg-black/70 p-2 sm:p-5">
+        <div className="relative flex max-h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-gray-900">
+                {activeSlipPreview === "CASH"
+                  ? "Cash Deposit Slip Preview"
+                  : `${activeSlipPreview === "ON_US" ? "On Us" : "Local"} Check Deposit Slip Preview`}
+              </h2>
+              <p className="text-xs text-gray-500">
+                Review the slip, then use its Print button.
+              </p>
+            </div>
 
+            <button
+              type="button"
+              onClick={() => setActiveSlipPreview(null)}
+              className="shrink-0 rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Close print preview"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto bg-gray-100 p-2 sm:p-4">
+            {activeSlipPreview === "CASH" ? (
+              <PreviewCash deposit={cashPreviewData} />
+            ) : (
+              <PreviewCheck
+                deposit={checkPreviewData(activeSlipPreview)}
+                items={checkPreviewItems(activeSlipPreview)}
+                checkType={activeSlipPreview}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
-
 }
