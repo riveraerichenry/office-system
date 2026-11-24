@@ -3,6 +3,28 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { pool } from "@/lib/db";
 
+const GENERAL_FUND_ID = "c3fccaef-ba38-4fb0-8179-d3249ec712f6";
+const RPT_BASIC_FUND_ID = "a30624dd-f490-424a-984d-fe5f5e93277a";
+const RPT_SEF_FUND_ID = "2a29a5c5-01d8-4202-8cf9-8a6659865f01";
+
+function getConsolidationGroup(fundSourceId: string): string {
+  const id = String(fundSourceId || "").toLowerCase();
+
+  if (
+    id === GENERAL_FUND_ID.toLowerCase() ||
+    id === RPT_BASIC_FUND_ID.toLowerCase()
+  ) {
+    return "GENERAL_AND_RPT_BASIC";
+  }
+
+  if (id === RPT_SEF_FUND_ID.toLowerCase()) {
+    return "RPT_SEF";
+  }
+
+  // All other fund sources remain restricted to their own fund source.
+  return `FUND:${id}`;
+}
+
 /* ============================================================
    AUTHENTICATION
 ============================================================ */
@@ -164,20 +186,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Optional for a mixed General Fund + RPT BASIC consolidation.
+    // The backend determines the actual source IDs from the locked records.
     const requestedFundSourceId =
       typeof body.fund_source_id === "string"
         ? body.fund_source_id.trim()
         : "";
-
-    if (!requestedFundSourceId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Fund source is required.",
-        },
-        { status: 400 }
-      );
-    }
 
     /* ========================================================
        BEGIN TRANSACTION
@@ -250,18 +264,18 @@ export async function POST(request: NextRequest) {
     }
 
     /* ========================================================
-       VALIDATE FUND SOURCE
+       VALIDATE CONSOLIDATION GROUP
+
+       General Fund (101) and RPT BASIC (105) may be combined.
+       RPT SEF (103) must remain separate.
+       Every other fund source remains same-source-only.
     ======================================================== */
 
     const fundSourceIds = remittanceResult.rows.map(
-      (row) => row.fund_source_id
+      (row) => String(row.fund_source_id || "")
     );
 
-    if (
-      fundSourceIds.some(
-        (id) => id === null || id === undefined || id === ""
-      )
-    ) {
+    if (fundSourceIds.some((id) => !id)) {
       const error = new Error(
         "One or more remittances have no fund source."
       );
@@ -270,26 +284,41 @@ export async function POST(request: NextRequest) {
     }
 
     const uniqueFundSourceIds = [
-      ...new Set(fundSourceIds.map(String)),
+      ...new Set(fundSourceIds.map((id) => id.toLowerCase())),
     ];
 
-    if (uniqueFundSourceIds.length !== 1) {
+    const consolidationGroups = [
+      ...new Set(
+        fundSourceIds.map((id) => getConsolidationGroup(id))
+      ),
+    ];
+
+    if (consolidationGroups.length !== 1) {
       const error = new Error(
-        "Remittances from different fund sources cannot be consolidated together."
+        "These remittances belong to different consolidation groups. General Fund and RPT BASIC may be consolidated together, but RPT SEF must be consolidated separately. Other fund sources must be consolidated separately."
       );
       Object.assign(error, { statusCode: 400 });
       throw error;
     }
 
-    const finalFundSourceId = uniqueFundSourceIds[0];
-
-    if (requestedFundSourceId !== finalFundSourceId) {
+    if (
+      requestedFundSourceId &&
+      uniqueFundSourceIds.length === 1 &&
+      requestedFundSourceId.toLowerCase() !== uniqueFundSourceIds[0]
+    ) {
       const error = new Error(
         "The selected remittances do not belong to the requested fund source. Refresh and try again."
       );
       Object.assign(error, { statusCode: 400 });
       throw error;
     }
+
+    // A mixed General Fund + RPT BASIC parent has no single fund source.
+    // Original source IDs remain available through each linked RCD record.
+    const finalFundSourceId =
+      uniqueFundSourceIds.length === 1
+        ? uniqueFundSourceIds[0]
+        : null;
 
     /* ========================================================
        PREVENT RE-CONSOLIDATION

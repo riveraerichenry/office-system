@@ -229,10 +229,10 @@ export async function GET(request: NextRequest) {
             SELECT
                 rt.id,
                 rt.report_no,
-                rt.report_date,
+                TO_CHAR(rt.report_date::date, 'YYYY-MM-DD') AS report_date,
                 rt.fund_source_id,
-                rt.date_from,
-                rt.date_to,
+                TO_CHAR(rt.date_from::date, 'YYYY-MM-DD') AS date_from,
+                TO_CHAR(rt.date_to::date, 'YYYY-MM-DD') AS date_to,
                 rt.total_collections,
                 rt.total_remittances,
                 rt.total_deposits,

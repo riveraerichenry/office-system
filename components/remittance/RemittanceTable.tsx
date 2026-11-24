@@ -38,6 +38,30 @@ type FundSource = {
   acronym: string | null;
 };
 
+// RPT BASIC may be consolidated with the General Fund.
+// RPT SEF must remain in its own consolidation group.
+const GENERAL_FUND_ID = "c3fccaef-ba38-4fb0-8179-d3249ec712f6";
+const RPT_BASIC_FUND_ID = "a30624dd-f490-424a-984d-fe5f5e93277a";
+const RPT_SEF_FUND_ID = "2a29a5c5-01d8-4202-8cf9-8a6659865f01";
+
+function getConsolidationGroup(fundSourceId: string): string {
+  const id = String(fundSourceId || "").toLowerCase();
+
+  if (
+    id === GENERAL_FUND_ID.toLowerCase() ||
+    id === RPT_BASIC_FUND_ID.toLowerCase()
+  ) {
+    return "GENERAL_AND_RPT_BASIC";
+  }
+
+  if (id === RPT_SEF_FUND_ID.toLowerCase()) {
+    return "RPT_SEF";
+  }
+
+  // All other fund sources retain the existing same-fund-only rule.
+  return `FUND:${id}`;
+}
+
 function formatAmount(amount: number) {
   return `₱${Number(amount || 0).toLocaleString("en-PH", {
     minimumFractionDigits: 2,
@@ -182,10 +206,10 @@ export default function RemittanceTable() {
   const selectedRows = useMemo(() => {
     const selectedSet = new Set(selectedIds);
 
-    return filteredData.filter((item) =>
+    return data.filter((item) =>
       selectedSet.has(item.id)
     );
-  }, [filteredData, selectedIds]);
+  }, [data, selectedIds]);
 
   const selectedTotal = useMemo(
     () =>
@@ -227,29 +251,40 @@ export default function RemittanceTable() {
 
     if (!selectedRow) return;
 
+    if (checked) {
+      const currentlySelectedRows = data.filter((item) =>
+        selectedIds.includes(item.id)
+      );
+
+      const selectedGroups = new Set(
+        currentlySelectedRows.map((item) =>
+          getConsolidationGroup(item.fund_source_id)
+        )
+      );
+
+      const clickedGroup = getConsolidationGroup(
+        selectedRow.fund_source_id
+      );
+
+      if (
+        selectedGroups.size > 0 &&
+        !selectedGroups.has(clickedGroup)
+      ) {
+        void Swal.fire({
+          title: "Different Consolidation Group",
+          text: "RPT SEF must be consolidated separately. General Fund and RPT Basic may be consolidated together. Other fund sources must be consolidated separately.",
+          icon: "warning",
+          confirmButtonColor: "#2563eb",
+        });
+        return;
+      }
+    }
+
     setSelectedIds((previous) => {
       if (!checked) {
         return previous.filter(
           (selectedId) => selectedId !== id
         );
-      }
-
-      const selectedFundSourceIds = new Set(
-        data
-          .filter((item) => previous.includes(item.id))
-          .map((item) => item.fund_source_id)
-      );
-
-      if (
-        selectedFundSourceIds.size > 0 &&
-        (
-          selectedFundSourceIds.size > 1 ||
-          !selectedFundSourceIds.has(
-            selectedRow.fund_source_id
-          )
-        )
-      ) {
-        return [id];
       }
 
       return previous.includes(id)
@@ -266,38 +301,65 @@ export default function RemittanceTable() {
     const filteredIds = filteredData.map((item) => item.id);
     const filteredIdSet = new Set(filteredIds);
 
-    setSelectedIds((previous) => {
-      if (checked) {
-        const existingRows = data.filter((item) =>
-          previous.includes(item.id)
-        );
-
-        const existingFundIds = new Set(
-          existingRows.map((item) => item.fund_source_id)
-        );
-
-        const newFundIds = new Set(
-          filteredData.map((item) => item.fund_source_id)
-        );
-
-        const combinedFundIds = new Set([
-          ...existingFundIds,
-          ...newFundIds,
-        ]);
-
-        if (combinedFundIds.size > 1) {
-          return filteredIds;
-        }
-
-        return Array.from(
-          new Set([...previous, ...filteredIds])
-        );
-      }
-
-      return previous.filter(
-        (id) => !filteredIdSet.has(id)
+    if (!checked) {
+      setSelectedIds((previous) =>
+        previous.filter((id) => !filteredIdSet.has(id))
       );
-    });
+      return;
+    }
+
+    const currentlySelectedRows = data.filter((item) =>
+      selectedIds.includes(item.id)
+    );
+
+    const selectedGroup = currentlySelectedRows.length > 0
+      ? getConsolidationGroup(currentlySelectedRows[0].fund_source_id)
+      : null;
+
+    if (
+      currentlySelectedRows.some(
+        (item) => getConsolidationGroup(item.fund_source_id) !== selectedGroup
+      )
+    ) {
+      void Swal.fire({
+        title: "Different Consolidation Group",
+        text: "Please select remittances from only one consolidation group at a time.",
+        icon: "warning",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
+    }
+
+    const targetGroup = selectedGroup || (
+      filteredData[0]
+        ? getConsolidationGroup(filteredData[0].fund_source_id)
+        : null
+    );
+
+    if (!targetGroup) return;
+
+    const eligibleFilteredIds = filteredData
+      .filter((item) =>
+        getConsolidationGroup(item.fund_source_id) === targetGroup
+      )
+      .map((item) => item.id);
+
+    const containsOtherGroups = filteredData.some((item) =>
+      getConsolidationGroup(item.fund_source_id) !== targetGroup
+    );
+
+    if (containsOtherGroups && !selectedGroup) {
+      void Swal.fire({
+        title: "Select All",
+        text: "The list contains multiple consolidation groups. Only the first eligible group's remittances will be selected. Use the fund source filter to select another group.",
+        icon: "info",
+        confirmButtonColor: "#2563eb",
+      });
+    }
+
+    setSelectedIds((previous) =>
+      Array.from(new Set([...previous, ...eligibleFilteredIds]))
+    );
   }
 
   /* ============================================================
@@ -307,7 +369,6 @@ export default function RemittanceTable() {
   function handleFundSourceChange(value: string) {
     setFundSource(value);
     setPage(1);
-    setSelectedIds([]);
   }
 
   /* ============================================================
@@ -353,21 +414,18 @@ export default function RemittanceTable() {
 
     const rowsToConsolidate = [...selectedRows];
 
-    const selectedFundSourceIds = [
+    const selectedGroups = [
       ...new Set(
-        rowsToConsolidate.map(
-          (item) => item.fund_source_id
+        rowsToConsolidate.map((item) =>
+          getConsolidationGroup(item.fund_source_id)
         )
       ),
     ];
 
-    if (
-      selectedFundSourceIds.length !== 1 ||
-      !selectedFundSourceIds[0]
-    ) {
+    if (selectedGroups.length !== 1) {
       await Swal.fire({
-        title: "Different Fund Sources",
-        text: "You cannot consolidate remittances from different fund sources. Please select remittances belonging to one fund source only.",
+        title: "Different Consolidation Groups",
+        text: "RPT SEF must be consolidated separately. General Fund and RPT Basic may be consolidated together. Other fund sources must be consolidated separately.",
         icon: "warning",
         confirmButtonText: "OK",
         confirmButtonColor: "#2563eb",
@@ -376,17 +434,23 @@ export default function RemittanceTable() {
       return;
     }
 
-    const actualFundSourceId = selectedFundSourceIds[0];
+    const selectedFundSourceIds = [
+      ...new Set(rowsToConsolidate.map((item) => item.fund_source_id)),
+    ];
 
-    const selectedFund = fundSources.find(
-      (fund) => fund.id === actualFundSourceId
-    );
+    const actualFundSourceId =
+      selectedFundSourceIds.length === 1
+        ? selectedFundSourceIds[0]
+        : null;
 
-    const fundLabel = selectedFund
-      ? `${selectedFund.fundCode} - ${selectedFund.fundName}`
-      : rowsToConsolidate[0].fund_source ||
-        rowsToConsolidate[0].fund_name ||
-        "Selected Fund Source";
+    const fundLabel = selectedFundSourceIds
+      .map((id) => {
+        const fund = fundSources.find((item) => item.id === id);
+        return fund
+          ? `${fund.fundCode} - ${fund.fundName}`
+          : rowsToConsolidate.find((item) => item.fund_source_id === id)?.fund_source || id;
+      })
+      .join(" + ");
 
     const remittanceIds = rowsToConsolidate.map(
       (item) => item.id
