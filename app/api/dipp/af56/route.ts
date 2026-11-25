@@ -1,4 +1,3 @@
-
 import {
     NextRequest,
     NextResponse,
@@ -255,31 +254,29 @@ export async function POST(req: NextRequest) {
         const billingItems = itemResult.rows;
 
         // ============================================================
-        // 10. CALCULATE GRAND TOTAL
+        // 10. USE BILLING HEADER GRAND TOTAL
+        //
+        // IMPORTANT:
+        // The billing header grand_total is the authoritative
+        // transaction total.
+        //
+        // Do not recalculate this by summing individual item totals.
+        // Item-level amounts are still saved individually below.
         // ============================================================
 
-        const grandTotal = billingItems.reduce(
-            (sum: number, item: any) => {
-                return (
-                    sum +
-                    Number(
-                        item.total ??
-                        item.amount ??
-                        0
-                    )
-                );
-            },
-            0
-        );
+        const grandTotal = Number(billing.grand_total);
 
-        if (!Number.isFinite(grandTotal)) {
+        if (
+            !Number.isFinite(grandTotal) ||
+            grandTotal < 0
+        ) {
             throw new Error(
-                "Invalid billing total."
+                "Invalid billing grand total."
             );
         }
 
         // ============================================================
-        // 11. INSERT DIPP TRANSACTION
+        // 11. INSERT DIPP TRANSACTION HEADER
         // ============================================================
 
         const transactionResult = await client.query(
@@ -337,6 +334,8 @@ export async function POST(req: NextRequest) {
 
                 payment_mode,
                 remarks ?? null,
+
+                // Billing header total
                 grandTotal,
 
                 user.id,
@@ -351,6 +350,11 @@ export async function POST(req: NextRequest) {
 
         // ============================================================
         // 12. INSERT DIPP RPT ITEMS
+        //
+        // ONE BILLING ITEM = ONE DIPP RPT ITEM
+        //
+        // Header data comes from rpt_billings.
+        // Individual item data comes from rpt_billing_items.
         // ============================================================
 
         for (const item of billingItems) {
@@ -449,6 +453,7 @@ export async function POST(req: NextRequest) {
                         billing.to_year ??
                         null,
 
+                    // Individual billing item
                     Number(item.basic ?? 0),
 
                     Number(item.sef ?? 0),
@@ -457,6 +462,7 @@ export async function POST(req: NextRequest) {
 
                     Number(item.discount ?? 0),
 
+                    // Individual billing item amount
                     Number(
                         item.total ??
                         item.amount ??
@@ -472,12 +478,12 @@ export async function POST(req: NextRequest) {
 
                     item.account_id ?? null,
 
-                    // Use classification from rpt_billings
+                    // Classification
                     billing.classification_name ??
                         item.classification_name ??
                         null,
 
-                    // Save the RPU type on each DIPP RPT item.
+                    // RPU type
                     billing.rpu_type ??
                         billing.property_type ??
                         billing.rputype ??
@@ -585,6 +591,7 @@ export async function POST(req: NextRequest) {
                         billing.to_year ??
                         null,
 
+                    // Individual billing item
                     Number(item.basic ?? 0),
 
                     Number(item.sef ?? 0),
@@ -593,6 +600,7 @@ export async function POST(req: NextRequest) {
 
                     Number(item.discount ?? 0),
 
+                    // Individual billing item amount
                     Number(
                         item.total ??
                         item.amount ??
@@ -608,7 +616,7 @@ export async function POST(req: NextRequest) {
 
                     item.account_id ?? null,
 
-                    // Current logged-in user's ID
+                    // Current logged-in user
                     user.id,
                 ]
             );
@@ -690,18 +698,17 @@ export async function POST(req: NextRequest) {
                 propertyId,
 
                 // Registered property TD number
-                billing.td_number ??
-                    null,
+                billing.td_number ?? null,
 
                 // Registered property owner
-                billing.owner_name ??
-                    null,
+                billing.owner_name ?? null,
 
                 // Actual person who paid
                 payor.trim(),
 
                 receipt_date,
 
+                // Billing header total
                 grandTotal,
 
                 user.id,

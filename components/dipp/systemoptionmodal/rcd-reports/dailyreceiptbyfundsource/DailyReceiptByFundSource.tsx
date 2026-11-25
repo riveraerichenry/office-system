@@ -1,4 +1,3 @@
-
 "use client";
 
 import "./DailyReceiptPreview.css";
@@ -59,12 +58,13 @@ function formatDate(value?: string | null): string {
 
 /* ============================================================
    AMOUNT FORMAT
+   EXACTLY 3 DECIMAL PLACES
 ============================================================ */
 
 function formatAmount(value: any): string {
     return Number(value ?? 0).toLocaleString("en-PH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3,
     });
 }
 

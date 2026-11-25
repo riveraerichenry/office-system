@@ -1,4 +1,3 @@
-
 export type RPTComputationInput = {
     assessedValue: number;
     taxYear: number;
@@ -34,6 +33,16 @@ const RULES = {
 
 /*
 ====================================================================
+MONEY ROUNDING
+====================================================================
+*/
+
+function roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/*
+====================================================================
 QUARTERLY TAX
 ====================================================================
 */
@@ -41,8 +50,7 @@ QUARTERLY TAX
 function quarterlyTax(
     assessedValue: number
 ): number {
-
-    return (
+    return roundMoney(
         assessedValue *
         RULES.annualTaxRate /
         4
@@ -53,22 +61,6 @@ function quarterlyTax(
 ====================================================================
 DISCOUNT COMPUTATION
 ====================================================================
-
-ADVANCE PAYMENT:
-Any future tax year = 20%
-
-Examples:
-Payment year 2026:
-2027 = 20%
-2028 = 20%
-2029 = 20%
-2030 = 20%
-
-CURRENT YEAR:
-January - March = 10%
-
-OTHER PERIODS:
-0%
 */
 
 function discountPercent(
@@ -233,10 +225,10 @@ export function computeRPT(
     */
 
     const basic =
-        taxDue / 2;
+        roundMoney(taxDue / 2);
 
     const sef =
-        taxDue / 2;
+        roundMoney(taxDue / 2);
 
     /*
         Penalty rate
@@ -263,27 +255,34 @@ export function computeRPT(
     */
 
     const penalty =
-        taxDue *
-        penaltyRate /
-        100;
+        roundMoney(
+            taxDue *
+            penaltyRate /
+            100
+        );
 
     /*
         Discount amount
     */
 
     const discount =
-        taxDue *
-        discountRate /
-        100;
+        roundMoney(
+            taxDue *
+            discountRate /
+            100
+        );
 
     /*
         Final amount
+        Uses rounded monetary values.
     */
 
     const total =
-        taxDue +
-        penalty -
-        discount;
+        roundMoney(
+            taxDue +
+            penalty -
+            discount
+        );
 
     return {
         taxDue,

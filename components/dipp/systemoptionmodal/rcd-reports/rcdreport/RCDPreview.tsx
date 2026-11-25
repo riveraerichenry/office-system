@@ -51,15 +51,15 @@ function formatDate(value?: string | null): string {
 }
 
 // ============================================================
-// CURRENCY
+// CURRENCY - 3 DECIMAL PLACES
 // ============================================================
 
 function formatCurrency(
     value: number | string | null | undefined
 ): string {
     return Number(value ?? 0).toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3,
     });
 }
 
@@ -175,13 +175,14 @@ function amountToWords(value: number | string): string {
 
 function getDisplayFormCode(item: RCDItem): string {
     const formCode = String(item.form_code ?? "").trim();
+
     const normalizedFormCode = formCode
         .toUpperCase()
-        .replace(/[\\s_-]+/g, " ");
+        .replace(/[\\_-]+/g, " ");
 
     const isCashTicket =
-        item.cash_ticket_transaction_id !== null &&
-        item.cash_ticket_transaction_id !== undefined ||
+        (item.cash_ticket_transaction_id !== null &&
+            item.cash_ticket_transaction_id !== undefined) ||
         normalizedFormCode === "CASH TICKET";
 
     return isCashTicket
@@ -293,6 +294,7 @@ export default function RCDPreview({
                 const formCode = getDisplayFormCode(groupItems[0]);
 
                 // Current OR numbers
+
                 const serials = groupItems
                     .map((item) =>
                         String(item.or_number ?? "").trim()
@@ -332,6 +334,7 @@ export default function RCDPreview({
                 }
 
                 // Current form amount
+
                 const amount = groupItems.reduce(
                     (total, item) =>
                         total + Number(item.amount ?? 0),
@@ -339,6 +342,7 @@ export default function RCDPreview({
                 );
 
                 // Find booklet
+
                 const bookletItem =
                     groupItems.find(
                         (item) =>
@@ -357,6 +361,7 @@ export default function RCDPreview({
                         : null;
 
                 // Previous accountability row fallback
+
                 const previousRow = previousFormRows.find(
                     (row) =>
                         row.formCode.trim().toUpperCase() ===
@@ -369,6 +374,7 @@ export default function RCDPreview({
                 );
 
                 // Beginning balance
+
                 let beginningFrom: string | null = null;
                 let beginningTo: string | null = null;
 
@@ -388,6 +394,7 @@ export default function RCDPreview({
                 }
 
                 // Ending balance
+
                 let endingFrom: string | null = null;
                 let endingTo: string | null = null;
 
@@ -455,6 +462,7 @@ export default function RCDPreview({
             <div className="rcd-paper rcd-print-area">
                 <div className="rcd-content">
                     {/* HEADER */}
+
                     <RCDHeader
                         rcd={rcd}
                         fundSource={fundSource}
@@ -463,6 +471,7 @@ export default function RCDPreview({
                     />
 
                     {/* COLLECTIONS */}
+
                     <RCDCollections
                         items={items}
                         totalCollections={totalCollections}
@@ -470,6 +479,7 @@ export default function RCDPreview({
                     />
 
                     {/* LIQUIDATION */}
+
                     <RCDLiquidation
                         rcd={rcd}
                         user={user}
@@ -478,12 +488,14 @@ export default function RCDPreview({
                     />
 
                     {/* REMITTANCE */}
+
                     <RCDRemittance
                         totalDeposits={totalDeposits}
                         formatCurrency={formatCurrency}
                     />
 
                     {/* ACCOUNTABILITY */}
+
                     <RCDAccountability
                         formRows={formRows}
                     />
@@ -491,6 +503,7 @@ export default function RCDPreview({
 
                 <div className="rcd-bottom">
                     {/* SUMMARY */}
+
                     <div className="rcd-summary-container">
                         <RCDSummary
                             totalCollections={totalCollections}
@@ -502,6 +515,7 @@ export default function RCDPreview({
                     </div>
 
                     {/* FOOTER */}
+
                     <div className="rcd-footer-container">
                         <RCDFooter
                             rcd={rcd}

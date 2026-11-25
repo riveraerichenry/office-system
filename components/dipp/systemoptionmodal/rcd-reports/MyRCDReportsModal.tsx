@@ -964,10 +964,10 @@ export default function MyRCDReportsModal({
             "en-PH",
             {
                 minimumFractionDigits:
-                    2,
+                    3,
 
                 maximumFractionDigits:
-                    2,
+                    3,
             }
         );
 

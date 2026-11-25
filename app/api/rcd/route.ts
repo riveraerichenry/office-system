@@ -1222,9 +1222,11 @@ export async function POST(
         let nextSequence =
             Number(sequenceResult.rows[0]?.last_sequence ?? 0) + 1;
 
+        // Keep the RPT General split equal between BASIC and SEF.
+        // Values are not forced to 2 decimal places; the database columns
+        // retain NUMERIC(14,3) precision.
         const amountRows = transactions.map((transaction: any) => {
             const originalAmount = Number(transaction.amount ?? 0);
-
             const halfAmount = originalAmount / 2;
 
             return {
@@ -1252,7 +1254,7 @@ export async function POST(
             const reportNo = `${datePrefix}${sequence}-${suffix}`;
             const rcdId = randomUUID();
 
-            const rcdTotalCents = amountRows.reduce(
+            const rcdTotal = amountRows.reduce(
                 (sum: number, row: any) => {
                     const amount = isBasic
                         ? row.basicAmount
@@ -1260,12 +1262,10 @@ export async function POST(
                             ? row.sefAmount
                             : row.originalAmount;
 
-                    return sum + Math.round(amount * 100);
+                    return sum + amount;
                 },
                 0
             );
-
-            const rcdTotal = rcdTotalCents / 100;
 
             const rcdResult = await client.query(
                 `

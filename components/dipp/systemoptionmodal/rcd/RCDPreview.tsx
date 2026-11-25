@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -60,8 +61,8 @@ function formatCurrency(
     return (Number.isFinite(amount) ? amount : 0).toLocaleString(
         "en-US",
         {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3,
         }
     );
 }
@@ -407,7 +408,10 @@ export default function RCDPreview({
 
     return (
         <div className="rcd-preview-wrapper">
-            <div id="rcd-print-area" className="rcd-paper rcd-print-area">
+            <div
+                id="rcd-print-area"
+                className="rcd-paper rcd-print-area"
+            >
                 <div className="rcd-content">
                     <RCDHeader
                         rcd={rcd}

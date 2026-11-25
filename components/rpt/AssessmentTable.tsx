@@ -129,6 +129,16 @@ function money(value: number) {
     });
 }
 
+// Normalize monetary values to integer-cent precision.
+function roundMoney(value: number): number {
+    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+function toCents(value: number): number {
+    return Math.round((Number(value) + Number.EPSILON) * 100);
+}
+
+
 
 /* =========================================================
    COVERAGE LABEL
@@ -847,18 +857,18 @@ async function generateCoverageRows(
 
 
             tax_due:
-                first.result.taxDue *
-                quarterCount,
+                roundMoney(first.result.taxDue *
+                quarterCount),
 
 
             basic:
-                first.result.basic *
-                quarterCount,
+                roundMoney(first.result.basic *
+                quarterCount),
 
 
             sef:
-                first.result.sef *
-                quarterCount,
+                roundMoney(first.result.sef *
+                quarterCount),
 
 
             penalty_percent:
@@ -866,8 +876,8 @@ async function generateCoverageRows(
 
 
             penalty:
-                first.result.penalty *
-                quarterCount,
+                roundMoney(first.result.penalty *
+                quarterCount),
 
 
             discount_percent:
@@ -875,13 +885,13 @@ async function generateCoverageRows(
 
 
             discount:
-                first.result.discount *
-                quarterCount,
+                roundMoney(first.result.discount *
+                quarterCount),
 
 
             total:
-                first.result.total *
-                quarterCount,
+                roundMoney(first.result.total *
+                quarterCount),
 
 
             startQuarter:
@@ -946,50 +956,26 @@ async function generateCoverageRows(
    COMPUTE TOTALS
 ========================================================= */
 
-function computeTotals(
-    rows: AssessmentRow[]
-): Totals {
+function computeTotals(rows: AssessmentRow[]): Totals {
+    // Sum integer cents to avoid floating-point accumulation errors.
+    const cents = rows.reduce((acc, row) => {
+        acc.taxDue += toCents(row.tax_due);
+        acc.basic += toCents(row.basic);
+        acc.sef += toCents(row.sef);
+        acc.penalty += toCents(row.penalty);
+        acc.discount += toCents(row.discount);
+        acc.total += toCents(row.total);
+        return acc;
+    }, { taxDue: 0, basic: 0, sef: 0, penalty: 0, discount: 0, total: 0 });
 
-    return rows.reduce(
-        (acc, row) => {
-
-            acc.taxDue +=
-                row.tax_due;
-
-            acc.basic +=
-                row.basic;
-
-            acc.sef +=
-                row.sef;
-
-            acc.penalty +=
-                row.penalty;
-
-            acc.discount +=
-                row.discount;
-
-            acc.total +=
-                row.total;
-
-
-            return acc;
-
-        },
-
-        {
-            taxDue: 0,
-
-            basic: 0,
-
-            sef: 0,
-
-            penalty: 0,
-
-            discount: 0,
-
-            total: 0,
-        }
-    );
+    return {
+        taxDue: cents.taxDue / 100,
+        basic: cents.basic / 100,
+        sef: cents.sef / 100,
+        penalty: cents.penalty / 100,
+        discount: cents.discount / 100,
+        total: cents.total / 100,
+    };
 }
 
 
@@ -1049,18 +1035,18 @@ function recalculateRow(
 
 
         tax_due:
-            result.taxDue *
-            quarterCount,
+            roundMoney(result.taxDue *
+            quarterCount),
 
 
         basic:
-            result.basic *
-            quarterCount,
+            roundMoney(result.basic *
+            quarterCount),
 
 
         sef:
-            result.sef *
-            quarterCount,
+            roundMoney(result.sef *
+            quarterCount),
 
 
         penalty_percent:
@@ -1068,8 +1054,8 @@ function recalculateRow(
 
 
         penalty:
-            result.penalty *
-            quarterCount,
+            roundMoney(result.penalty *
+            quarterCount),
 
 
         discount_percent:
@@ -1077,13 +1063,13 @@ function recalculateRow(
 
 
         discount:
-            result.discount *
-            quarterCount,
+            roundMoney(result.discount *
+            quarterCount),
 
 
         total:
-            result.total *
-            quarterCount,
+            roundMoney(result.total *
+            quarterCount),
 
     };
 }

@@ -1,5 +1,20 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+
+function toCents(value: any): number {
+    const num = Number(value);
+
+    if (!Number.isFinite(num)) {
+        throw new Error(`Invalid monetary value: ${value}`);
+    }
+
+    return Math.round(num * 100);
+}
+
+function formatAmount(cents: number): string {
+    return (cents / 100).toFixed(2);
+}
 
 export async function POST(req: NextRequest) {
     const client = await pool.connect();
@@ -20,11 +35,19 @@ export async function POST(req: NextRequest) {
             rows,
         } = body;
 
+        if (!property || !totals || !Array.isArray(rows) || rows.length === 0) {
+            throw new Error("Invalid billing data.");
+        }
+
         //--------------------------------------------------
         // Billing Period (YYYYMM)
         //--------------------------------------------------
 
         const billDate = new Date(paymentDate);
+
+        if (isNaN(billDate.getTime())) {
+            throw new Error("Invalid billing date.");
+        }
 
         const billingPeriod =
             `${billDate.getFullYear()}${String(
@@ -33,66 +56,39 @@ export async function POST(req: NextRequest) {
 
         //--------------------------------------------------
         // Determine TD Number
-        //
-        // Use property.tdno first.
-        // If blank, use the latest non-blank TD from rows.
         //--------------------------------------------------
 
-        let tdNumber =
-            property?.tdno?.trim() || null;
+        let tdNumber = property?.tdno?.trim() || null;
 
-        if (!tdNumber && Array.isArray(rows)) {
+        if (!tdNumber) {
             const validRows = rows
-                .filter((row: any) => {
-                    return (
-                        row?.arp &&
-                        String(row.arp).trim()
-                    );
-                })
+                .filter((row: any) => row?.arp && String(row.arp).trim())
                 .sort((a: any, b: any) => {
-                    const aYear =
-                        Number(
-                            a.endYear ??
-                                a.startYear ??
-                                0
-                        );
+                    const aYear = Number(
+                        a.endYear ?? a.startYear ?? 0
+                    );
 
-                    const bYear =
-                        Number(
-                            b.endYear ??
-                                b.startYear ??
-                                0
-                        );
+                    const bYear = Number(
+                        b.endYear ?? b.startYear ?? 0
+                    );
 
                     if (aYear !== bYear) {
                         return bYear - aYear;
                     }
 
-                    const aQuarter =
-                        Number(
-                            a.endQuarter ??
-                                a.startQuarter ??
-                                0
-                        );
-
-                    const bQuarter =
-                        Number(
-                            b.endQuarter ??
-                                b.startQuarter ??
-                                0
-                        );
-
-                    return (
-                        bQuarter -
-                        aQuarter
+                    const aQuarter = Number(
+                        a.endQuarter ?? a.startQuarter ?? 0
                     );
+
+                    const bQuarter = Number(
+                        b.endQuarter ?? b.startQuarter ?? 0
+                    );
+
+                    return bQuarter - aQuarter;
                 });
 
             if (validRows.length > 0) {
-                tdNumber =
-                    String(
-                        validRows[0].arp
-                    ).trim();
+                tdNumber = String(validRows[0].arp).trim();
             }
         }
 
@@ -103,6 +99,24 @@ export async function POST(req: NextRequest) {
         if (!tdNumber) {
             throw new Error(
                 "TD Number is required. No valid TD number was found in the property or billing rows."
+            );
+        }
+
+        //--------------------------------------------------
+        // Validate input totals against item totals
+        // DO NOT RECALCULATE OR MODIFY THE ITEMS
+        //--------------------------------------------------
+
+        const itemTotalCents = rows.reduce(
+            (sum: number, row: any) => sum + toCents(row.total),
+            0
+        );
+
+        const headerTotalCents = toCents(totals.total);
+
+        if (itemTotalCents !== headerTotalCents) {
+            throw new Error(
+                `Billing total mismatch. Header: ${formatAmount(headerTotalCents)}, Items: ${formatAmount(itemTotalCents)}, Difference: ${formatAmount(headerTotalCents - itemTotalCents)}. Billing was not saved.`
             );
         }
 
@@ -140,9 +154,7 @@ export async function POST(req: NextRequest) {
             );
         } else {
             nextNumber =
-                Number(
-                    seq.rows[0].last_number
-                ) + 1;
+                Number(seq.rows[0].last_number) + 1;
 
             await client.query(
                 `
@@ -172,80 +184,79 @@ export async function POST(req: NextRequest) {
         // Insert Billing Header
         //--------------------------------------------------
 
-        const billing =
-            await client.query(
-                `
-                INSERT INTO rpt_billings
-                (
-                    billing_number,
-                    billing_date,
+        const billing = await client.query(
+            `
+            INSERT INTO rpt_billings
+            (
+                billing_number,
+                billing_date,
 
-                    owner_name,
-                    td_number,
-                    fullpin,
-                    classification_name,
-                    barangay_name,
-                    property_type,
-                    assessed_value,
+                owner_name,
+                td_number,
+                fullpin,
+                classification_name,
+                barangay_name,
+                property_type,
+                assessed_value,
 
-                    from_quarter,
-                    from_year,
-                    to_quarter,
-                    to_year,
+                from_quarter,
+                from_year,
+                to_quarter,
+                to_year,
 
-                    total_tax_due,
-                    total_basic,
-                    total_sef,
-                    total_penalty,
-                    total_discount,
-                    grand_total,
+                total_tax_due,
+                total_basic,
+                total_sef,
+                total_penalty,
+                total_discount,
+                grand_total,
 
-                    status
-                )
-                VALUES
-                (
-                    $1,$2,
-                    $3,$4,$5,$6,$7,$8,$9,
-                    $10,$11,$12,$13,
-                    $14,$15,$16,$17,$18,$19,
-                    'UNPAID'
-                )
-                RETURNING id
-                `,
-                [
-                    billingNumber,
-                    paymentDate,
+                status
+            )
+            VALUES
+            (
+                $1,$2,
+                $3,$4,$5,$6,$7,$8,$9,
+                $10,$11,$12,$13,
+                $14,$15,$16,$17,$18,$19,
+                'UNPAID'
+            )
+            RETURNING id
+            `,
+            [
+                billingNumber,
+                paymentDate,
 
-                    property.owner_name,
+                property.owner_name,
 
-                    // USE LATEST TD
-                    tdNumber,
+                // USE LATEST TD
+                tdNumber,
 
-                    property.fullpin,
-                    property.classification_name,
-                    property.barangay_name,
-                    property.rputype,
-                    property.totalav,
+                property.fullpin,
+                property.classification_name,
+                property.barangay_name,
+                property.rputype,
+                property.totalav,
 
-                    fromQuarter,
-                    fromYear,
-                    toQuarter,
-                    toYear,
+                fromQuarter,
+                fromYear,
+                toQuarter,
+                toYear,
 
-                    totals.taxDue,
-                    totals.basic,
-                    totals.sef,
-                    totals.penalty,
-                    totals.discount,
-                    totals.total,
-                ]
-            );
+                totals.taxDue,
+                totals.basic,
+                totals.sef,
+                totals.penalty,
+                totals.discount,
+                totals.total,
+            ]
+        );
 
-        const billingId =
-            billing.rows[0].id;
+        const billingId = billing.rows[0].id;
 
         //--------------------------------------------------
         // Insert Billing Items
+        // COPY VALUES EXACTLY AS RECEIVED
         //--------------------------------------------------
 
         for (const row of rows) {
@@ -298,12 +309,12 @@ export async function POST(req: NextRequest) {
                     $11,
 
                     $12,
-                    $13,
+            $13,
 
-                    $14,
-                    $15,
+            $14,
+            $15,
 
-                    $16
+            $16
                 )
                 `,
                 [
@@ -311,8 +322,7 @@ export async function POST(req: NextRequest) {
 
                     // If this row has no TD,
                     // use the latest TD.
-                    row.arp?.trim() ||
-                        tdNumber,
+                    row.arp?.trim() || tdNumber,
 
                     row.coverage,
 
@@ -340,7 +350,84 @@ export async function POST(req: NextRequest) {
         }
 
         //--------------------------------------------------
-        // Commit
+        // VERIFY SAVED BILLING ITEMS
+        // Compare actual saved item totals against header
+        //--------------------------------------------------
+
+        const savedItems = await client.query(
+            `
+            SELECT
+                COALESCE(SUM(tax_due), 0) AS tax_due,
+                COALESCE(SUM(basic), 0) AS basic,
+                COALESCE(SUM(sef), 0) AS sef,
+                COALESCE(SUM(penalty), 0) AS penalty,
+                COALESCE(SUM(discount), 0) AS discount,
+                COALESCE(SUM(total), 0) AS total
+            FROM rpt_billing_items
+            WHERE billing_id = $1
+            `,
+            [billingId]
+        );
+
+        const saved = savedItems.rows[0];
+
+        //--------------------------------------------------
+        // VERIFY GRAND TOTAL
+        //--------------------------------------------------
+
+        const savedTotalCents = toCents(saved.total);
+
+        if (savedTotalCents !== headerTotalCents) {
+            throw new Error(
+                `Saved billing item mismatch. Header: ${formatAmount(headerTotalCents)}, Saved Items: ${formatAmount(savedTotalCents)}. Billing was not saved.`
+            );
+        }
+
+        //--------------------------------------------------
+        // VERIFY OTHER HEADER TOTALS
+        //--------------------------------------------------
+
+        const checks = [
+            {
+                name: "Tax Due",
+                header: totals.taxDue,
+                items: saved.tax_due,
+            },
+            {
+                name: "Basic",
+                header: totals.basic,
+                items: saved.basic,
+            },
+            {
+                name: "SEF",
+                header: totals.sef,
+                items: saved.sef,
+            },
+            {
+                name: "Penalty",
+                header: totals.penalty,
+                items: saved.penalty,
+            },
+            {
+                name: "Discount",
+                header: totals.discount,
+                items: saved.discount,
+            },
+        ];
+
+        for (const check of checks) {
+            const headerCents = toCents(check.header);
+            const itemsCents = toCents(check.items);
+
+            if (headerCents !== itemsCents) {
+                throw new Error(
+                    `${check.name} mismatch. Header: ${formatAmount(headerCents)}, Items: ${formatAmount(itemsCents)}. Billing was not saved.`
+                );
+            }
+        }
+
+        //--------------------------------------------------
+        // COMMIT
         //--------------------------------------------------
 
         await client.query("COMMIT");
