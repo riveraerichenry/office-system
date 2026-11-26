@@ -1,59 +1,74 @@
+
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { getPhilippineDate } from "@/lib/queue-date";
 import { getQueueCollector } from "@/lib/queue-auth";
+import { getActiveQueueSession } from "@/lib/queue-session";
+import { getPhilippineDate } from "@/lib/queue-date";
 
 export async function POST(request: Request) {
+    const collector = await getQueueCollector();
+
+    if (!collector) {
+        return NextResponse.json(
+            { success: false, message: "Unauthorized." },
+            { status: 401 }
+        );
+    }
+
+    let body;
+
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json(
+            { success: false, message: "Invalid request." },
+            { status: 400 }
+        );
+    }
+
+    const windowNumber = Number(body.window_number);
+
+    if (
+        !Number.isInteger(windowNumber) ||
+        windowNumber < 1
+    ) {
+        return NextResponse.json(
+            { success: false, message: "Invalid window number." },
+            { status: 400 }
+        );
+    }
+
+    const queueDate = getPhilippineDate();
     const client = await pool.connect();
 
     try {
-        const collector = await getQueueCollector();
-
-        if (!collector) {
-            return NextResponse.json(
-                { success: false, message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        const body = await request.json();
-        const windowNumber = Number(body.window_number);
-
-        if (!Number.isInteger(windowNumber) || windowNumber < 1) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "Please select a window.",
-                },
-                { status: 400 }
-            );
-        }
-
-        const queueDate = getPhilippineDate();
-
         await client.query("BEGIN");
 
         await client.query(
-            `SELECT pg_advisory_xact_lock(782341)`
+            "SELECT pg_advisory_xact_lock(782341)"
         );
 
-        const highestResult = await client.query(
+        const session = await getActiveQueueSession(client);
+
+        const result = await client.query(
             `
             SELECT COALESCE(MAX(queue_number), 0) AS highest_number
             FROM queue_records
             WHERE queue_date = $1
+              AND session_id = $2
               AND call_type = 'NEXT'
             `,
-            [queueDate]
+            [queueDate, session.id]
         );
 
         const nextNumber =
-            Number(highestResult.rows[0].highest_number) + 1;
+            Number(result.rows[0].highest_number) + 1;
 
-        const result = await client.query(
+        const inserted = await client.query(
             `
             INSERT INTO queue_records (
                 queue_date,
+                session_id,
                 queue_number,
                 collector_id,
                 collector_name,
@@ -61,13 +76,14 @@ export async function POST(request: Request) {
                 window_number,
                 called_at
             )
-            VALUES ($1, $2, $3, $4, 'NEXT', $5, NOW())
+            VALUES ($1, $2, $3, $4, $5, 'NEXT', $6, NOW())
             RETURNING *
             `,
             [
                 queueDate,
+                session.id,
                 nextNumber,
-                String(collector.id),
+                collector.id,
                 collector.full_name,
                 windowNumber,
             ]
@@ -75,25 +91,12 @@ export async function POST(request: Request) {
 
         await client.query("COMMIT");
 
-        const record = result.rows[0];
-
         return NextResponse.json({
             success: true,
-            queue: {
-                id: record.id,
-                queue_number: Number(record.queue_number),
-                formatted_number: String(record.queue_number).padStart(3, "0"),
-                collector_id: record.collector_id,
-                collector_name: record.collector_name,
-                call_type: record.call_type,
-                window_number: Number(record.window_number),
-                called_at: record.called_at,
-            },
+            queue: inserted.rows[0],
         });
     } catch (error) {
-        try {
-            await client.query("ROLLBACK");
-        } catch {}
+        await client.query("ROLLBACK");
 
         console.error("QUEUE NEXT ERROR:", error);
 
