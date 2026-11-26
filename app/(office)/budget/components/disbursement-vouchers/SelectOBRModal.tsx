@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { generateUUID } from "@/lib/generateUUID";
 import {
   Search,
   X,
@@ -45,7 +46,7 @@ const peso = (value: number | string) =>
 function getId() {
   return typeof crypto !== "undefined" &&
     "randomUUID" in crypto
-    ? crypto.randomUUID()
+    ? generateUUID()
     : `${Date.now()}-${Math.random()}`;
 }
 

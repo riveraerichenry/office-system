@@ -1,6 +1,8 @@
 
 "use client";
 
+import { generateUUID } from "@/lib/generateUUID";
+
 import {
   FileText,
   WalletCards,
