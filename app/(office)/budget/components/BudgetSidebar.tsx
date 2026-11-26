@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,7 +9,6 @@ import {
   Wallet,
   FileText,
   Receipt,
-  Banknote,
   ChartNoAxesCombined,
   Settings,
   Menu,
@@ -18,10 +16,13 @@ import {
   Building2,
   ClipboardList,
   FileBarChart,
-  SlidersHorizontal,
   FolderOpen,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Send,
 } from "lucide-react";
 
 const menuGroups = [
@@ -43,12 +44,6 @@ const menuGroups = [
         href: "/budget/appropriations",
         icon: Landmark,
       },
-      
-      // {
-      //   label: "Budget Adjustments",
-      //   href: "/budget/budget_adjustments",
-      //   icon: SlidersHorizontal,
-      // },
     ],
   },
   {
@@ -64,12 +59,11 @@ const menuGroups = [
         href: "/budget/obrs",
         icon: FileText,
       },
-       {
+      {
         label: "Purchase Request (PR)",
         href: "/budget/purchase_requests",
         icon: FileText,
       },
-      
     ],
   },
   {
@@ -80,16 +74,33 @@ const menuGroups = [
         href: "/budget/disbursement-vouchers",
         icon: Receipt,
       },
+    ],
+  },
+  {
+    title: "CHECK ISSUANCE",
+    items: [
       {
         label: "Check Issuance",
         href: "/budget/check-issuance",
         icon: ClipboardList,
+        children: [
+          {
+            label: "Check Assign",
+            href: "/budget/check-issuance/check-assign",
+            icon: ClipboardCheck,
+          },
+          {
+            label: "Check Posting",
+            href: "/budget/check-issuance/check-posting",
+            icon: FileText,
+          },
+          {
+            label: "Check Releasing",
+            href: "/budget/check-issuance/check-releasing",
+            icon: Send,
+          },
+        ],
       },
-      // {
-      //   label: "Payments",
-      //   href: "/budget/payments",
-      //   icon: Banknote,
-      // },
     ],
   },
   {
@@ -120,12 +131,6 @@ const settingsItems = [
     href: "/budget/offices",
     icon: Building2,
   },
-  // {
-  //   label: "Fund Sources",
-  //   href: "/budget/fund_sources",
-  //   icon: Landmark,
-  // },
-  
   {
     label: "Categories and Expense Accounts",
     href: "/budget/accounts",
@@ -144,16 +149,28 @@ export default function BudgetSidebar({
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [checkIssuanceOpen, setCheckIssuanceOpen] = useState(false);
+
+  const isCheckIssuancePath = pathname.startsWith(
+    "/budget/check-issuance"
+  );
+
+  useEffect(() => {
+    if (isCheckIssuancePath) {
+      setCheckIssuanceOpen(true);
+    }
+  }, [isCheckIssuancePath]);
 
   const isActive = (href: string) => {
     if (href === "/budget") {
       return pathname === href;
     }
 
-    return (
-      pathname === href ||
-      pathname.startsWith(href + "/")
-    );
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileOpen(false);
   };
 
   return (
@@ -195,6 +212,7 @@ export default function BudgetSidebar({
                 <h2 className="whitespace-nowrap text-sm font-bold text-slate-800">
                   BUDGET MANAGEMENT
                 </h2>
+
                 <p className="text-[10px] tracking-wide text-slate-500">
                   FINANCIAL MANAGEMENT
                 </p>
@@ -226,8 +244,114 @@ export default function BudgetSidebar({
               )}
 
               <div className="space-y-1">
+
                 {group.items.map((item) => {
                   const Icon = item.icon;
+
+                  // CHECK ISSUANCE WITH SUBMENU
+                  if ("children" in item && item.children) {
+                    const parentActive = item.children.some(
+                      (child) => pathname === child.href
+                    );
+
+                    return (
+                      <div key={item.href}>
+
+                        {/* PARENT MENU */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (collapsed) {
+                              setCollapsed(false);
+                              setCheckIssuanceOpen(true);
+                              return;
+                            }
+
+                            setCheckIssuanceOpen(
+                              !checkIssuanceOpen
+                            );
+                          }}
+                          title={
+                            collapsed
+                              ? item.label
+                              : undefined
+                          }
+                          className={`
+                            flex min-h-[39px] w-full items-center gap-3 rounded-md
+                            px-3 py-2 text-[13px] transition
+                            ${
+                              parentActive
+                                ? "bg-[#E3EDF4] font-semibold text-[#476C89]"
+                                : "text-slate-600 hover:bg-[#EDF2F6] hover:text-slate-800"
+                            }
+                            ${collapsed ? "justify-center" : ""}
+                          `}
+                        >
+                          <Icon size={17} className="shrink-0" />
+
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1 text-left leading-5">
+                                {item.label}
+                              </span>
+
+                              {checkIssuanceOpen ? (
+                                <ChevronDown
+                                  size={15}
+                                  className="shrink-0"
+                                />
+                              ) : (
+                                <ChevronRight
+                                  size={15}
+                                  className="shrink-0"
+                                />
+                              )}
+                            </>
+                          )}
+                        </button>
+
+                        {/* SUBMENU */}
+                        {!collapsed && checkIssuanceOpen && (
+                          <div className="ml-[22px] mt-1 space-y-1 border-l border-[#DCE3E9] pl-3">
+
+                            {item.children.map((child) => {
+                              const ChildIcon = child.icon;
+                              const childActive =
+                                pathname === child.href;
+
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={closeMobileSidebar}
+                                  className={`
+                                    flex min-h-[36px] items-center gap-2 rounded-md
+                                    px-3 py-2 text-[12px] transition
+                                    ${
+                                      childActive
+                                        ? "bg-[#E3EDF4] font-semibold text-[#476C89]"
+                                        : "text-slate-500 hover:bg-[#EDF2F6] hover:text-slate-800"
+                                    }
+                                  `}
+                                >
+                                  <ChildIcon
+                                    size={15}
+                                    className="shrink-0"
+                                  />
+
+                                  <span className="leading-5">
+                                    {child.label}
+                                  </span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // REGULAR MENU ITEMS
                   const active = isActive(item.href);
 
                   return (
@@ -235,7 +359,7 @@ export default function BudgetSidebar({
                       key={item.href}
                       href={item.href}
                       title={collapsed ? item.label : undefined}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={closeMobileSidebar}
                       className={`
                         flex min-h-[39px] items-center gap-3 rounded-md
                         px-3 py-2 text-[13px] transition
@@ -280,7 +404,7 @@ export default function BudgetSidebar({
                     key={item.href}
                     href={item.href}
                     title={collapsed ? item.label : undefined}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={closeMobileSidebar}
                     className={`
                       flex min-h-[39px] items-center gap-3 rounded-md
                       px-3 py-2 text-[13px] transition
@@ -314,13 +438,17 @@ export default function BudgetSidebar({
               ${collapsed ? "justify-center" : ""}
             `}
           >
-            <Settings size={17} className="shrink-0 text-slate-500" />
+            <Settings
+              size={17}
+              className="shrink-0 text-slate-500"
+            />
 
             {!collapsed && (
               <div>
                 <p className="text-xs font-semibold text-slate-700">
                   Budget Administration
                 </p>
+
                 <p className="text-[10px] text-slate-500">
                   System configuration
                 </p>
@@ -365,6 +493,7 @@ export default function BudgetSidebar({
               <p className="text-sm font-semibold text-slate-700">
                 Budget Management System
               </p>
+
               <p className="text-[11px] text-slate-400">
                 Office System / Budget
               </p>

@@ -22,6 +22,10 @@ type Position = {
   y: number;
 };
 
+function formatQueueNumber(number: number) {
+  return String(number).padStart(3, "0");
+}
+
 export default function FloatingQueueBar() {
   const [windowNumber, setWindowNumber] = useState("1");
   const [current, setCurrent] = useState<CurrentQueue | null>(null);
@@ -44,63 +48,127 @@ export default function FloatingQueueBar() {
 
   const floatingRef = useRef<HTMLDivElement>(null);
 
-  // INITIAL POSITION: BOTTOM-LEFT
+  /* =========================================================
+     INITIAL POSITION: TOP-CENTER
+  ========================================================= */
+
   useEffect(() => {
     const updatePosition = () => {
-      const height = floatingRef.current?.offsetHeight ?? 100;
+      const width =
+        floatingRef.current?.offsetWidth ?? 320;
 
       setPosition({
-        x: 16,
-        y: Math.max(16, window.innerHeight - height - 16),
+        x: Math.max(
+          8,
+          (window.innerWidth - width) / 2
+        ),
+        y: 16,
       });
     };
 
     updatePosition();
 
-    // Allow layout to settle
-    requestAnimationFrame(updatePosition);
-  }, []);
+    const frame = requestAnimationFrame(updatePosition);
 
-  // LOAD CURRENT QUEUE
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [minimized]);
+
+  /* =========================================================
+     LOAD CURRENT QUEUE
+     SEQUENTIAL POLLING
+  ========================================================= */
+
   useEffect(() => {
+    let mounted = true;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
     const loadCurrent = async () => {
       try {
-        const response = await fetch("/api/queue/my-current", {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          "/api/queue/my-current",
+          {
+            cache: "no-store",
+          }
+        );
 
-        if (!response.ok) return;
+        if (!mounted) return;
+
+        if (!response.ok) {
+          console.warn(
+            "Current queue request failed:",
+            response.status
+          );
+
+          return;
+        }
 
         const result = await response.json();
 
+        if (!mounted) return;
+
         setCurrent(result.current ?? null);
       } catch (error) {
-        console.error("Load current queue error:", error);
+        if (mounted) {
+          console.warn(
+            "Load current queue error:",
+            error
+          );
+        }
+      } finally {
+        if (mounted) {
+          timer = setTimeout(
+            loadCurrent,
+            3000
+          );
+        }
       }
     };
 
     loadCurrent();
 
-    const interval = setInterval(loadCurrent, 5000);
+    return () => {
+      mounted = false;
 
-    return () => clearInterval(interval);
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, []);
 
-  // DRAG HANDLING
+  /* =========================================================
+     DRAG HANDLING
+  ========================================================= */
+
   useEffect(() => {
-    const handleMove = (e: MouseEvent | TouchEvent) => {
+    const handleMove = (
+      e: MouseEvent | TouchEvent
+    ) => {
       if (!dragRef.current) return;
 
       const point =
-        e instanceof TouchEvent ? e.touches[0] : e;
+        e instanceof TouchEvent
+          ? e.touches[0]
+          : e;
 
       if (!point) return;
 
-      const dx = point.clientX - dragRef.current.startX;
-      const dy = point.clientY - dragRef.current.startY;
+      const dx =
+        point.clientX - dragRef.current.startX;
 
-      const width = floatingRef.current?.offsetWidth ?? 320;
-      const height = floatingRef.current?.offsetHeight ?? 100;
+      const dy =
+        point.clientY - dragRef.current.startY;
+
+      const width =
+        floatingRef.current?.offsetWidth ?? 320;
+
+      const height =
+        floatingRef.current?.offsetHeight ?? 100;
 
       const newX = Math.max(
         8,
@@ -145,14 +213,16 @@ export default function FloatingQueueBar() {
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleEnd);
-
       window.removeEventListener("touchmove", handleMove);
       window.removeEventListener("touchend", handleEnd);
       window.removeEventListener("touchcancel", handleEnd);
     };
   }, []);
 
-  // START DRAG
+  /* =========================================================
+     START DRAG
+  ========================================================= */
+
   const startDrag = (
     e: React.MouseEvent | React.TouchEvent
   ) => {
@@ -163,7 +233,9 @@ export default function FloatingQueueBar() {
     }
 
     const point =
-      "touches" in e ? e.touches[0] : e;
+      "touches" in e
+        ? e.touches[0]
+        : e;
 
     if (!point) return;
 
@@ -175,7 +247,10 @@ export default function FloatingQueueBar() {
     };
   };
 
-  // QUEUE ACTION
+  /* =========================================================
+     QUEUE ACTION
+  ========================================================= */
+
   const handleQueue = async (
     action: "NEXT" | "RECALL"
   ) => {
@@ -207,20 +282,47 @@ export default function FloatingQueueBar() {
       const result = await response.json();
 
       if (!response.ok) {
-        alert(result.message || "Queue operation failed.");
+        alert(
+          result.message ||
+            "Queue operation failed."
+        );
+
         return;
       }
 
-      setCurrent(result.queue);
+      const queue = result.queue;
+
+      if (queue) {
+        setCurrent({
+          queue_number: Number(queue.queue_number),
+
+          formatted_number:
+            queue.formatted_number ??
+            formatQueueNumber(
+              Number(queue.queue_number)
+            ),
+
+          called_at: queue.called_at,
+        });
+      }
     } catch (error) {
-      console.error(error);
-      alert("Unable to connect to queue server.");
+      console.error(
+        "Queue operation error:",
+        error
+      );
+
+      alert(
+        "Unable to connect to queue server."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // MINIMIZED CONTROLLER
+  /* =========================================================
+     MINIMIZED CONTROLLER
+  ========================================================= */
+
   if (minimized) {
     return (
       <div
@@ -273,7 +375,10 @@ export default function FloatingQueueBar() {
           title="Call Next Queue"
         >
           {loading ? (
-            <Loader2 size={22} className="animate-spin" />
+            <Loader2
+              size={22}
+              className="animate-spin"
+            />
           ) : (
             <ArrowRight size={22} />
           )}
@@ -295,7 +400,10 @@ export default function FloatingQueueBar() {
     );
   }
 
-  // EXPANDED CONTROLLER
+  /* =========================================================
+     EXPANDED CONTROLLER
+  ========================================================= */
+
   return (
     <div
       ref={floatingRef}
@@ -342,16 +450,22 @@ export default function FloatingQueueBar() {
 
           <select
             value={windowNumber}
-            onChange={(e) => setWindowNumber(e.target.value)}
+            onChange={(e) =>
+              setWindowNumber(e.target.value)
+            }
             className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 font-bold text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           >
-            {Array.from({ length: 20 }, (_, i) => i + 1).map(
-              (n) => (
-                <option key={n} value={String(n)}>
-                  Window {n}
-                </option>
-              )
-            )}
+            {Array.from(
+              { length: 20 },
+              (_, i) => i + 1
+            ).map((n) => (
+              <option
+                key={n}
+                value={String(n)}
+              >
+                Window {n}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -380,7 +494,10 @@ export default function FloatingQueueBar() {
             className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-4 font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={18} />
+              <Loader2
+                className="animate-spin"
+                size={18}
+              />
             ) : (
               <ArrowRight size={18} />
             )}
@@ -395,7 +512,10 @@ export default function FloatingQueueBar() {
             className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-4 font-black text-white transition hover:bg-orange-600 disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={18} />
+              <Loader2
+                className="animate-spin"
+                size={18}
+              />
             ) : (
               <RotateCcw size={18} />
             )}

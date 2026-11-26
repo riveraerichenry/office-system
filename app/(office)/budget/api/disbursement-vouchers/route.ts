@@ -3,12 +3,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import type { PoolClient } from "pg";
 
+type NewOBRInput = {
+  obr_number: string;
+  obr_date: string;
+  payee: string;
+  particulars?: string;
+  office_id: string;
+  sub_office_id?: string | null;
+  category_id: string;
+  account_id: string;
+  obligation_amount: number;
+  remarks?: string;
+};
+
 type DVItemInput = {
   obr_id: string;
   obr_no?: string;
   account_code?: string;
   particulars?: string;
   total_debit?: number;
+  new_obr?: NewOBRInput;
 };
 
 type DVRequest = {
@@ -42,7 +56,45 @@ function getAmount(value: unknown): number {
     );
   }
 
-  return amount;
+  return Number(amount.toFixed(2));
+}
+
+function validateNewOBR(obr: NewOBRInput) {
+  if (!obr.obr_number?.trim()) {
+    throw new Error("New OBR number is required.");
+  }
+
+  if (
+    !obr.obr_date ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(obr.obr_date)
+  ) {
+    throw new Error("A valid new OBR date is required.");
+  }
+
+  if (!obr.payee?.trim()) {
+    throw new Error("New OBR payee is required.");
+  }
+
+  if (!isValidUUID(obr.office_id)) {
+    throw new Error("Invalid office selected for new OBR.");
+  }
+
+  if (
+    obr.sub_office_id &&
+    !isValidUUID(obr.sub_office_id)
+  ) {
+    throw new Error("Invalid sub-office selected for new OBR.");
+  }
+
+  if (!isValidUUID(obr.category_id)) {
+    throw new Error("Invalid expense category selected.");
+  }
+
+  if (!isValidUUID(obr.account_id)) {
+    throw new Error("Invalid expense account selected.");
+  }
+
+  getAmount(obr.obligation_amount);
 }
 
 // ============================================================
@@ -54,10 +106,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
-    // --------------------------------------------------------
-    // INDIVIDUAL DV DETAILS
-    // --------------------------------------------------------
-
     if (id) {
       if (!isValidUUID(id)) {
         return errorResponse(
@@ -65,7 +113,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch DV header
       const dvResult = await pool.query(
         `
         SELECT
@@ -94,7 +141,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch attached OBRs
       const itemsResult = await pool.query(
         `
         SELECT
@@ -121,10 +167,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    // --------------------------------------------------------
-    // DV LIST
-    // --------------------------------------------------------
 
     const result = await pool.query(
       `
@@ -153,10 +195,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error(
-      "GET disbursement vouchers:",
-      error
-    );
+    console.error("GET disbursement vouchers:", error);
 
     return errorResponse(
       "Failed to retrieve disbursement vouchers.",
@@ -167,6 +206,7 @@ export async function GET(request: NextRequest) {
 
 // ============================================================
 // POST: CREATE DISBURSEMENT VOUCHER
+// Supports existing OBRs and newly created standalone OBRs
 // ============================================================
 
 export async function POST(request: NextRequest) {
@@ -189,7 +229,10 @@ export async function POST(request: NextRequest) {
       return errorResponse("DV number is required.");
     }
 
-    if (!dvDate || !/^\d{4}-\d{2}-\d{2}$/.test(dvDate)) {
+    if (
+      !dvDate ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(dvDate)
+    ) {
       return errorResponse("A valid DV date is required.");
     }
 
@@ -203,20 +246,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const obrIds = body.items.map((item) =>
+    // --------------------------------------------------------
+    // 1. VALIDATE ITEM IDs AND NEW OBR PAYLOADS
+    // --------------------------------------------------------
+
+    const existingOBRIds: string[] = [];
+    const newOBRItems: DVItemInput[] = [];
+
+    const normalizedItemIds = body.items.map((item) =>
       String(item.obr_id ?? "").trim().toLowerCase()
     );
 
-    if (obrIds.some((id) => !isValidUUID(id))) {
-      return errorResponse(
-        "One or more selected OBR IDs are invalid."
-      );
-    }
-
-    if (new Set(obrIds).size !== obrIds.length) {
+    if (
+      new Set(normalizedItemIds).size !==
+      normalizedItemIds.length
+    ) {
       return errorResponse(
         "The same OBR cannot be added more than once to a DV."
       );
+    }
+
+    for (const item of body.items) {
+      const obrId = String(item.obr_id ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (item.new_obr) {
+        if (!obrId.startsWith("new-")) {
+          return errorResponse(
+            "Invalid temporary ID for newly created OBR."
+          );
+        }
+
+        validateNewOBR(item.new_obr);
+        newOBRItems.push(item);
+      } else {
+        if (!isValidUUID(obrId)) {
+          return errorResponse(
+            "One or more selected OBR IDs are invalid."
+          );
+        }
+
+        existingOBRIds.push(obrId);
+      }
     }
 
     client = await pool.connect();
@@ -225,38 +297,132 @@ export async function POST(request: NextRequest) {
     transactionStarted = true;
 
     // --------------------------------------------------------
-    // 1. LOCK SELECTED OBR RECORDS
+    // 2. INSERT NEW STANDALONE OBRs
+    // No PR link is created here.
     // --------------------------------------------------------
 
-    const obrResult = await client.query(
-      `
-      SELECT
-        id,
-        obr_number,
-        obligation_amount
-      FROM public.purchase_request_obrs
-      WHERE id = ANY($1::uuid[])
-      ORDER BY id
-      FOR UPDATE
-      `,
-      [obrIds]
-    );
+    const resolvedOBRIds = new Map<string, string>();
 
-    if (obrResult.rows.length !== obrIds.length) {
-      throw new Error(
-        "One or more selected OBR records do not exist."
+    for (const item of newOBRItems) {
+      const temporaryId = String(item.obr_id)
+        .trim()
+        .toLowerCase();
+
+      const newOBR = item.new_obr!;
+
+      const insertResult = await client.query(
+        `
+        INSERT INTO public.purchase_request_obrs (
+          obr_number,
+          obr_date,
+          payee,
+          particulars,
+          office_id,
+          sub_office_id,
+          category_id,
+          account_id,
+          remarks,
+          obligation_amount
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+        )
+        RETURNING
+          id,
+          obr_number,
+          obligation_amount
+        `,
+        [
+          newOBR.obr_number.trim(),
+          newOBR.obr_date,
+          newOBR.payee.trim(),
+          String(newOBR.particulars ?? "").trim(),
+          newOBR.office_id,
+          newOBR.sub_office_id || null,
+          newOBR.category_id,
+          newOBR.account_id,
+          String(newOBR.remarks ?? "").trim(),
+          getAmount(newOBR.obligation_amount),
+        ]
+      );
+
+      const insertedOBR = insertResult.rows[0];
+
+      resolvedOBRIds.set(
+        temporaryId,
+        String(insertedOBR.id)
       );
     }
 
-    const obrMap = new Map(
-      obrResult.rows.map((obr) => [
-        String(obr.id).toLowerCase(),
-        obr,
-      ])
-    );
+    // --------------------------------------------------------
+    // 3. LOCK EXISTING OBRs
+    // --------------------------------------------------------
+
+    let existingOBRMap = new Map<string, any>();
+
+    if (existingOBRIds.length > 0) {
+      const obrResult = await client.query(
+        `
+        SELECT
+          id,
+          obr_number,
+          obligation_amount
+        FROM public.purchase_request_obrs
+        WHERE id = ANY($1::uuid[])
+        ORDER BY id
+        FOR UPDATE
+        `,
+        [existingOBRIds]
+      );
+
+      if (obrResult.rows.length !== existingOBRIds.length) {
+        throw new Error(
+          "One or more selected OBR records do not exist."
+        );
+      }
+
+      existingOBRMap = new Map(
+        obrResult.rows.map((obr) => [
+          String(obr.id).toLowerCase(),
+          obr,
+        ])
+      );
+    }
 
     // --------------------------------------------------------
-    // 2. CHECK IF OBR IS ALREADY ASSIGNED
+    // 4. RESOLVE ALL OBR IDs
+    // --------------------------------------------------------
+
+    for (const item of body.items) {
+      const originalId = String(item.obr_id)
+        .trim()
+        .toLowerCase();
+
+      if (item.new_obr) {
+        const resolvedId = resolvedOBRIds.get(originalId);
+
+        if (!resolvedId) {
+          throw new Error(
+            "Failed to resolve newly created OBR."
+          );
+        }
+      }
+    }
+
+    const allResolvedOBRIds = body.items.map((item) => {
+      const originalId = String(item.obr_id)
+        .trim()
+        .toLowerCase();
+
+      if (item.new_obr) {
+        return resolvedOBRIds.get(originalId)!;
+      }
+
+      return originalId;
+    });
+
+    // --------------------------------------------------------
+    // 5. CHECK OBR ASSIGNMENTS
     // --------------------------------------------------------
 
     const assignedResult = await client.query(
@@ -269,7 +435,7 @@ export async function POST(request: NextRequest) {
         ON dv.id = dvi.dv_id
       WHERE dvi.obr_id = ANY($1::uuid[])
       `,
-      [obrIds]
+      [allResolvedOBRIds]
     );
 
     if (assignedResult.rows.length > 0) {
@@ -286,20 +452,33 @@ export async function POST(request: NextRequest) {
     }
 
     // --------------------------------------------------------
-    // 3. PREPARE ITEMS USING DATABASE OBR AMOUNTS
+    // 6. PREPARE ITEMS USING DATABASE AMOUNTS
     // --------------------------------------------------------
 
-    const items = body.items.map((item) => {
-      const obrId = String(item.obr_id)
+    const items = body.items.map((item, index) => {
+      const originalId = String(item.obr_id)
         .trim()
         .toLowerCase();
 
-      const obr = obrMap.get(obrId);
+      let obr: any;
 
-      if (!obr) {
-        throw new Error(
-          `OBR ${item.obr_id} was not found.`
-        );
+      if (item.new_obr) {
+        const resolvedId = resolvedOBRIds.get(originalId);
+
+        obr = {
+          id: resolvedId,
+          obr_number: item.new_obr.obr_number,
+          obligation_amount:
+            item.new_obr.obligation_amount,
+        };
+      } else {
+        obr = existingOBRMap.get(originalId);
+
+        if (!obr) {
+          throw new Error(
+            `OBR ${item.obr_id} was not found.`
+          );
+        }
       }
 
       return {
@@ -328,7 +507,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --------------------------------------------------------
-    // 4. INSERT DV HEADER
+    // 7. INSERT DV HEADER
     // --------------------------------------------------------
 
     const dvResult = await client.query(
@@ -358,7 +537,7 @@ export async function POST(request: NextRequest) {
     const dv = dvResult.rows[0];
 
     // --------------------------------------------------------
-    // 5. INSERT DV ITEMS
+    // 8. INSERT DV ITEMS
     // --------------------------------------------------------
 
     for (const item of items) {
@@ -386,7 +565,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --------------------------------------------------------
-    // 6. COMMIT
+    // 9. COMMIT
     // --------------------------------------------------------
 
     await client.query("COMMIT");
@@ -451,7 +630,7 @@ export async function POST(request: NextRequest) {
 
     if (pgError.code === "23503") {
       return errorResponse(
-        "A selected OBR or voucher reference is invalid.",
+        "A selected OBR, office, sub-office, category, account, or voucher reference is invalid.",
         400
       );
     }

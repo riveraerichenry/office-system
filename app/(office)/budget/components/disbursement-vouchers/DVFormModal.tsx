@@ -18,6 +18,7 @@ import type {
   DVFormData,
   DVItem,
   OBRRecord,
+  NewOBRData,
 } from "./types";
 
 type Props = {
@@ -64,6 +65,7 @@ function generateOBRParticulars(obr: OBRRecord): string {
     obr.account_name,
   ]
     .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
     .join(", ");
 }
 
@@ -82,8 +84,10 @@ function generateDVParticulars(items: DVItem[]): string {
         item.account_name,
       ]
         .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
         .join(", ")
     )
+    .filter(Boolean)
     .join("\n");
 }
 
@@ -150,10 +154,24 @@ export default function DVFormModal({
 
     const obligationAmount = Number(
       obr.obligation_amount ??
-      obr.total_allocation ??
-      obr.total_amount ??
-      0
+        obr.total_allocation ??
+        obr.total_amount ??
+        0
     );
+
+    // ============================================================
+    // DETECT TEMPORARY OBR
+    // ============================================================
+
+    const newOBRData = (
+      obr as OBRRecord & {
+        new_obr?: NewOBRData;
+      }
+    ).new_obr;
+
+    // ============================================================
+    // CREATE DV ITEM
+    // ============================================================
 
     const newItem: DVItem = {
       id: getId(),
@@ -174,11 +192,15 @@ export default function DVFormModal({
 
       obligation_amount: obligationAmount,
 
-      // Retained for compatibility with the existing DV API.
       total_debit:
         obligationAmount > 0
           ? obligationAmount.toFixed(2)
           : "",
+
+      // Preserve the temporary OBR payload
+      ...(newOBRData
+        ? { new_obr: newOBRData }
+        : {}),
     };
 
     setItems((previous) => [
@@ -200,6 +222,10 @@ export default function DVFormModal({
     e.preventDefault();
     setError("");
 
+    // ============================================================
+    // VALIDATION
+    // ============================================================
+
     if (!dvNo.trim()) {
       setError("DV number is required.");
       return;
@@ -220,6 +246,7 @@ export default function DVFormModal({
       return;
     }
 
+    // Account code validation
     if (
       items.some(
         (item) => !item.account_code?.trim()
@@ -231,6 +258,7 @@ export default function DVFormModal({
       return;
     }
 
+    // Obligation amount validation
     if (
       items.some(
         (item) =>
@@ -244,6 +272,7 @@ export default function DVFormModal({
       return;
     }
 
+    // Duplicate OBR validation
     const duplicate = items.find(
       (item, index) =>
         items.findIndex(
@@ -258,10 +287,14 @@ export default function DVFormModal({
       return;
     }
 
+    // ============================================================
+    // SAVE
+    // ============================================================
+
     setSaving(true);
 
     try {
-      const payload = {
+      const payload: DVFormData = {
         dv_no: dvNo.trim(),
         dv_date: dvDate,
 
@@ -273,20 +306,21 @@ export default function DVFormModal({
         items: items.map((item) => ({
           obr_id: item.obr_id,
           obr_no: item.obr_no,
+
           account_code: item.account_code.trim(),
-          particulars: generateOBRParticulars({
-            id: item.obr_id,
-            obr_number: item.obr_no,
-            office_name: item.office_name,
-            sub_office_name: item.sub_office_name,
-            category_name: item.category_name,
-            account_name: item.account_name,
-          } as OBRRecord),
+
+          particulars: item.particulars,
+
           total_debit: Number(item.obligation_amount),
+
+          // Include new OBR payload only for temporary OBRs
+          ...(item.new_obr
+            ? { new_obr: item.new_obr }
+            : {}),
         })),
 
         grand_total: grandTotal,
-      } as DVFormData;
+      };
 
       await onSave(payload);
     } catch (e) {
@@ -331,7 +365,7 @@ export default function DVFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-md p-2 text-slate-500 hover:bg-white/60"
+            className="rounded-md p-2 text-slate-500 hover:bg-white/60 disabled:opacity-50"
           >
             <X size={19} />
           </button>
@@ -425,7 +459,6 @@ export default function DVFormModal({
                     className="w-full rounded-md border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm text-slate-600 outline-none"
                   />
                 </div>
-
               </div>
 
               {/* PARTICULARS */}
