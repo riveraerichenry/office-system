@@ -1,4 +1,24 @@
+// import Topbar from "@/components/dashboard/Topbar";
+
+// export default function DashboardLayout({
+//   children,
+// }: {
+//   children: React.ReactNode;
+// }) {
+//   return (
+//     <div className="min-h-screen bg-[#F8FAFC]">
+//       <Topbar />
+
+//       <main className="p-8">
+//         {children}
+//       </main>
+//     </div>
+//   );
+// }
+
+
 import Topbar from "@/components/dashboard/Topbar";
+import FloatingQueueBar from "@/components/queuing/FloatingQueuBar";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +32,8 @@ export default function DashboardLayout({
       <main className="p-8">
         {children}
       </main>
+
+      <FloatingQueueBar />
     </div>
   );
 }
