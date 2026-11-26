@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { generateUUID } from "@/lib/generateUUID";
 
 import Swal from "sweetalert2";
 
@@ -647,40 +648,21 @@ export default function DepositFormModal({
   const sectionTitleClass = "text-sm font-bold text-gray-900";
 
   function addCheck() {
+  setChecks((previous) => [
+    ...previous,
+    {
+      id: generateUUID(),
+      checkNumber: "",
+      checkDate: getLocalDate(),
+      bankName: "",
+      amount: "",
+      remarks: "",
+      checkType: "ON_US",
+    },
+  ]);
 
-    setChecks((previous) => [
-
-      ...previous,
-
-      {
-
-        id:
-
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-
-            ? crypto.randomUUID()
-
-            : `${Date.now()}-${Math.random()}`,
-
-        checkNumber: "",
-
-        checkDate: getLocalDate(),
-
-        bankName: "",
-
-        amount: "",
-
-        remarks: "",
-
-        checkType: "ON_US",
-
-      },
-
-    ]);
-
-    setValidationMessage("");
-
-  }
+  setValidationMessage("");
+}
 
   function updateCheck(
 

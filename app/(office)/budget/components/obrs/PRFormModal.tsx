@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import type { PurchaseRequestOption } from "./types";
+import { generateUUID } from "@/lib/generateUUID";
 
 export type PRAllocation = {
   purchase_request_id: string;
@@ -73,14 +74,7 @@ function today() {
 }
 
 function makeId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random()}`;
+  return generateUUID();
 }
 
 function makeItem(): PRItem {

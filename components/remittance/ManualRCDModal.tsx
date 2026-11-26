@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { generateUUID } from "@/lib/generateUUID";
 import {
   Plus,
   Trash2,
@@ -42,7 +43,7 @@ const today = () => {
 };
 
 const createItem = (): ManualRCDItem => ({
-  id: crypto.randomUUID(),
+  id: generateUUID(),
   or_number: "",
   receipt_date: today(),
   payor: "",
