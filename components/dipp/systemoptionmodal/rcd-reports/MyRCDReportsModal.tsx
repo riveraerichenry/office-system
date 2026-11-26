@@ -221,6 +221,16 @@ export default function MyRCDReportsModal({
         setPairedRCD,
     ] = useState<RCDReportItem | null>(null);
 
+    /*
+    ============================================================
+    COMBINED DAILY RECEIPT DATA
+    ============================================================
+    */
+
+    const [dailyReceiptData, setDailyReceiptData] = useState<any>(null);
+    const [loadingDailyReceipt, setLoadingDailyReceipt] = useState(false);
+    const [dailyReceiptError, setDailyReceiptError] = useState("");
+
 
     /*
     ============================================================
@@ -847,6 +857,64 @@ export default function MyRCDReportsModal({
 
     /*
     ============================================================
+    LOAD COMBINED DAILY RECEIPT
+    ============================================================
+    */
+
+    async function loadCombinedDailyReceipt(rcdId: string) {
+        try {
+            setLoadingDailyReceipt(true);
+            setDailyReceiptError("");
+            setDailyReceiptData(null);
+
+            const response = await axios.get(
+                `/api/rcd/reports/${encodeURIComponent(rcdId)}/dailyreceipt`,
+                { withCredentials: true }
+            );
+
+            const result = response.data;
+
+            if (!result?.success) {
+                throw new Error(
+                    result?.message || "Unable to load combined Daily Receipt."
+                );
+            }
+
+            setDailyReceiptData(result);
+        } catch (error: any) {
+            console.error("LOAD COMBINED DAILY RECEIPT ERROR:", error);
+
+            setDailyReceiptData(null);
+            setDailyReceiptError(
+                error?.response?.data?.message ||
+                error?.message ||
+                "Unable to load combined Daily Receipt."
+            );
+        } finally {
+            setLoadingDailyReceipt(false);
+        }
+    }
+
+
+    /*
+    ============================================================
+    LOAD DAILY RECEIPT WHEN TAB IS SELECTED
+    ============================================================
+    */
+
+    useEffect(() => {
+        if (!open || activeTab !== "daily_receipt" || !selectedRCD?.id) {
+            setDailyReceiptData(null);
+            setDailyReceiptError("");
+            return;
+        }
+
+        loadCombinedDailyReceipt(selectedRCD.id);
+    }, [open, activeTab, selectedRCD?.id]);
+
+
+    /*
+    ============================================================
     FUND SOURCE LABEL
     ============================================================
     */
@@ -1056,50 +1124,83 @@ export default function MyRCDReportsModal({
 
             case "daily_receipt":
 
+                if (loadingDailyReceipt) {
+                    return (
+                        <div className="flex min-h-[500px] items-center justify-center">
+                            <div className="text-center">
+                                <RefreshCw size={22} className="mx-auto animate-spin text-blue-600" />
+                                <div className="mt-3 text-sm font-semibold text-gray-700">
+                                    Loading Combined Daily Receipt...
+                                </div>
+                                <div className="mt-1 text-xs text-gray-400">
+                                    Loading BASIC and SEF receipt entries.
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (dailyReceiptError) {
+                    return (
+                        <div className="flex min-h-[500px] items-center justify-center p-6">
+                            <div className="max-w-md text-center">
+                                <div className="text-sm font-semibold text-red-600">
+                                    Unable to Load Daily Receipt
+                                </div>
+                                <div className="mt-2 text-sm text-gray-600">
+                                    {dailyReceiptError}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => selectedRCD?.id && loadCombinedDailyReceipt(selectedRCD.id)}
+                                    className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (!dailyReceiptData) {
+                    return (
+                        <div className="flex min-h-[500px] items-center justify-center text-sm text-gray-400">
+                            No Daily Receipt data.
+                        </div>
+                    );
+                }
+
                 return (
-
                     <DailyReceiptByFundSource
-
                         report={
+                            dailyReceiptData.report ??
+                            dailyReceiptData.rcd ??
                             selectedRCD
                         }
-
                         items={
-                            selectedRCD.items ??
+                            dailyReceiptData.items ??
+                            dailyReceiptData.data?.items ??
                             []
                         }
-
-                        fundSource={{
-
-                            id:
-                                selectedRCD.fund_source_id,
-
-                            fund_code:
-                                selectedRCD.fund_code,
-
-                            fund_name:
-                                selectedRCD.fund_name,
-
-                            acronym:
-                                selectedRCD.acronym,
-
-                        }}
-
+                        fundSource={
+                            dailyReceiptData.fundSource ??
+                            dailyReceiptData.fund_source ??
+                            {
+                                id: selectedRCD.fund_source_id,
+                                fund_code: "RPT",
+                                fund_name: "Real Property Tax",
+                                acronym: "RPT",
+                            }
+                        }
                         user={
+                            dailyReceiptData.user ??
+                            dailyReceiptData.report?.user ??
                             selectedRCD.user ??
                             null
                         }
-
                     />
-
                 );
 
-
-            /*
-            ====================================================
-            ABSTRACT SUMMARY
-            ====================================================
-            */
 
             case "abstract_summary":
 

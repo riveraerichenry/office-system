@@ -5,19 +5,11 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 
-export async function GET(
-    request: NextRequest
-) {
-
+export async function GET(request: NextRequest) {
     const client = await pool.connect();
 
     try {
-
-        const searchParams =
-            request.nextUrl.searchParams;
-
-        const fundSourceId =
-            searchParams.get("fund_source_id")?.trim() || "";
+        const searchParams = request.nextUrl.searchParams;
 
         const dateFrom =
             searchParams.get("date_from")?.trim() || "";
@@ -26,26 +18,7 @@ export async function GET(
             searchParams.get("date_to")?.trim() || "";
 
         const values: any[] = [];
-
         const conditions: string[] = [];
-
-        /*
-        =========================================================
-        FUND SOURCE
-        =========================================================
-        */
-
-        if (fundSourceId) {
-
-            values.push(
-                fundSourceId
-            );
-
-            conditions.push(
-                `rt.fund_source_id = $${values.length}`
-            );
-
-        }
 
         /*
         =========================================================
@@ -54,15 +27,11 @@ export async function GET(
         */
 
         if (dateFrom) {
-
-            values.push(
-                dateFrom
-            );
+            values.push(dateFrom);
 
             conditions.push(
                 `rt.date_from >= $${values.length}::date`
             );
-
         }
 
         /*
@@ -72,15 +41,11 @@ export async function GET(
         */
 
         if (dateTo) {
-
-            values.push(
-                dateTo
-            );
+            values.push(dateTo);
 
             conditions.push(
                 `rt.date_to <= $${values.length}::date`
             );
-
         }
 
         /*
@@ -96,147 +61,98 @@ export async function GET(
 
         /*
         =========================================================
-        GET RCD REPORTS
+        GET ALL RCD REPORTS
+        NO FUND SOURCE FILTER
         =========================================================
         */
 
-        const result =
-            await client.query(
-                `
-                SELECT
+        const result = await client.query(
+            `
+            SELECT
+                rt.id,
+                rt.report_no,
+                rt.report_date,
+                rt.fund_source_id,
+                rt.date_from,
+                rt.date_to,
+                rt.total_collections,
+                rt.total_remittances,
+                rt.total_deposits,
+                rt.balance,
+                rt.status,
+                rt.rcd_by,
 
-                    rt.id,
+                fs.fund_code,
+                fs.fund_name,
+                fs.acronym
 
-                    rt.report_no,
+            FROM rcd_transaction rt
 
-                    rt.report_date,
+            LEFT JOIN fund_sources fs
+                ON fs.id = rt.fund_source_id
 
-                    rt.fund_source_id,
+            ${whereClause}
 
-                    rt.date_from,
-
-                    rt.date_to,
-
-                    rt.total_collections,
-
-                    rt.total_remittances,
-
-                    rt.total_deposits,
-
-                    rt.balance,
-
-                    rt.status,
-
-                    rt.rcd_by,
-
-                    fs.fund_code,
-
-                    fs.fund_name,
-
-                    fs.acronym
-
-                FROM rcd_transaction rt
-
-                LEFT JOIN fund_sources fs
-                    ON fs.id =
-                        rt.fund_source_id
-
-                ${whereClause}
-
-                ORDER BY
-                    rt.report_date DESC,
-                    rt.created_at DESC
-                `,
-                values
-            );
+            ORDER BY
+                rt.report_date DESC,
+                rt.created_at DESC
+            `,
+            values
+        );
 
         /*
         =========================================================
-        FORMAT
+        FORMAT DATA
         =========================================================
         */
 
-        const rcds =
-            result.rows.map(
-                row => ({
+        const rcds = result.rows.map((row) => ({
+            id: row.id,
 
-                    id:
-                        row.id,
+            report_no: row.report_no,
 
-                    report_no:
-                        row.report_no,
+            report_date: row.report_date,
 
-                    report_date:
-                        row.report_date,
+            fund_source_id: row.fund_source_id,
 
-                    fund_source_id:
-                        row.fund_source_id,
+            date_from: row.date_from,
 
-                    date_from:
-                        row.date_from,
+            date_to: row.date_to,
 
-                    date_to:
-                        row.date_to,
+            total_collections: Number(
+                row.total_collections ?? 0
+            ),
 
-                    total_collections:
-                        Number(
-                            row.total_collections ??
-                                0
-                        ),
+            total_remittances: Number(
+                row.total_remittances ?? 0
+            ),
 
-                    total_remittances:
-                        Number(
-                            row.total_remittances ??
-                                0
-                        ),
+            total_deposits: Number(
+                row.total_deposits ?? 0
+            ),
 
-                    total_deposits:
-                        Number(
-                            row.total_deposits ??
-                                0
-                        ),
+            balance: Number(
+                row.balance ?? 0
+            ),
 
-                    balance:
-                        Number(
-                            row.balance ??
-                                0
-                        ),
+            status: row.status,
 
-                    status:
-                        row.status,
+            rcd_by: row.rcd_by,
 
-                    rcd_by:
-                        row.rcd_by,
+            fund_code: row.fund_code,
 
-                    fund_code:
-                        row.fund_code,
+            fund_name: row.fund_name,
 
-                    fund_name:
-                        row.fund_name,
-
-                    acronym:
-                        row.acronym,
-
-                })
-            );
+            acronym: row.acronym,
+        }));
 
         return NextResponse.json({
-
             success: true,
-
-            data:
-                rcds,
-
-            count:
-                rcds.length,
-
+            data: rcds,
+            count: rcds.length,
         });
 
-    }
-    catch (
-        error: any
-    ) {
-
+    } catch (error: any) {
         console.error(
             "GET RCD REPORTS ERROR:",
             error
@@ -245,7 +161,6 @@ export async function GET(
         return NextResponse.json(
             {
                 success: false,
-
                 message:
                     error?.message ??
                     "Failed to load RCD reports.",
@@ -255,11 +170,7 @@ export async function GET(
             }
         );
 
-    }
-    finally {
-
+    } finally {
         client.release();
-
     }
-
 }

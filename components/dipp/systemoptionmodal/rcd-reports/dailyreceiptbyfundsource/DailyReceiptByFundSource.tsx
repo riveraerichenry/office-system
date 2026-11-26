@@ -1,3 +1,4 @@
+
 "use client";
 
 import "./DailyReceiptPreview.css";
@@ -13,20 +14,15 @@ type Props = {
 
 /* ============================================================
    DATE FORMAT
-   Prevent date-only values from shifting due to timezones.
 ============================================================ */
 
 function formatDate(value?: string | null): string {
-    if (!value) {
-        return "—";
-    }
+    if (!value) return "—";
 
     const dateOnly = String(value).substring(0, 10);
     const parts = dateOnly.split("-");
 
-    if (parts.length !== 3) {
-        return String(value);
-    }
+    if (parts.length !== 3) return String(value);
 
     const [year, month, day] = parts;
 
@@ -58,7 +54,6 @@ function formatDate(value?: string | null): string {
 
 /* ============================================================
    AMOUNT FORMAT
-   EXACTLY 3 DECIMAL PLACES
 ============================================================ */
 
 function formatAmount(value: any): string {
@@ -73,9 +68,7 @@ function formatAmount(value: any): string {
 ============================================================ */
 
 function getFullName(user: any): string {
-    if (!user) {
-        return "—";
-    }
+    if (!user) return "—";
 
     if (user.full_name) {
         return user.full_name;
@@ -123,7 +116,7 @@ function printDailyReceipt() {
         return;
     }
 
-    /* GET ALL STYLES FROM CURRENT PAGE */
+    /* GET ALL STYLES */
 
     const styles: string[] = [];
 
@@ -170,7 +163,7 @@ function printDailyReceipt() {
         <html>
             <head>
                 <meta charset="UTF-8" />
-                <title>Daily Receipt by Fund Source</title>
+                <title>Daily Receipt</title>
 
                 ${styles.join("\n")}
 
@@ -336,7 +329,9 @@ export default function DailyReceiptByFundSource({
     void dateFrom;
     void dateTo;
 
-    /* PAGINATION */
+    /* ============================================================
+       PAGINATION
+    ============================================================ */
 
     const NORMAL_PAGE_ROWS = 38;
     const LAST_PAGE_ROWS = 30;
@@ -379,17 +374,20 @@ export default function DailyReceiptByFundSource({
 
     const totalReceiptCount = rows.length;
 
-    /* RENDER */
+    /* ============================================================
+       RENDER
+    ============================================================ */
 
     return (
         <div className="daily-receipt-preview-wrapper">
+
             {/* RECEIPT PAGES */}
 
             {pages.map((pageItems, pageIndex) => {
                 const isLastPage =
                     pageIndex === pages.length - 1;
 
-                /* Calculate the starting entry number. */
+                /* STARTING ENTRY NUMBER */
 
                 const startIndex = pages
                     .slice(0, pageIndex)
@@ -403,6 +401,7 @@ export default function DailyReceiptByFundSource({
                         key={pageIndex}
                         className="daily-receipt-paper"
                     >
+
                         {/* HEADER */}
 
                         <DailyReceiptHeader
@@ -427,6 +426,7 @@ export default function DailyReceiptByFundSource({
 
                         {isLastPage && (
                             <div className="daily-receipt-signatories">
+
                                 {/* PREPARED BY */}
 
                                 <div>
@@ -458,6 +458,7 @@ export default function DailyReceiptByFundSource({
                                         Municipal Treasurer
                                     </div>
                                 </div>
+
                             </div>
                         )}
 
@@ -465,7 +466,7 @@ export default function DailyReceiptByFundSource({
 
                         <div className="daily-receipt-footer">
                             <span>
-                                Daily Receipt by Fund Source
+                                Daily Receipt
                             </span>
 
                             <span>
@@ -478,6 +479,7 @@ export default function DailyReceiptByFundSource({
                         <div className="daily-receipt-page-number">
                             Page {pageIndex + 1} of {pages.length}
                         </div>
+
                     </div>
                 );
             })}
@@ -497,6 +499,7 @@ export default function DailyReceiptByFundSource({
 
                 <span>Print</span>
             </button>
+
         </div>
     );
 }

@@ -326,6 +326,25 @@ export async function GET(
 
         /*
         =========================================================
+        RPT FUND SOURCE FILTER
+        =========================================================
+        */
+
+        const fundCodeText = String(rcd.fund_code ?? "").trim().toUpperCase();
+        const fundNameText = String(rcd.fund_name ?? "").trim().toUpperCase();
+        const acronymText = String(rcd.acronym ?? "").trim().toUpperCase();
+        const fundSourceText = `${fundCodeText} ${fundNameText} ${acronymText}`;
+
+        const isSEFFund = /\bSEF\b/.test(fundSourceText);
+        const isBasicFund = /\bBASIC\b/.test(fundSourceText) && !isSEFFund;
+        const isCombinedRPTFund = !isSEFFund && !isBasicFund;
+
+        // A SEF-specific or BASIC-specific RCD receives only its own share.
+        // Unknown/combined RPT fund sources include both shares.
+
+
+        /*
+        =========================================================
         GET ALL DIPP TRANSACTIONS BELONGING TO THIS RCD
         =========================================================
         */
@@ -767,45 +786,14 @@ export async function GET(
             =====================================================
             */
 
-            if (
-                rptResult.rows.length >
-                0
-            ) {
+            if (rptResult.rows.length > 0) {
 
-                for (
-                    const rpt
-                    of rptResult.rows
-                ) {
+                for (const rpt of rptResult.rows) {
 
-                    const basic =
-                        toNumber(
-                            rpt.basic
-                        );
-
-
-                    const sef =
-                        toNumber(
-                            rpt.sef
-                        );
-
-
-                    const penalty =
-                        toNumber(
-                            rpt.penalty
-                        );
-
-
-                    const discount =
-                        toNumber(
-                            rpt.discount
-                        );
-
-
-                    /*
-                    -------------------------------------------------
-                    Determine tax year.
-                    -------------------------------------------------
-                    */
+                    const basic = toNumber(rpt.basic);
+                    const sef = toNumber(rpt.sef);
+                    const penalty = toNumber(rpt.penalty);
+                    const discount = toNumber(rpt.discount);
 
                     // Match the SQL expression exactly:
                     // COALESCE(NULLIF(start_year, 0), NULLIF(end_year, 0))
@@ -813,335 +801,125 @@ export async function GET(
                     const endYear = toNumber(rpt.end_year);
                     const taxYear = startYear !== 0 ? startYear : endYear;
 
-                    // Do not classify records without a valid tax year.
                     if (!taxYear) {
-                        console.warn(
-                            "RPT item has no valid tax year:",
-                            {
-                                rptItemId: rpt.id,
-                                transactionId,
-                                startYear: rpt.start_year,
-                                endYear: rpt.end_year,
-                            }
-                        );
+                        console.warn("RPT item has no valid tax year:", {
+                            rptItemId: rpt.id,
+                            transactionId,
+                            startYear: rpt.start_year,
+                            endYear: rpt.end_year,
+                        });
                         continue;
                     }
 
-                    const classification =
-                        classifyYear(
-                            taxYear,
-                            currentYear
+                    const classification = classifyYear(taxYear, currentYear);
+
+                    // Determine the BASIC/SEF tax accounts for this tax year.
+                    let basicAccount: RptAccountDefinition;
+                    if (classification === "CURRENT") {
+                        basicAccount = RPT_ACCOUNTS.BASIC_CURRENT;
+                    } else if (classification === "PREVIOUS") {
+                        basicAccount = RPT_ACCOUNTS.BASIC_PREVIOUS;
+                    } else {
+                        basicAccount = RPT_ACCOUNTS.BASIC_ADVANCE;
+                    }
+
+                    let sefAccount: RptAccountDefinition;
+                    if (classification === "CURRENT") {
+                        sefAccount = RPT_ACCOUNTS.SEF_CURRENT;
+                    } else if (classification === "PREVIOUS") {
+                        sefAccount = RPT_ACCOUNTS.SEF_PREVIOUS;
+                    } else {
+                        sefAccount = RPT_ACCOUNTS.SEF_ADVANCE;
+                    }
+
+                    // Add BASIC tax only when the RCD fund source allows BASIC.
+                    if (isBasicFund || isCombinedRPTFund) {
+                        const basicAccountRecord = accountByCode.get(basicAccount.code);
+                        addSummary(
+                            basicAccountRecord?.id ?? null,
+                            basicAccountRecord?.account_code ?? basicAccount.code,
+                            basicAccountRecord?.account_name ?? basicAccount.name,
+                            basic
                         );
-
-
-                    /*
-                    =================================================
-                    BASIC
-                    =================================================
-                    */
-
-                    let basicAccount:
-                        RptAccountDefinition;
-
-
-                    if (
-                        classification ===
-                        "CURRENT"
-                    ) {
-
-                        basicAccount =
-                            RPT_ACCOUNTS
-                                .BASIC_CURRENT;
-
-                    }
-                    else if (
-                        classification ===
-                        "PREVIOUS"
-                    ) {
-
-                        basicAccount =
-                            RPT_ACCOUNTS
-                                .BASIC_PREVIOUS;
-
-                    }
-                    else {
-
-                        basicAccount =
-                            RPT_ACCOUNTS
-                                .BASIC_ADVANCE;
-
                     }
 
-
-                    const basicAccountRecord =
-                        accountByCode.get(
-                            basicAccount.code
+                    // Add SEF tax only when the RCD fund source allows SEF.
+                    if (isSEFFund || isCombinedRPTFund) {
+                        const sefAccountRecord = accountByCode.get(sefAccount.code);
+                        addSummary(
+                            sefAccountRecord?.id ?? null,
+                            sefAccountRecord?.account_code ?? sefAccount.code,
+                            sefAccountRecord?.account_name ?? sefAccount.name,
+                            sef
                         );
-
-
-                    addSummary(
-
-                        basicAccountRecord?.id ??
-                            null,
-
-                        basicAccountRecord
-                            ?.account_code ??
-                            basicAccount.code,
-
-                        basicAccountRecord
-                            ?.account_name ??
-                            basicAccount.name,
-
-                        basic
-
-                    );
-
-
-                    /*
-                    =================================================
-                    SEF
-                    =================================================
-                    */
-
-                    let sefAccount:
-                        RptAccountDefinition;
-
-
-                    if (
-                        classification ===
-                        "CURRENT"
-                    ) {
-
-                        sefAccount =
-                            RPT_ACCOUNTS
-                                .SEF_CURRENT;
-
-                    }
-                    else if (
-                        classification ===
-                        "PREVIOUS"
-                    ) {
-
-                        sefAccount =
-                            RPT_ACCOUNTS
-                                .SEF_PREVIOUS;
-
-                    }
-                    else {
-
-                        sefAccount =
-                            RPT_ACCOUNTS
-                                .SEF_ADVANCE;
-
                     }
 
+                    // RPT penalties are shared equally between BASIC and SEF.
+                    // Round one half first, then use the remainder for the other half
+                    // to avoid losing or creating cents.
+                    const basicPenalty = money(penalty / 2);
+                    const sefPenalty = money(penalty - basicPenalty);
 
-                    const sefAccountRecord =
-                        accountByCode.get(
-                            sefAccount.code
-                        );
+                    let basicPenaltyAccount: RptAccountDefinition;
+                    let sefPenaltyAccount: RptAccountDefinition;
 
-
-                    addSummary(
-
-                        sefAccountRecord?.id ??
-                            null,
-
-                        sefAccountRecord
-                            ?.account_code ??
-                            sefAccount.code,
-
-                        sefAccountRecord
-                            ?.account_name ??
-                            sefAccount.name,
-
-                        sef
-
-                    );
-
-
-                    /*
-                    =================================================
-                    PENALTY
-                    =================================================
-                    */
-
-                    // Split penalty without losing or creating cents.
-                    const basicPenalty =
-                        money(penalty / 2);
-
-                    const sefPenalty =
-                        money(penalty - basicPenalty);
-
-
-                    let basicPenaltyAccount:
-                        RptAccountDefinition;
-
-
-                    let sefPenaltyAccount:
-                        RptAccountDefinition;
-
-
-                    if (
-                        classification ===
-                        "CURRENT"
-                    ) {
-
-                        basicPenaltyAccount =
-                            RPT_ACCOUNTS
-                                .BASIC_PENALTY_CURRENT;
-
-                        sefPenaltyAccount =
-                            RPT_ACCOUNTS
-                                .SEF_PENALTY_CURRENT;
-
-                    }
-                    else {
-
-                        basicPenaltyAccount =
-                            RPT_ACCOUNTS
-                                .BASIC_PENALTY_PREVIOUS;
-
-                        sefPenaltyAccount =
-                            RPT_ACCOUNTS
-                                .SEF_PENALTY_PREVIOUS;
-
+                    if (classification === "CURRENT") {
+                        basicPenaltyAccount = RPT_ACCOUNTS.BASIC_PENALTY_CURRENT;
+                        sefPenaltyAccount = RPT_ACCOUNTS.SEF_PENALTY_CURRENT;
+                    } else {
+                        // Advance-year penalty is not expected; retain the existing
+                        // previous-year penalty account fallback.
+                        basicPenaltyAccount = RPT_ACCOUNTS.BASIC_PENALTY_PREVIOUS;
+                        sefPenaltyAccount = RPT_ACCOUNTS.SEF_PENALTY_PREVIOUS;
                     }
 
-
-                    const basicPenaltyRecord =
-                        accountByCode.get(
-                            basicPenaltyAccount.code
+                    if (isBasicFund || isCombinedRPTFund) {
+                        const basicPenaltyRecord = accountByCode.get(basicPenaltyAccount.code);
+                        addSummary(
+                            basicPenaltyRecord?.id ?? null,
+                            basicPenaltyRecord?.account_code ?? basicPenaltyAccount.code,
+                            basicPenaltyRecord?.account_name ?? basicPenaltyAccount.name,
+                            basicPenalty
                         );
+                    }
 
-
-                    const sefPenaltyRecord =
-                        accountByCode.get(
-                            sefPenaltyAccount.code
+                    if (isSEFFund || isCombinedRPTFund) {
+                        const sefPenaltyRecord = accountByCode.get(sefPenaltyAccount.code);
+                        addSummary(
+                            sefPenaltyRecord?.id ?? null,
+                            sefPenaltyRecord?.account_code ?? sefPenaltyAccount.code,
+                            sefPenaltyRecord?.account_name ?? sefPenaltyAccount.name,
+                            sefPenalty
                         );
+                    }
 
+                    // RPT discounts are likewise shared equally between BASIC and SEF.
+                    const basicDiscount = money(discount / 2);
+                    const sefDiscount = money(discount - basicDiscount);
 
-                    addSummary(
-
-                        basicPenaltyRecord?.id ??
-                            null,
-
-                        basicPenaltyRecord
-                            ?.account_code ??
-                            basicPenaltyAccount.code,
-
-                        basicPenaltyRecord
-                            ?.account_name ??
-                            basicPenaltyAccount.name,
-
-                        basicPenalty
-
-                    );
-
-
-                    addSummary(
-
-                        sefPenaltyRecord?.id ??
-                            null,
-
-                        sefPenaltyRecord
-                            ?.account_code ??
-                            sefPenaltyAccount.code,
-
-                        sefPenaltyRecord
-                            ?.account_name ??
-                            sefPenaltyAccount.name,
-
-                        sefPenalty
-
-                    );
-
-
-                    /*
-                    =================================================
-                    DISCOUNT
-                    =================================================
-                    */
-
-                    // Split discount without losing or creating cents.
-                    const basicDiscount =
-                        money(discount / 2);
-
-                    const sefDiscount =
-                        money(discount - basicDiscount);
-
-
-                    const basicDiscountRecord =
-                        accountByCode.get(
-                            RPT_ACCOUNTS
-                                .BASIC_DISCOUNT
-                                .code
+                    if (isBasicFund || isCombinedRPTFund) {
+                        const basicDiscountRecord = accountByCode.get(RPT_ACCOUNTS.BASIC_DISCOUNT.code);
+                        addSummary(
+                            basicDiscountRecord?.id ?? null,
+                            basicDiscountRecord?.account_code ?? RPT_ACCOUNTS.BASIC_DISCOUNT.code,
+                            basicDiscountRecord?.account_name ?? RPT_ACCOUNTS.BASIC_DISCOUNT.name,
+                            basicDiscount
                         );
+                    }
 
-
-                    const sefDiscountRecord =
-                        accountByCode.get(
-                            RPT_ACCOUNTS
-                                .SEF_DISCOUNT
-                                .code
+                    if (isSEFFund || isCombinedRPTFund) {
+                        const sefDiscountRecord = accountByCode.get(RPT_ACCOUNTS.SEF_DISCOUNT.code);
+                        addSummary(
+                            sefDiscountRecord?.id ?? null,
+                            sefDiscountRecord?.account_code ?? RPT_ACCOUNTS.SEF_DISCOUNT.code,
+                            sefDiscountRecord?.account_name ?? RPT_ACCOUNTS.SEF_DISCOUNT.name,
+                            sefDiscount
                         );
-
-
-                    addSummary(
-
-                        basicDiscountRecord?.id ??
-                            null,
-
-                        basicDiscountRecord
-                            ?.account_code ??
-                            RPT_ACCOUNTS
-                                .BASIC_DISCOUNT
-                                .code,
-
-                        basicDiscountRecord
-                            ?.account_name ??
-                            RPT_ACCOUNTS
-                                .BASIC_DISCOUNT
-                                .name,
-
-                        basicDiscount
-
-                    );
-
-
-                    addSummary(
-
-                        sefDiscountRecord?.id ??
-                            null,
-
-                        sefDiscountRecord
-                            ?.account_code ??
-                            RPT_ACCOUNTS
-                                .SEF_DISCOUNT
-                                .code,
-
-                        sefDiscountRecord
-                            ?.account_name ??
-                            RPT_ACCOUNTS
-                                .SEF_DISCOUNT
-                                .name,
-
-                        sefDiscount
-
-                    );
-
+                    }
                 }
 
-
-                /*
-                -------------------------------------------------
-                IMPORTANT:
-                Do NOT also read transaction_items.
-                -------------------------------------------------
-                */
-
+                // Do not also read transaction_items for RPT transactions.
                 continue;
-
             }
 
 

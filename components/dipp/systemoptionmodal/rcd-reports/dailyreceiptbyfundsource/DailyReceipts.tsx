@@ -1,4 +1,3 @@
-
 "use client";
 
 type Props = {
@@ -26,11 +25,39 @@ export default function DailyReceipts({
     grandTotalOverride,
 }: Props) {
     /* ============================================================
-       NORMALIZE ROWS
+       NORMALIZE AND DEDUPLICATE ROWS
+       SAME OR NUMBER = ONE RECEIPT
     ============================================================ */
 
     const rows = Array.isArray(items)
-        ? items
+        ? items.filter(
+            (item: any, index: number, array: any[]) => {
+                const receiptNumber = String(
+                    item?.series_or_number ??
+                    item?.or_number ??
+                    item?.receipt_no ??
+                    ""
+                ).trim();
+
+                // If there is no receipt number,
+                // retain the row rather than incorrectly removing it.
+                if (!receiptNumber) {
+                    return true;
+                }
+
+                return (
+                    array.findIndex(
+                        (row: any) =>
+                            String(
+                                row?.series_or_number ??
+                                row?.or_number ??
+                                row?.receipt_no ??
+                                ""
+                            ).trim() === receiptNumber
+                    ) === index
+                );
+            }
+        )
         : [];
 
     /* ============================================================
@@ -127,11 +154,22 @@ export default function DailyReceipts({
                                     item?.payor_name ??
                                     "—";
 
+                                /* ========================================
+                                   RECEIPT NUMBER
+                                ======================================== */
+
+                                const receiptNumber =
+                                    item?.series_or_number ??
+                                    item?.or_number ??
+                                    item?.receipt_no ??
+                                    item?.description ??
+                                    "—";
+
                                 return (
                                     <tr
                                         key={
                                             item?.id ??
-                                            index
+                                            `${receiptNumber}-${index}`
                                         }
                                     >
                                         {/* ========================================
@@ -147,13 +185,7 @@ export default function DailyReceipts({
                                         ======================================== */}
 
                                         <td>
-                                            {
-                                                item?.series_or_number ??
-                                                item?.or_number ??
-                                                item?.receipt_no ??
-                                                item?.description ??
-                                                "—"
-                                            }
+                                            {receiptNumber}
                                         </td>
 
                                         {/* ========================================
