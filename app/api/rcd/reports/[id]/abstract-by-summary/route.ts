@@ -966,12 +966,12 @@ export async function GET(
                     =================================================
                     */
 
+                    // Split penalty without losing or creating cents.
                     const basicPenalty =
-                        penalty / 2;
-
+                        money(penalty / 2);
 
                     const sefPenalty =
-                        penalty / 2;
+                        money(penalty - basicPenalty);
 
 
                     let basicPenaltyAccount:
@@ -1063,12 +1063,12 @@ export async function GET(
                     =================================================
                     */
 
+                    // Split discount without losing or creating cents.
                     const basicDiscount =
-                        discount / 2;
-
+                        money(discount / 2);
 
                     const sefDiscount =
-                        discount / 2;
+                        money(discount - basicDiscount);
 
 
                     const basicDiscountRecord =
