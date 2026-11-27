@@ -153,13 +153,12 @@ export default function DVFormModal({
   // ============================================================
 
   const totalDeductions = useMemo(() => {
-    return deductions.reduce(
-      (sum, deduction) =>
-        sum +
-        (Number(deduction.total_deduction_amount) || 0),
-      0
-    );
-  }, [deductions]);
+  return deductions.reduce(
+    (sum, deduction) =>
+      sum + (Number(deduction.deduction_amount) || 0),
+    0
+  );
+}, [deductions]);
 
   // ============================================================
   // NET AMOUNT DUE

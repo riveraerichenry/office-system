@@ -4,8 +4,6 @@ import {
   Pencil,
   Trash2,
   Receipt,
-  Calculator,
-  HandCoins,
 } from "lucide-react";
 
 import type { DVDeduction } from "./types";
@@ -16,29 +14,12 @@ interface DVDeductionItemsProps {
   onDelete: (id: string) => void;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-PH", {
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
+    minimumFractionDigits: 2,
   }).format(value || 0);
-};
-
-const deductionLabel = (type: string) => {
-  switch (type) {
-    case "CWT":
-      return "Creditable Withholding Tax";
-    case "WITHHOLDING_VAT":
-      return "Withholding VAT";
-    case "LIQUIDATED_DAMAGES":
-      return "Liquidated Damages";
-    case "RETENTION":
-      return "Retention";
-    case "OTHER":
-      return "Other Deduction";
-    default:
-      return type;
-  }
-};
 
 export default function DVDeductionItems({
   deductions,
@@ -47,7 +28,7 @@ export default function DVDeductionItems({
 }: DVDeductionItemsProps) {
   const totalDeductions = deductions.reduce(
     (total, deduction) =>
-      total + Number(deduction.total_deduction_amount || 0),
+      total + Number(deduction.deduction_amount || 0),
     0
   );
 
@@ -79,7 +60,7 @@ export default function DVDeductionItems({
                 </th>
 
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">
-                  Mode
+                  Type
                 </th>
 
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">
@@ -102,79 +83,52 @@ export default function DVDeductionItems({
                   key={deduction.id}
                   className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
                 >
-                  {/* Deduction */}
+                  {/* Deduction Name */}
                   <td className="px-4 py-4">
                     <div className="font-medium text-gray-800">
-                      {deductionLabel(deduction.deduction_type)}
+                      {deduction.deduction_name}
                     </div>
 
-                    {deduction.description && (
+                    {deduction.remarks && (
                       <div className="mt-1 text-xs text-gray-500">
-                        {deduction.description}
-                      </div>
-                    )}
-
-                    {deduction.reference_number && (
-                      <div className="mt-1 text-xs text-gray-400">
-                        Ref: {deduction.reference_number}
+                        {deduction.remarks}
                       </div>
                     )}
                   </td>
 
-                  {/* Mode */}
+                  {/* Deduction Type */}
                   <td className="px-4 py-4">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        deduction.computation_mode === "COMPUTED"
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                        deduction.deduction_type === "PERCENTAGE"
                           ? "bg-blue-50 text-blue-700"
-                          : "bg-amber-50 text-amber-700"
+                          : deduction.deduction_type === "FIXED"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {deduction.computation_mode === "COMPUTED" ? (
-                        <>
-                          <Calculator size={13} />
-                          Computed
-                        </>
-                      ) : (
-                        <>
-                          <HandCoins size={13} />
-                          Manual
-                        </>
-                      )}
+                      {deduction.deduction_type}
                     </span>
                   </td>
 
                   {/* Computation */}
                   <td className="px-4 py-4">
-                    {deduction.computation_mode === "COMPUTED" ? (
-                      <div className="space-y-1">
-                        {deduction.computations?.map((computation) => (
-                          <div
-                            key={computation.id}
-                            className="text-xs text-gray-500"
-                          >
-                            {computation.computation_method ===
-                            "PERCENTAGE" ? (
-                              <>
-                                {Number(computation.rate || 0)}% of{" "}
-                                {formatCurrency(
-                                  Number(computation.basis_amount || 0)
-                                )}
-                              </>
-                            ) : computation.computation_method === "FIXED" ? (
-                              <>Fixed amount</>
-                            ) : (
-                              <>Manual amount</>
-                            )}
-                          </div>
-                        ))}
+                    {deduction.deduction_type === "PERCENTAGE" ? (
+                      <div className="space-y-1 text-xs text-gray-500">
+                        <div>
+                          {Number(deduction.rate || 0)}%
+                        </div>
 
-                        {!deduction.computations?.length && (
-                          <span className="text-xs text-gray-400">
-                            No computation details
-                          </span>
-                        )}
+                        <div>
+                          of {formatCurrency(
+                            Number(deduction.basis_amount || 0)
+                          )}
+                        </div>
                       </div>
+                    ) : deduction.deduction_type === "FIXED" ? (
+                      <span className="text-xs text-gray-500">
+                        Fixed amount
+                      </span>
                     ) : (
                       <span className="text-xs text-gray-500">
                         Manual entry
@@ -186,7 +140,7 @@ export default function DVDeductionItems({
                   <td className="px-4 py-4 text-right">
                     <span className="font-semibold text-red-600">
                       {formatCurrency(
-                        Number(deduction.total_deduction_amount || 0)
+                        Number(deduction.deduction_amount || 0)
                       )}
                     </span>
                   </td>
@@ -220,7 +174,7 @@ export default function DVDeductionItems({
         </div>
       </div>
 
-      {/* Total deductions */}
+      {/* Total Deductions */}
       <div className="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-3">
         <div>
           <p className="text-sm font-medium text-red-700">
