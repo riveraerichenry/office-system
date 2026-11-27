@@ -10,7 +10,8 @@ type Props = {
     user?: RCDUser | null;
     totalCollections: number;
     formatCurrency: (
-        value: number | string | null | undefined
+        value: number | string | null | undefined,
+        rcd?: RCD | null
     ) => string;
 };
 
@@ -27,17 +28,13 @@ export default function RCDLiquidation({
                 marginBottom: "20px",
             }}
         >
-
             <div className="rcd-section-title">
                 2. For Liquidation Officers / Treasurers
             </div>
 
             <table className="rcd-table">
-
                 <thead>
-
                     <tr>
-
                         <th>
                             Name of Accountable Officer
                         </th>
@@ -49,15 +46,11 @@ export default function RCDLiquidation({
                         <th>
                             Amount
                         </th>
-
                     </tr>
-
                 </thead>
 
                 <tbody>
-
                     <tr>
-
                         <td className="bold">
                             {user?.full_name ?? "—"}
                         </td>
@@ -68,14 +61,13 @@ export default function RCDLiquidation({
 
                         <td className="right bold">
                             {formatCurrency(
-                                totalCollections
+                                totalCollections,
+                                rcd
                             )}
                         </td>
-
                     </tr>
 
                     <tr>
-
                         <td
                             colSpan={2}
                             className="bold"
@@ -83,20 +75,20 @@ export default function RCDLiquidation({
                             TOTAL
                         </td>
 
-                        <td className="right bold" style={{
-                            fontSize: "14px",
-                        }}>
+                        <td
+                            className="right bold"
+                            style={{
+                                fontSize: "14px",
+                            }}
+                        >
                             {formatCurrency(
-                                totalCollections
+                                totalCollections,
+                                rcd
                             )}
                         </td>
-
                     </tr>
-
                 </tbody>
-
             </table>
-
         </section>
     );
 }

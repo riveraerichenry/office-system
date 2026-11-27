@@ -51,15 +51,44 @@ function formatDate(value?: string | null): string {
 }
 
 // ============================================================
-// CURRENCY - 3 DECIMAL PLACES
+// CURRENCY - RPT 2/3 DECIMAL PLACES, NON-RPT 2
 // ============================================================
 
+function isRPTFund(fund: any): boolean {
+    const identifiers = [
+        fund?.fund_code,
+        fund?.fund_name,
+        fund?.acronym,
+        fund?.name,
+    ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
+    return identifiers.some((value) =>
+        value.includes("rpt") ||
+        value.includes("real property tax") ||
+        value.includes("property tax")
+    );
+}
+
 function formatCurrency(
-    value: number | string | null | undefined
+    value: number | string | null | undefined,
+    isRPT: boolean
 ): string {
-    return Number(value ?? 0).toLocaleString("en-US", {
-        minimumFractionDigits: 3,
-        maximumFractionDigits: 3,
+    const amount = Number(value ?? 0);
+
+    if (!Number.isFinite(amount)) {
+        return "0.00";
+    }
+
+    // Check the rounded thousandths digit to avoid floating-point noise.
+    const threeDecimalString = Math.abs(amount).toFixed(3);
+    const thirdDecimalDigit = threeDecimalString.split(".")[1]?.[2] ?? "0";
+    const useThreeDecimals = isRPT && thirdDecimalDigit !== "0";
+
+    return amount.toLocaleString("en-US", {
+        minimumFractionDigits: useThreeDecimals ? 3 : 2,
+        maximumFractionDigits: useThreeDecimals ? 3 : 2,
     });
 }
 
@@ -201,6 +230,12 @@ export default function RCDPreview({
     user,
     previousFormRows = [],
 }: Props) {
+    const activeFundSource = fundSource ?? (rcd as any)?.fund_source ?? null;
+    const rptFund = isRPTFund(activeFundSource);
+
+    const formatAmount = (value: number | string | null | undefined) =>
+        formatCurrency(value, rptFund);
+
     // ========================================================
     // TOTALS
     // ========================================================
@@ -473,9 +508,10 @@ export default function RCDPreview({
                     {/* COLLECTIONS */}
 
                     <RCDCollections
+                        rcd={rcd}
                         items={items}
                         totalCollections={totalCollections}
-                        formatCurrency={formatCurrency}
+                        formatCurrency={formatAmount}
                     />
 
                     {/* LIQUIDATION */}
@@ -484,14 +520,14 @@ export default function RCDPreview({
                         rcd={rcd}
                         user={user}
                         totalCollections={totalCollections}
-                        formatCurrency={formatCurrency}
+                        formatCurrency={formatAmount}
                     />
 
                     {/* REMITTANCE */}
 
                     <RCDRemittance
                         totalDeposits={totalDeposits}
-                        formatCurrency={formatCurrency}
+                        formatCurrency={formatAmount}
                     />
 
                     {/* ACCOUNTABILITY */}
@@ -506,11 +542,12 @@ export default function RCDPreview({
 
                     <div className="rcd-summary-container">
                         <RCDSummary
+                            rcd={rcd}
                             totalCollections={totalCollections}
                             cashCollections={cashCollections}
                             checkCollections={checkCollections}
                             balance={balance}
-                            formatCurrency={formatCurrency}
+                            formatCurrency={formatAmount}
                         />
                     </div>
 

@@ -2,27 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { X, Loader2, Save } from "lucide-react";
-
-export type NewOBRData = {
-  obr_number: string;
-  obr_date: string;
-  payee: string;
-  particulars: string;
-  office_id: string;
-  sub_office_id: string | null;
-  category_id: string;
-  account_id: string;
-  obligation_amount: number;
-  remarks: string;
-
-  // Display metadata for temporary OBR
-  office_name?: string;
-  sub_office_name?: string | null;
-  category_name?: string;
-  category_code?: string;
-  account_name?: string;
-  account_code?: string;
-};
+import type { NewOBRData } from "./types";
 
 type Office = {
   id: string;

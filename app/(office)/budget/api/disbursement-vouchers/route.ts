@@ -31,6 +31,7 @@ type DVRequest = {
   payee: string;
   payor?: string;
   particulars?: string;
+  total_deductions?: number | string;
   items: DVItemInput[];
 };
 
@@ -123,6 +124,8 @@ export async function GET(request: NextRequest) {
           payor,
           particulars,
           grand_total,
+          total_deductions,
+          net_amount,
           status,
           created_by,
           created_at,
@@ -178,6 +181,8 @@ export async function GET(request: NextRequest) {
         dv.payor,
         dv.particulars,
         dv.grand_total,
+        dv.total_deductions,
+        dv.net_amount,
         dv.status,
         dv.created_at,
         COUNT(dvi.id)::int AS items_count
@@ -507,6 +512,24 @@ export async function POST(request: NextRequest) {
     }
 
     // --------------------------------------------------------
+    // 7. COMPUTE DV DEDUCTIONS AND NET AMOUNT
+    // --------------------------------------------------------
+
+    const totalDeductions = Number(body.total_deductions ?? 0);
+
+    if (!Number.isFinite(totalDeductions) || totalDeductions < 0) {
+      throw new Error("Total deductions must be a valid non-negative amount.");
+    }
+
+    const normalizedDeductions = Number(totalDeductions.toFixed(2));
+
+    if (normalizedDeductions > grandTotal) {
+      throw new Error("Total deductions cannot exceed the gross amount.");
+    }
+
+    const netAmount = Number((grandTotal - normalizedDeductions).toFixed(2));
+
+    // --------------------------------------------------------
     // 7. INSERT DV HEADER
     // --------------------------------------------------------
 
@@ -519,9 +542,11 @@ export async function POST(request: NextRequest) {
         payor,
         particulars,
         grand_total,
+        total_deductions,
+        net_amount,
         status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, 'recorded')
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'recorded')
       RETURNING *
       `,
       [
@@ -531,6 +556,8 @@ export async function POST(request: NextRequest) {
         payor,
         String(body.particulars ?? "").trim(),
         grandTotal,
+        normalizedDeductions,
+        netAmount,
       ]
     );
 
@@ -579,6 +606,8 @@ export async function POST(request: NextRequest) {
           ...dv,
           items,
           grand_total: grandTotal,
+          total_deductions: normalizedDeductions,
+          net_amount: netAmount,
         },
       },
       { status: 201 }

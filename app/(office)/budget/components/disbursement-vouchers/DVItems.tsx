@@ -1,13 +1,7 @@
 
 "use client";
 
-import {
-  Trash2,
-  Building2,
-  FolderOpen,
-  Wallet,
-} from "lucide-react";
-
+import { Trash2 } from "lucide-react";
 import type { DVItem } from "./types";
 
 type Props = {
@@ -22,158 +16,92 @@ const peso = (value: number | string) =>
     minimumFractionDigits: 2,
   }).format(Number(value || 0));
 
-export default function DVItems({
-  items,
-  onChange,
-}: Props) {
+export default function DVItems({ items, onChange }: Props) {
   const totalOBRAmount = items.reduce(
-    (total, item) =>
-      total + (Number(item.obligation_amount) || 0),
+    (total, item) => total + (Number(item.obligation_amount) || 0),
     0
   );
 
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
-      <table className="w-full min-w-[1050px] text-left">
+    <div className="rounded-md border border-slate-200 bg-white overflow-hidden">
+      <table className="w-full table-fixed text-left">
         <thead className="bg-[#EDF3F7] text-[10px] font-semibold uppercase text-slate-500">
           <tr>
-            <th className="w-10 px-2 py-3 text-center">
-              #
-            </th>
-
-            <th className="w-36 px-3 py-3">
-              OBR No.
-            </th>
-
-            <th className="w-44 px-3 py-3">
-              Office / Sub-office
-            </th>
-
-            <th className="w-48 px-3 py-3">
-              Expense Category
-            </th>
-
-            <th className="w-48 px-3 py-3">
-              Expense Account
-            </th>
-
-            <th className="w-40 px-3 py-3 text-right">
-              OBR Amount
-            </th>
-
-            <th className="w-10 px-2 py-3" />
+            <th className="w-8 px-2 py-2 text-center">#</th>
+            <th className="w-32 px-2 py-2">OBR No.</th>
+            <th className="px-2 py-2">Particulars</th>
+            <th className="w-36 px-2 py-2 text-right">OBR Amount</th>
+            <th className="w-8 px-2 py-2" />
           </tr>
         </thead>
 
         <tbody className="divide-y divide-slate-100">
           {items.length > 0 ? (
-            items.map((item, index) => (
-              <tr
-                key={item.id}
-                className="transition-colors hover:bg-slate-50"
-              >
-                <td className="px-2 py-3 text-center text-xs text-slate-400">
-                  {index + 1}
-                </td>
+            items.map((item, index) => {
+              const particulars = [
+                item.payee,
+                item.office_name,
+                item.sub_office_name,
+                item.category_name,
+                item.account_code
+                  ? `${item.account_code} - ${item.account_name || ""}`
+                  : item.account_name,
+              ]
+                .filter(Boolean)
+                .join(" / ");
 
-                <td className="px-3 py-3 align-top">
-                  <p className="text-xs font-bold text-slate-700">
-                    {item.obr_no}
-                  </p>
+              return (
+                <tr
+                  key={item.id}
+                  className="transition-colors hover:bg-slate-50"
+                >
+                  <td className="px-2 py-2 text-center text-[10px] text-slate-400">
+                    {index + 1}
+                  </td>
 
-                  {item.particulars && (
-                    <p className="mt-1 text-[10px] text-slate-400">
-                      {item.particulars}
+                  <td className="px-2 py-2 align-middle">
+                    <p className="truncate text-xs font-bold text-slate-700">
+                      {item.obr_no || "—"}
                     </p>
-                  )}
-                </td>
+                  </td>
 
-                <td className="px-3 py-3 align-top">
-                  <div className="flex items-start gap-2">
-                    <Building2
-                      size={14}
-                      className="mt-0.5 shrink-0 text-[#6689A5]"
-                    />
+                  <td className="px-2 py-2 align-middle">
+                    <p
+                      className="truncate text-xs text-slate-700"
+                      title={particulars}
+                    >
+                      {particulars || "—"}
+                    </p>
+                  </td>
 
-                    <div>
-                      <p className="text-xs font-medium text-slate-700">
-                        {item.office_name || "—"}
-                      </p>
+                  <td className="px-2 py-2 text-right align-middle">
+                    <p className="whitespace-nowrap text-xs font-semibold tabular-nums text-slate-600">
+                      {peso(item.obligation_amount || 0)}
+                    </p>
+                  </td>
 
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        {item.sub_office_name || "No sub-office"}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-3 py-3 align-top">
-                  <div className="flex items-start gap-2">
-                    <FolderOpen
-                      size={14}
-                      className="mt-0.5 shrink-0 text-[#6689A5]"
-                    />
-
-                    <div>
-                      <p className="text-xs font-medium text-slate-700">
-                        {item.category_name || "—"}
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        {item.category_code || ""}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-3 py-3 align-top">
-                  <div className="flex items-start gap-2">
-                    <Wallet
-                      size={14}
-                      className="mt-0.5 shrink-0 text-[#6689A5]"
-                    />
-
-                    <div>
-                      <p className="text-xs font-medium text-slate-700">
-                        {item.account_name || "—"}
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        {item.account_code || ""}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-3 py-3 text-right align-top">
-                  <p className="whitespace-nowrap text-xs font-semibold tabular-nums text-slate-600">
-                    {peso(item.obligation_amount || 0)}
-                  </p>
-                </td>
-
-                <td className="px-2 py-3 text-center align-top">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChange(
-                        items.filter(
-                          (current) => current.id !== item.id
+                  <td className="px-1 py-2 text-center align-middle">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange(
+                          items.filter((current) => current.id !== item.id)
                         )
-                      )
-                    }
-                    className="rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                    title="Remove OBR"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))
+                      }
+                      className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                      title="Remove OBR"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
               <td
-                colSpan={7}
-                className="px-4 py-10 text-center text-xs text-slate-400"
+                colSpan={5}
+                className="px-4 py-6 text-center text-xs text-slate-400"
               >
                 No OBR items added. Click Add OBR.
               </td>
@@ -185,13 +113,13 @@ export default function DVItems({
           <tfoot className="border-t border-[#C7D8E3] bg-[#EDF3F7]">
             <tr>
               <td
-                colSpan={5}
-                className="px-3 py-3 text-right text-xs font-bold uppercase text-[#557992]"
+                colSpan={3}
+                className="px-2 py-2 text-right text-[10px] font-bold uppercase text-[#557992]"
               >
                 Total OBR Amount
               </td>
 
-              <td className="px-3 py-3 text-right text-sm font-bold tabular-nums text-[#557992]">
+              <td className="px-2 py-2 text-right text-sm font-bold tabular-nums text-[#557992]">
                 {peso(totalOBRAmount)}
               </td>
 

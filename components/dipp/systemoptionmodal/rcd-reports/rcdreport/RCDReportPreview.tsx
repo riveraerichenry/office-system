@@ -44,23 +44,45 @@ function formatDate(
 
 }
 
-function formatAmount(
-    value: any
-) {
+function isRPTFund(fund: any): boolean {
+    const values = [
+        fund?.fund_code,
+        fund?.fund_name,
+        fund?.acronym,
+        fund?.name,
+        fund?.description,
+    ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
 
-    const amount =
-        Number(
-            value ?? 0
-        );
+    return values.some((value) =>
+        value.includes("rpt") ||
+        value.includes("real property tax") ||
+        value.includes("property tax")
+    );
+}
+
+function formatAmount(
+    value: any,
+    fund: any = {}
+) {
+    const amount = Number(value ?? 0);
+    const isRPT = isRPTFund(fund);
+    const thirdDecimalDigit =
+        Math.abs(amount).toFixed(3).split(".")[1]?.[2] ?? "0";
+    const hasNonZeroThirdDecimal =
+        thirdDecimalDigit !== "0";
+
+    const decimalPlaces =
+        isRPT && hasNonZeroThirdDecimal ? 3 : 2;
 
     return amount.toLocaleString(
         "en-PH",
         {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            maximumFractionDigits: decimalPlaces,
         }
     );
-
 }
 
 function getFullName(
@@ -651,8 +673,7 @@ export default function RCDPreview({
                                             ">
                                                 {
                                                     formatAmount(
-                                                        item?.amount
-                                                    )
+                                                        item?.amount, fund)
                                                 }
                                             </td>
 
@@ -695,8 +716,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalCollections
-                                        )
+                                            totalCollections, fund)
                                     }
                                 </td>
 
@@ -759,8 +779,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalRemittances
-                                        )
+                                            totalRemittances, fund)
                                     }
                                 </div>
 
@@ -783,8 +802,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalDeposits
-                                        )
+                                            totalDeposits, fund)
                                     }
                                 </div>
 
@@ -848,8 +866,7 @@ export default function RCDPreview({
                                                 formatAmount(
                                                     rcd
                                                         .remittance
-                                                        ?.cash_amount
-                                                )
+                                                        ?.cash_amount, fund)
                                             }
                                         </div>
 
@@ -873,8 +890,7 @@ export default function RCDPreview({
                                                 formatAmount(
                                                     rcd
                                                         .remittance
-                                                        ?.check_amount
-                                                )
+                                                        ?.check_amount, fund)
                                             }
                                         </div>
 
@@ -1196,8 +1212,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalCollections
-                                        )
+                                            totalCollections, fund)
                                     }
                                 </div>
 
@@ -1224,8 +1239,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalRemittances
-                                        )
+                                            totalRemittances, fund)
                                     }
                                 </div>
 
@@ -1252,8 +1266,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            totalDeposits
-                                        )
+                                            totalDeposits, fund)
                                     }
                                 </div>
 
@@ -1278,8 +1291,7 @@ export default function RCDPreview({
                                     ₱
                                     {
                                         formatAmount(
-                                            balance
-                                        )
+                                            balance, fund)
                                     }
                                 </div>
 

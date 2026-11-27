@@ -1,18 +1,20 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { RCDItem, RCDFormRow } from "./RCDTypes";
+import { RCD, RCDItem, RCDFormRow } from "./RCDTypes";
 
 type Props = {
+    rcd: RCD;
     items: RCDItem[];
     totalCollections: number;
     formatCurrency: (
-        value: number | string | null | undefined
+        value: number | string | null | undefined,
+        rcd?: RCD | null
     ) => string;
 };
 
 export default function RCDCollections({
+    rcd,
     items,
     totalCollections,
     formatCurrency,
@@ -29,16 +31,19 @@ export default function RCDCollections({
                 setLoading(true);
                 setError("");
 
-                const response = await fetch("/api/rcd/collections", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    cache: "no-store",
-                    signal: controller.signal,
-                    body: JSON.stringify({ items }),
-                });
+                const response = await fetch(
+                    "/api/rcd/collections",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        cache: "no-store",
+                        signal: controller.signal,
+                        body: JSON.stringify({ items }),
+                    }
+                );
 
                 const result = await response.json();
 
@@ -57,8 +62,13 @@ export default function RCDCollections({
             } catch (err) {
                 if (controller.signal.aborted) return;
 
-                console.error("RCD collections error:", err);
+                console.error(
+                    "RCD collections error:",
+                    err
+                );
+
                 setFormRows([]);
+
                 setError(
                     err instanceof Error
                         ? err.message
@@ -86,16 +96,25 @@ export default function RCDCollections({
             <table className="rcd-table">
                 <thead>
                     <tr>
-                        <th rowSpan={2} style={{ width: "38%" }}>
+                        <th
+                            rowSpan={2}
+                            style={{ width: "38%" }}
+                        >
                             Type ( Form No )
                         </th>
+
                         <th colSpan={2}>
                             Official Receipts / Serial No
                         </th>
-                        <th rowSpan={2} style={{ width: "25%" }}>
+
+                        <th
+                            rowSpan={2}
+                            style={{ width: "25%" }}
+                        >
                             Amount
                         </th>
                     </tr>
+
                     <tr>
                         <th>From</th>
                         <th>To</th>
@@ -105,7 +124,10 @@ export default function RCDCollections({
                 <tbody>
                     {loading ? (
                         <tr>
-                            <td colSpan={4} className="center">
+                            <td
+                                colSpan={4}
+                                className="center"
+                            >
                                 Loading collections...
                             </td>
                         </tr>
@@ -125,17 +147,28 @@ export default function RCDCollections({
                         </tr>
                     ) : (
                         formRows.map((row, index) => (
-                            <tr key={`${row.formCode}-${index}`}>
+                            <tr
+                                key={`${row.formCode}-${index}`}
+                            >
                                 <td className="bold">
-                                    <center>{row.formCode}</center>
+                                    <center>
+                                        {row.formCode}
+                                    </center>
                                 </td>
 
-                                <td className="center">{row.from}</td>
+                                <td className="center">
+                                    {row.from}
+                                </td>
 
-                                <td className="center">{row.to}</td>
+                                <td className="center">
+                                    {row.to}
+                                </td>
 
                                 <td className="right bold">
-                                    {formatCurrency(row.amount)}
+                                    {formatCurrency(
+                                        row.amount,
+                                        rcd
+                                    )}
                                 </td>
                             </tr>
                         ))
@@ -145,16 +178,23 @@ export default function RCDCollections({
                         <td
                             colSpan={3}
                             className="bold"
-                            style={{ height: "50px" }}
+                            style={{
+                                height: "50px",
+                            }}
                         >
                             TOTAL
                         </td>
 
                         <td
                             className="right bold"
-                            style={{ fontSize: "15px" }}
+                            style={{
+                                fontSize: "15px",
+                            }}
                         >
-                            {formatCurrency(totalCollections)}
+                            {formatCurrency(
+                                totalCollections,
+                                rcd
+                            )}
                         </td>
                     </tr>
                 </tbody>

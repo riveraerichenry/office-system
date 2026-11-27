@@ -1018,27 +1018,60 @@ export default function MyRCDReportsModal({
     ============================================================
     */
 
+    function isRPTReport(rcd?: RCDReportItem | null): boolean {
+        if (!rcd) return false;
+
+        const values = [
+            rcd.fund_code,
+            rcd.fund_name,
+            rcd.acronym,
+        ];
+
+        const searchableText = values
+            .filter(Boolean)
+            .map((value) => String(value).toLowerCase())
+            .join(" ");
+
+        return (
+            searchableText.includes("rpt") ||
+            searchableText.includes("real property tax") ||
+            searchableText.includes("property tax")
+        );
+    }
+
     function formatCurrency(
         value:
             | number
             | string
             | null
-            | undefined
+            | undefined,
+        rcd?: RCDReportItem | null
     ) {
+        const amount = Number(value ?? 0);
 
-        return Number(
-            value ?? 0
-        ).toLocaleString(
-            "en-PH",
-            {
-                minimumFractionDigits:
-                    3,
+        if (!Number.isFinite(amount)) {
+            return "0.00";
+        }
 
-                maximumFractionDigits:
-                    3,
-            }
-        );
+        // NON-RPT: Always display 2 decimal places.
+        if (!isRPTReport(rcd)) {
+            return amount.toLocaleString("en-PH", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        }
 
+        // RPT: Display 3 decimals only when the third decimal digit is non-zero.
+        const thirdDecimalDigit = Math.abs(amount)
+            .toFixed(3)
+            .charAt(Math.abs(amount).toFixed(3).indexOf(".") + 3);
+
+        const hasNonZeroThirdDecimal = thirdDecimalDigit !== "0";
+
+        return amount.toLocaleString("en-PH", {
+            minimumFractionDigits: hasNonZeroThirdDecimal ? 3 : 2,
+            maximumFractionDigits: hasNonZeroThirdDecimal ? 3 : 2,
+        });
     }
 
 
@@ -2043,7 +2076,8 @@ export default function MyRCDReportsModal({
                                                                     ₱
                                                                     {
                                                                         formatCurrency(
-                                                                            rcd.total_collections
+                                                                            rcd.total_collections,
+                                                                            rcd
                                                                         )
                                                                     }
                                                                 </div>

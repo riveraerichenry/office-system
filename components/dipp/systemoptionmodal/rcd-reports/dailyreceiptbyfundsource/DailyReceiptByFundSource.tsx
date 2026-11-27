@@ -1,4 +1,3 @@
-
 "use client";
 
 import "./DailyReceiptPreview.css";
@@ -54,13 +53,74 @@ function formatDate(value?: string | null): string {
 
 /* ============================================================
    AMOUNT FORMAT
+
+   NON-RPT:
+   Always 2 decimal places.
+
+   RPT:
+   Display 3 decimal places only if the 3rd decimal
+   digit is non-zero. Otherwise display 2 decimals.
 ============================================================ */
 
-function formatAmount(value: any): string {
-    return Number(value ?? 0).toLocaleString("en-PH", {
-        minimumFractionDigits: 3,
-        maximumFractionDigits: 3,
+function formatAmount(value: any, isRPT = false): string {
+    const amount = Number(value ?? 0);
+
+    if (!Number.isFinite(amount)) {
+        return "0.00";
+    }
+
+    // NON-RPT: Always 2 decimal places
+    if (!isRPT) {
+        return amount.toLocaleString("en-PH", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    // RPT: Check whether the 3rd decimal digit is non-zero
+    const roundedToTwoDecimals = Math.round(amount * 100) / 100;
+
+    const hasNonZeroThirdDecimal =
+        Math.abs(amount - roundedToTwoDecimals) >= 0.0005;
+
+    return amount.toLocaleString("en-PH", {
+        minimumFractionDigits: hasNonZeroThirdDecimal ? 3 : 2,
+        maximumFractionDigits: hasNonZeroThirdDecimal ? 3 : 2,
     });
+}
+
+/* ============================================================
+   DETECT RPT REPORT
+============================================================ */
+
+function isRPTReport(report: any, fundSource: any): boolean {
+    const values = [
+        report?.type,
+        report?.report_type,
+        report?.report_name,
+        report?.name,
+        report?.module,
+        report?.transaction_type,
+        report?.source,
+        report?.fund_source_name,
+        report?.fund_source,
+        fundSource?.name,
+        fundSource?.fund_source_name,
+        fundSource?.type,
+        fundSource?.code,
+    ];
+
+    const searchableText = values
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase())
+        .join(" ");
+
+    return (
+        searchableText.includes("rpt") ||
+        searchableText.includes("real property tax") ||
+        searchableText.includes("real_property_tax") ||
+        searchableText.includes("property tax")
+    );
 }
 
 /* ============================================================
@@ -330,6 +390,16 @@ export default function DailyReceiptByFundSource({
     void dateTo;
 
     /* ============================================================
+       DETERMINE AMOUNT FORMAT
+    ============================================================ */
+
+    const isRPT = isRPTReport(report, fundSource);
+
+    // Pass a formatter that already knows whether this is RPT.
+    const amountFormatter = (value: any) =>
+        formatAmount(value, isRPT);
+
+    /* ============================================================
        PAGINATION
     ============================================================ */
 
@@ -415,7 +485,7 @@ export default function DailyReceiptByFundSource({
 
                         <DailyReceipts
                             items={pageItems}
-                            formatAmount={formatAmount}
+                            formatAmount={amountFormatter}
                             startIndex={startIndex}
                             showGrandTotal={isLastPage}
                             totalReceiptCount={totalReceiptCount}

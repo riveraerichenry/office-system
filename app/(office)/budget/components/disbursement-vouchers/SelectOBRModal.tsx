@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -12,31 +13,17 @@ import {
   FilePlus2,
 } from "lucide-react";
 
-import type { OBRRecord } from "./types";
-import CreateOBRModal, {
-  type NewOBRData,
-} from "./CreateOBRModal";
-
-type OBRDisplayRecord = OBRRecord & {
-  office_name?: string;
-  sub_office_name?: string | null;
-  category_code?: string;
-  category_name?: string;
-  account_code?: string;
-  account_name?: string;
-  obligation_amount?: number | string;
-  total_allocation?: number | string;
-  new_obr?: NewOBRData;
-};
+import type { OBRRecord, NewOBRData } from "./types";
+import CreateOBRModal from "./CreateOBRModal";
 
 type Props = {
-  obrs: OBRDisplayRecord[];
+  obrs: OBRRecord[];
   selectedIds: string[];
   onClose: () => void;
   onSelect: (obr: OBRRecord) => void;
 };
 
-const peso = (value: number | string) =>
+const peso = (value: number | string | null | undefined) =>
   new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
@@ -44,10 +31,19 @@ const peso = (value: number | string) =>
   }).format(Number(value || 0));
 
 function getId() {
-  return typeof crypto !== "undefined" &&
-    "randomUUID" in crypto
-    ? generateUUID()
-    : `${Date.now()}-${Math.random()}`;
+  return generateUUID();
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  return "";
 }
 
 export default function SelectOBRModal({
@@ -67,7 +63,7 @@ export default function SelectOBRModal({
     const query = search.toLowerCase().trim();
 
     return obrs.filter((obr) => {
-      const matchesSearch = [
+      const searchableValues: unknown[] = [
         obr.obr_number,
         obr.payee,
         obr.particulars,
@@ -77,14 +73,13 @@ export default function SelectOBRModal({
         obr.category_name,
         obr.account_code,
         obr.account_name,
-      ].some((value) =>
-        String(value || "").toLowerCase().includes(query)
+      ];
+
+      const matchesSearch = searchableValues.some((value) =>
+        displayValue(value).toLowerCase().includes(query)
       );
 
-      return (
-        !selectedIds.includes(obr.id) &&
-        matchesSearch
-      );
+      return !selectedIds.includes(obr.id) && matchesSearch;
     });
   }, [obrs, selectedIds, search]);
 
@@ -95,9 +90,7 @@ export default function SelectOBRModal({
   function handleCreateOBR(data: NewOBRData) {
     const temporaryId = `NEW-${getId()}`;
 
-    const newOBR: OBRRecord & {
-      new_obr?: NewOBRData;
-    } = {
+    const newOBR = {
       id: temporaryId,
 
       obr_number: data.obr_number,
@@ -105,13 +98,11 @@ export default function SelectOBRModal({
       payee: data.payee,
       particulars: data.particulars,
 
-      // IDs
       office_id: data.office_id,
       sub_office_id: data.sub_office_id,
       category_id: data.category_id,
       account_id: data.account_id,
 
-      // DISPLAY DATA - IMPORTANT FIX
       office_name: data.office_name || "",
       sub_office_name: data.sub_office_name ?? null,
 
@@ -121,7 +112,6 @@ export default function SelectOBRModal({
       account_code: data.account_code || "",
       account_name: data.account_name || "",
 
-      // AMOUNT
       obligation_amount: data.obligation_amount,
       total_amount: data.obligation_amount,
       total_allocation: data.obligation_amount,
@@ -129,13 +119,10 @@ export default function SelectOBRModal({
 
       status: "temporary",
 
-      // Preserve complete payload until DV save
       new_obr: data,
-    };
+    } as OBRRecord;
 
-    // Add to DV
     onSelect(newOBR);
-
     setShowCreateOBR(false);
   }
 
@@ -171,7 +158,6 @@ export default function SelectOBRModal({
 
           {/* ACTIONS AND SEARCH */}
           <div className="shrink-0 space-y-3 border-b border-slate-200 p-3">
-
             <div className="flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
@@ -195,9 +181,7 @@ export default function SelectOBRModal({
 
               <input
                 value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search OBR, payee, office, category, account..."
                 className="w-full bg-transparent py-2.5 text-sm outline-none"
               />
@@ -208,7 +192,6 @@ export default function SelectOBRModal({
           <div className="min-h-0 flex-1 overflow-auto p-3">
             <div className="overflow-x-auto rounded border border-slate-200">
               <table className="w-full min-w-[1150px] text-left">
-
                 <thead className="sticky top-0 z-10 bg-[#EDF3F7] text-[10px] font-semibold uppercase text-slate-500">
                   <tr>
                     <th className="px-3 py-3">
@@ -242,7 +225,6 @@ export default function SelectOBRModal({
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-
                   {filtered.length > 0 ? (
                     filtered.map((obr) => {
                       const obligationAmount = Number(
@@ -260,12 +242,12 @@ export default function SelectOBRModal({
                           {/* OBR NUMBER */}
                           <td className="px-3 py-3 align-top">
                             <p className="text-xs font-bold text-slate-700">
-                              {obr.obr_number}
+                              {displayValue(obr.obr_number) || "—"}
                             </p>
 
                             <p className="mt-1 text-[10px] text-slate-400">
-                              {obr.obr_date
-                                ? String(obr.obr_date).slice(0, 10)
+                              {displayValue(obr.obr_date)
+                                ? displayValue(obr.obr_date).slice(0, 10)
                                 : "—"}
                             </p>
                           </td>
@@ -273,12 +255,12 @@ export default function SelectOBRModal({
                           {/* PAYEE */}
                           <td className="px-3 py-3 align-top">
                             <p className="text-xs font-medium text-slate-700">
-                              {obr.payee || "—"}
+                              {displayValue(obr.payee) || "—"}
                             </p>
 
-                            {obr.particulars && (
-                              <p className="mt-1 max-w-[180px] text-[10px] text-slate-400">
-                                {obr.particulars}
+                            {displayValue(obr.particulars) !== "" && (
+                              <p className="mt-1 max-w-[180px] whitespace-pre-wrap text-[10px] text-slate-400">
+                                {displayValue(obr.particulars)}
                               </p>
                             )}
                           </td>
@@ -293,11 +275,11 @@ export default function SelectOBRModal({
 
                               <div>
                                 <p className="text-xs font-medium text-slate-700">
-                                  {obr.office_name || "—"}
+                                  {displayValue(obr.office_name) || "—"}
                                 </p>
 
                                 <p className="mt-1 text-[10px] text-slate-400">
-                                  {obr.sub_office_name ||
+                                  {displayValue(obr.sub_office_name) ||
                                     "No sub-office"}
                                 </p>
                               </div>
@@ -314,11 +296,11 @@ export default function SelectOBRModal({
 
                               <div>
                                 <p className="text-xs font-medium text-slate-700">
-                                  {obr.category_name || "—"}
+                                  {displayValue(obr.category_name) || "—"}
                                 </p>
 
                                 <p className="mt-1 text-[10px] text-slate-400">
-                                  {obr.category_code || ""}
+                                  {displayValue(obr.category_code)}
                                 </p>
                               </div>
                             </div>
@@ -334,11 +316,11 @@ export default function SelectOBRModal({
 
                               <div>
                                 <p className="text-xs font-medium text-slate-700">
-                                  {obr.account_name || "—"}
+                                  {displayValue(obr.account_name) || "—"}
                                 </p>
 
                                 <p className="mt-1 text-[10px] text-slate-400">
-                                  {obr.account_code || ""}
+                                  {displayValue(obr.account_code)}
                                 </p>
                               </div>
                             </div>
